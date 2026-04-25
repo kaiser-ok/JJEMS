@@ -89,7 +89,7 @@ GitHub 連動方式（推薦）：
 3. 新增 `OPENROUTER_API_KEY` = 你的 key（**不要寫進程式碼**）
 4. Redeploy
 
-預設模型 `meta-llama/llama-3.3-70b-instruct:free`（OpenRouter 免費 tier，要在 chat.js 換可改 `api/chat.js` 裡的 `MODEL` 常數）。
+預設模型 `google/gemini-flash-1.5-8b`（cheap paid，約 $0.0375/M input、$0.15/M output — 上千次 demo 才花幾美分）。Fallback 鏈含 `gemini-2.0-flash-exp:free` 與 `llama-3.3-70b:free`。要換可改 `api/chat.js` 的 `MODELS` 陣列。
 
 LLM 在線時 Chat 視窗副標題會顯示「● Live (LLM)」綠燈。失敗會自動 fallback 到本地 mock 回覆。
 

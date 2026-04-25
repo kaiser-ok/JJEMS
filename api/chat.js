@@ -5,15 +5,13 @@
 
 export const config = { runtime: "edge" };
 
-// Fallback chain — try in order until one works.
-// 429 = rate limit on that model → try next
-// 402 = account needs credits → propagate to user
+// Primary: cheap paid Gemini Flash 1.5 8B (~$0.0375/M input, $0.15/M output)
+// — pennies for thousands of demo queries, no free-tier rate limits.
+// Fallback: a couple of free models in case of transient outages.
 const MODELS = [
-  "google/gemini-2.0-flash-exp:free",          // Google free
-  "meta-llama/llama-3.3-70b-instruct:free",    // Llama 70B free
-  "meta-llama/llama-3.2-3b-instruct:free",     // smaller Llama, lower limits
-  "qwen/qwen-2.5-7b-instruct:free",            // Qwen (good Chinese)
-  "mistralai/mistral-7b-instruct:free",        // Mistral
+  "google/gemini-flash-1.5-8b",                // primary, cheap paid
+  "google/gemini-2.0-flash-exp:free",          // free fallback
+  "meta-llama/llama-3.3-70b-instruct:free",    // free fallback
 ];
 
 const LANG_NAME = {
