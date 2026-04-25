@@ -59,18 +59,23 @@ function closeDropdown() { $("#mode-dropdown").classList.remove("open"); $("#mod
 
 // ────────── Topbar ticker ──────────
 function renderTopbar() {
-  const totKW = SITE.systems.reduce((s,x)=>s+x.pcsKW,0);
-  const avgSoC = (SITE.systems.reduce((s,x)=>s+x.soc,0) / SITE.systems.length).toFixed(0);
+  const hr = new Date().getHours();
+  const plan = planFor(state.strategy, hr);
+  const benefit = estimateBenefit(state.strategy);
   const rand = (min, max) => +(min + Math.random() * (max - min)).toFixed(0);
-  const pv = rand(280, 340), load = rand(1600, 1900), ess = rand(170, 225);
+  const pv = hr >= 6 && hr <= 18 ? rand(160, 340) : 0;
+  const load = rand(1500, 1950);
+  const ess = +(plan.kw + (Math.random() - 0.5) * 6).toFixed(0);
   const grid = load - pv - ess;
+  const soc = genSoc(state.strategy)[Math.min(95, hr * 4)];
+  const essLabel = ess > 0 ? "儲能放電" : ess < 0 ? "儲能充電" : "儲能待機";
   $("#topbar-stats").innerHTML = `
     <div class="tstat"><span class="tlabel">市電</span><span class="tvalue">${fmt(grid)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">PV</span><span class="tvalue" style="color:var(--pv-yellow)">${fmt(pv)}</span><span class="tunit">kW</span></div>
-    <div class="tstat"><span class="tlabel">儲能放電</span><span class="tvalue" style="color:var(--ess-teal)">${fmt(ess)}</span><span class="tunit">kW</span></div>
+    <div class="tstat"><span class="tlabel">${essLabel}</span><span class="tvalue" style="color:var(--ess-teal)">${fmt(Math.abs(ess))}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">負載</span><span class="tvalue" style="color:var(--load-purple)">${fmt(load)}</span><span class="tunit">kW</span></div>
-    <div class="tstat"><span class="tlabel">SoC</span><span class="tvalue" style="color:var(--green)">${avgSoC}</span><span class="tunit">%</span></div>
-    <div class="tstat"><span class="tlabel">今日節費</span><span class="tvalue">${money(KPI.todaySavings)}</span></div>
+    <div class="tstat"><span class="tlabel">SoC</span><span class="tvalue" style="color:var(--green)">${soc.toFixed(0)}</span><span class="tunit">%</span></div>
+    <div class="tstat"><span class="tlabel">今日預估節費</span><span class="tvalue" style="color:${benefit.net>=0?'var(--green)':'var(--red)'}">${money(benefit.net)}</span></div>
   `;
 }
 
@@ -97,6 +102,18 @@ window.addEventListener("hashchange", router);
 
 // ────────── 1. Dashboard ──────────
 function viewDashboard() {
+  const s = STRATEGIES[state.strategy];
+  const benefit = estimateBenefit(state.strategy);
+  const bal = dailyBalance(state.strategy);
+  const socSeries = genSoc(state.strategy);
+  const avgSoc = (socSeries.reduce((a,b)=>a+b,0) / socSeries.length).toFixed(0);
+  const cycles = (benefit.dischargeKWh / 476).toFixed(2);
+  const monthFactor = +cycles >= 0.8 ? 1 : +cycles >= 0.4 ? 0.7 : 0.3;
+  const monthSavings = Math.round(benefit.net * 22 * monthFactor); // 約 22 個工作日
+  const peakShaved = Math.round(Math.max(...socSeries.map((_,i)=>{
+    const p = planFor(state.strategy, Math.floor(i/4));
+    return p.mode==="discharge" ? p.kw : 0;
+  })));
   const v = $("#view");
   v.innerHTML = `
     <div class="page-header">
@@ -112,32 +129,49 @@ function viewDashboard() {
       </div>
     </div>
 
+    <!-- Active strategy banner -->
+    <div class="card mb-16" style="border-left:4px solid ${s.color};padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:0 0 auto">
+        <div class="muted" style="font-size:11.5px">當前運行策略</div>
+        <div style="font-size:16px;font-weight:700;color:${s.color};margin-top:2px">${s.full}</div>
+      </div>
+      <div style="flex:1;min-width:180px;border-left:1px solid var(--border-soft);padding-left:14px">
+        <div class="muted" style="font-size:11.5px">收益模式</div>
+        <div style="font-size:13px;margin-top:2px">${s.benefit}</div>
+      </div>
+      <div style="flex:1;min-width:180px;border-left:1px solid var(--border-soft);padding-left:14px">
+        <div class="muted" style="font-size:11.5px">約束</div>
+        <div style="font-size:13px;margin-top:2px">${s.constraint}</div>
+      </div>
+      <a href="#/schedule" class="btn">調整策略 →</a>
+    </div>
+
     <!-- KPI Cards -->
     <div class="kpi-grid">
       <div class="kpi">
         <div class="kpi-label">今日電費</div>
-        <div class="kpi-value">${money(KPI.todayCost)}</div>
-        <div class="kpi-foot">較昨日 <span class="delta-down">-12.4%</span></div>
+        <div class="kpi-value">${money(bal.gridImport * 5.0)}</div>
+        <div class="kpi-foot">市電 ${fmt(bal.gridImport)} kWh × 加權均價</div>
       </div>
       <div class="kpi green">
-        <div class="kpi-label">今日節費</div>
-        <div class="kpi-value">${money(KPI.todaySavings)}</div>
-        <div class="kpi-foot"><span class="delta-up">▲ +8.2%</span> · 儲能 + 套利</div>
+        <div class="kpi-label">今日預估節費</div>
+        <div class="kpi-value" style="color:${benefit.net>=0?'var(--green)':'var(--red)'}">${money(benefit.net)}</div>
+        <div class="kpi-foot">${s.label} · ${cycles} 循環</div>
       </div>
       <div class="kpi blue">
-        <div class="kpi-label">本月節費</div>
-        <div class="kpi-value">${money(KPI.monthSavings)}</div>
-        <div class="kpi-foot">達成率 <span class="strong">82%</span> / ${money(156000)}</div>
+        <div class="kpi-label">本月累計節費</div>
+        <div class="kpi-value">${money(monthSavings)}</div>
+        <div class="kpi-foot">達成率 <span class="strong">${Math.min(100, Math.round(monthSavings/156000*100))}%</span> / ${money(156000)}</div>
       </div>
       <div class="kpi amber">
         <div class="kpi-label">儲能平均 SoC</div>
-        <div class="kpi-value">${KPI.soc}<span class="unit">%</span></div>
-        <div class="kpi-foot">效率 <span class="strong">${KPI.cycleEff}%</span> · 1 循環/日</div>
+        <div class="kpi-value">${avgSoc}<span class="unit">%</span></div>
+        <div class="kpi-foot">效率 <span class="strong">${KPI.cycleEff}%</span> · ${cycles} 循環/日</div>
       </div>
       <div class="kpi purple">
-        <div class="kpi-label">削峰功率</div>
-        <div class="kpi-value">${KPI.peakShaved}<span class="unit">kW</span></div>
-        <div class="kpi-foot">契約 2,500 kW · 避免超約</div>
+        <div class="kpi-label">最大放電功率</div>
+        <div class="kpi-value">${peakShaved}<span class="unit">kW</span></div>
+        <div class="kpi-foot">${state.strategy==='peakShave'?'削峰填谷':state.strategy==='afc'?'AFC 雙向':state.strategy==='manual'?'手動指令':'依策略放電'}</div>
       </div>
       <div class="kpi pink">
         <div class="kpi-label">最高電芯溫度</div>
@@ -180,14 +214,14 @@ function viewDashboard() {
 
     <div class="grid g-3">
       <div class="card">
-        <div class="card-head"><h3>今日能量平衡</h3></div>
+        <div class="card-head"><h3>今日能量平衡</h3><span class="tag" style="background:${s.color}1a;color:${s.color}">${s.label}</span></div>
         <table class="data" style="margin:-4px 0">
           <tbody>
-            <tr><td>市電購入</td><td class="num">${fmt(14820)} kWh</td></tr>
-            <tr><td>太陽能發電</td><td class="num">${fmt(2180)} kWh</td></tr>
-            <tr><td>儲能放電</td><td class="num">${fmt(420)} kWh</td></tr>
-            <tr><td>儲能充電</td><td class="num">${fmt(458)} kWh</td></tr>
-            <tr><td>總負載</td><td class="num strong">${fmt(16962)} kWh</td></tr>
+            <tr><td>市電購入</td><td class="num">${fmt(bal.gridImport)} kWh</td></tr>
+            <tr><td>太陽能發電</td><td class="num">${fmt(bal.pv)} kWh</td></tr>
+            <tr><td>儲能放電</td><td class="num">${fmt(bal.discharge)} kWh</td></tr>
+            <tr><td>儲能充電</td><td class="num">${fmt(bal.charge)} kWh</td></tr>
+            <tr><td>總負載</td><td class="num strong">${fmt(bal.load)} kWh</td></tr>
           </tbody>
         </table>
       </div>
@@ -217,12 +251,23 @@ function viewDashboard() {
 }
 
 function drawFlowMini() {
+  const hr = new Date().getHours();
+  const plan = planFor(state.strategy, hr);
+  const bal = dailyBalance(state.strategy);
+  const socSeries = genSoc(state.strategy);
+  const soc = socSeries[Math.min(95, hr*4)].toFixed(0);
+  const pv = hr >= 6 && hr <= 18 ? Math.round(160 + Math.random()*180) : 0;
+  const load = Math.round(1500 + Math.random()*450);
+  const ess = Math.round(plan.kw + (Math.random()-0.5)*6);
+  const grid = load - pv - ess;
+  const essLabel = ess > 0 ? "儲能放電" : ess < 0 ? "儲能充電" : "儲能待機";
+  const essDir = ess > 0 ? `SoC ${soc}% · 放電中` : ess < 0 ? `SoC ${soc}% · 充電中` : `SoC ${soc}% · 待機`;
   const data = [
-    { cls:"grid",  label:"台電市電",  val: 1412, unit:"kW", sub:"流入" },
-    { cls:"pv",    label:"太陽能發電", val: 308,  unit:"kW", sub:"發電中" },
-    { cls:"ess",   label:"儲能放電",   val: 215,  unit:"kW", sub:"SoC 68%" },
-    { cls:"load",  label:"廠區負載",   val: 1735, unit:"kW", sub:"運轉中" },
-    { cls:"meter", label:"用電表",     val: 16.96,unit:"MWh",sub:"今日累積" },
+    { cls:"grid",  label:"台電市電",  val: grid, unit:"kW", sub: grid>0 ? "流入" : "回饋" },
+    { cls:"pv",    label:"太陽能發電", val: pv,   unit:"kW", sub: pv>0 ? "發電中" : "夜間休息" },
+    { cls:"ess",   label: essLabel,   val: Math.abs(ess), unit:"kW", sub: essDir },
+    { cls:"load",  label:"廠區負載",   val: load, unit:"kW", sub:"運轉中" },
+    { cls:"meter", label:"用電表",     val: bal.load/1000, unit:"MWh", sub:"今日累積" },
   ];
   $("#flowmini").innerHTML = data.map(d => `
     <div class="flow-node ${d.cls}">
@@ -234,7 +279,7 @@ function drawFlowMini() {
 }
 
 function drawChart24h() {
-  const pts = gen24h();
+  const pts = gen24h(state.strategy);
   const labels = pts.map(p => p.time);
   const ctx = $("#chart24h");
   addChart(new Chart(ctx, {
@@ -268,8 +313,8 @@ function drawChart24h() {
 }
 
 function drawChartSoc() {
-  const pts = gen24h();
-  const soc = genSoc();
+  const pts = gen24h(state.strategy);
+  const soc = genSoc(state.strategy);
   addChart(new Chart($("#chartSoc"), {
     type: "line",
     data: {

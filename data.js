@@ -39,7 +39,8 @@ const KPI = {
 };
 
 // Generate 24h load / PV / ESS / grid curves (15-min resolution)
-function gen24h() {
+// ESS profile is driven by the active strategy via planFor()
+function gen24h(strategyId = "arbitrage") {
   const pts = [];
   for (let i = 0; i < 96; i++) {
     const t = i / 4;                         // hour (0..23.75)
@@ -59,13 +60,9 @@ function gen24h() {
       pv = Math.max(0, pv);
     }
 
-    // ESS — charge at off-peak (0-6, 9-15), discharge at peak (16-22)
-    let ess = 0;
-    if (hr >= 1 && hr <= 5) ess = -180;       // charge (negative = grid-to-battery)
-    else if (hr >= 10 && hr <= 14) ess = -60; // trickle charge midday using surplus PV
-    else if (hr >= 16 && hr <= 21) ess = 215; // discharge (positive)
-    else ess = 0;
-    ess += (Math.random() - 0.5) * 8;
+    // ESS — driven by strategy (positive = discharge, negative = charge)
+    const plan = planFor(strategyId, hr);
+    let ess = plan.kw + (Math.random() - 0.5) * 6;
 
     const grid = load - pv - ess;             // import from grid
     pts.push({
@@ -80,12 +77,12 @@ function gen24h() {
   return pts;
 }
 
-// SoC curve over 24h (integrate ess)
-function genSoc() {
+// SoC curve over 24h (integrate ess for the given strategy)
+function genSoc(strategyId = "arbitrage") {
   const cap = SITE.systems.reduce((s, x) => s + x.batteryKWh, 0); // 476 kWh
   let soc = 50;
   const out = [];
-  const pts = window.__POINTS__ || (window.__POINTS__ = gen24h());
+  const pts = gen24h(strategyId);
   for (const p of pts) {
     const kwh = (-p.ess) * (15 / 60); // charge positive energy into battery
     soc += (kwh / cap) * 100;
@@ -93,6 +90,26 @@ function genSoc() {
     out.push(+soc.toFixed(1));
   }
   return out;
+}
+
+// Snapshot of energy balance for a given strategy (kWh totals over 24h)
+function dailyBalance(strategyId) {
+  const pts = gen24h(strategyId);
+  let gridImport = 0, pv = 0, charge = 0, discharge = 0, load = 0;
+  for (const p of pts) {
+    load       += p.load * 0.25;
+    pv         += p.pv   * 0.25;
+    if (p.ess > 0) discharge += p.ess  * 0.25;
+    if (p.ess < 0) charge    += -p.ess * 0.25;
+    if (p.grid > 0) gridImport += p.grid * 0.25;
+  }
+  return {
+    gridImport: Math.round(gridImport),
+    pv: Math.round(pv),
+    charge: Math.round(charge),
+    discharge: Math.round(discharge),
+    load: Math.round(load),
+  };
 }
 
 // Alarm list
