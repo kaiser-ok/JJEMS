@@ -438,11 +438,30 @@ function viewDashboard() {
         `).join("")}
       </div>
     </div>
+
+    <!-- 🎬 Compact alarm-action demo strip -->
+    <div class="demo-strip" id="demoStrip">
+      <div class="demo-strip-icon">🎬</div>
+      <div class="demo-strip-text">
+        <strong>Demo · 告警停機連動</strong>
+        <span class="muted" style="font-size:11.5px">點下方按鈕模擬即時告警，看 EMS 全螢幕接管流程</span>
+      </div>
+      <div class="demo-strip-buttons">
+        <button class="btn-mini" id="dashDemoThermal" title="電芯過熱 → 停機">🌡 過熱停機</button>
+        <button class="btn-mini" id="dashDemoFire" style="border-color:var(--red);color:var(--red)" title="煙感 → 消防">🔥 煙感消防</button>
+        <button class="btn-mini" id="dashDemoContract" title="超約 → 削峰">⚡ 超約削峰</button>
+        <a href="#/alarms" class="muted" style="font-size:11px;text-decoration:none">編輯規則 →</a>
+      </div>
+    </div>
   `;
 
   drawFlowMini();
   drawChart24h();
   drawChartSoc();
+
+  $("#dashDemoThermal")?.addEventListener("click", () => demoTriggerAlarm("thermal"));
+  $("#dashDemoFire")?.addEventListener("click",    () => demoTriggerAlarm("fire"));
+  $("#dashDemoContract")?.addEventListener("click",() => demoTriggerAlarm("contract"));
 }
 
 function drawFlowMini() {
@@ -2162,6 +2181,91 @@ function viewAlarms() {
       </table>
     </div>
 
+    <!-- 🔗 Interlock rules editor -->
+    <div class="card mb-16">
+      <div class="card-head">
+        <h3>🔗 告警 → 自動動作 規則</h3>
+        <div class="row" style="gap:6px">
+          <button class="btn btn-ghost" style="font-size:12px">匯入模板</button>
+          <button class="btn" style="font-size:12px">+ 新增規則</button>
+        </div>
+      </div>
+      <table class="data">
+        <thead><tr>
+          <th>啟</th><th>告警代碼</th><th>名稱</th><th>嚴重度</th><th>觸發閾值</th>
+          <th>自動動作</th><th class="right">延遲</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${ALARM_RULES.map((r,i) => `
+            <tr>
+              <td><input type="checkbox" ${r.enabled?'checked':''} class="rule-toggle" data-i="${i}"></td>
+              <td><code style="font-size:11.5px;color:var(--text-muted)">${r.code}</code></td>
+              <td>${r.name}</td>
+              <td><span class="tag ${r.sev === 'critical' ? 'err' : r.sev === 'error' ? 'err' : r.sev === 'warning' ? 'warn' : 'info'}">${ {critical:'重大',error:'錯誤',warning:'警告',info:'資訊'}[r.sev] }</span></td>
+              <td><input class="inp rule-thr" data-i="${i}" value="${r.threshold}" style="width:120px;font-size:12px;padding:4px 8px"></td>
+              <td>
+                <span class="action-tag act-${r.actType}">
+                  ${ {shutdown:'🛑',derate:'🔻',reset:'🔁',notify:'🔔'}[r.actType] } ${r.action}
+                </span>
+              </td>
+              <td class="num right"><input class="inp rule-delay" data-i="${i}" value="${r.delaySec}" type="number" style="width:60px;font-size:12px;padding:4px 8px;text-align:right"> 秒</td>
+              <td><button class="btn-mini rule-test" data-i="${i}" title="觸發測試">▶</button></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+      <div class="muted mt-12" style="font-size:11.5px">勾選 = 啟用 · 直接編輯閾值與延遲秒數 · 點 ▶ 立即模擬觸發看連動效果。</div>
+    </div>
+
+    <!-- 📜 Action audit history -->
+    <div class="grid g-2 mb-16">
+      <div class="card">
+        <div class="card-head"><h3>📜 自動動作執行歷史 (近 30 日)</h3></div>
+        <div class="grid g-3" style="gap:10px;margin-bottom:14px">
+          <div class="stat" style="padding:14px"><div class="lbl">總執行次數</div><div class="val">${ALARM_HISTORY.totals.shutdown + ALARM_HISTORY.totals.derate + ALARM_HISTORY.totals.notify}</div></div>
+          <div class="stat amber" style="padding:14px"><div class="lbl">停機 / 降載</div><div class="val">${ALARM_HISTORY.totals.shutdown} / ${ALARM_HISTORY.totals.derate}</div></div>
+          <div class="stat blue" style="padding:14px"><div class="lbl">通知</div><div class="val">${ALARM_HISTORY.totals.notify}</div></div>
+        </div>
+        <table class="data" style="font-size:12.5px">
+          <thead><tr><th>時間</th><th>規則</th><th>動作</th><th>觸發者</th><th>結果</th></tr></thead>
+          <tbody>
+            ${ALARM_HISTORY.recent.map(h => `
+              <tr>
+                <td class="num muted">${h.ts}</td>
+                <td><code style="font-size:11px;color:var(--text-muted)">${h.code}</code></td>
+                <td>${h.act}</td>
+                <td class="muted">${h.actor}</td>
+                <td><span class="tag ${h.outcome.includes('成功')||h.outcome.includes('恢復')?'ok':'warn'}">${h.outcome}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div class="row mt-12" style="padding:10px 12px;background:rgba(239,68,68,0.06);border-left:3px solid var(--red);border-radius:6px;gap:14px;font-size:12.5px">
+          <div><span class="muted">停機影響：</span><strong>${ALARM_HISTORY.downtimeHours} 小時</strong></div>
+          <div><span class="muted">損失放電：</span><strong>${ALARM_HISTORY.lostKWh} kWh</strong></div>
+          <div><span class="muted">機會成本：</span><strong style="color:var(--red)">${money(ALARM_HISTORY.lostNTD)}</strong></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>🏆 最常觸發告警 Top 5</h3></div>
+        <table class="data" style="font-size:12.5px">
+          <thead><tr><th>#</th><th>告警</th><th class="right">次數</th></tr></thead>
+          <tbody>
+            ${ALARM_HISTORY.topTriggers.map((t,i) => `
+              <tr>
+                <td class="num muted">${i+1}</td>
+                <td>
+                  <code style="font-size:11px;color:var(--text-muted)">${t.code}</code>
+                  <div class="muted" style="font-size:11.5px;margin-top:2px">${t.recommendation}</div>
+                </td>
+                <td class="num right"><strong>${t.count}</strong></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="grid g-2">
       <div class="card">
         <div class="card-head"><h3>告警分佈 (近 7 日)</h3></div>
@@ -2198,6 +2302,44 @@ function viewAlarms() {
   $("#demoAlarmThermal")?.addEventListener("click", () => demoTriggerAlarm("thermal"));
   $("#demoAlarmFire")?.addEventListener("click",    () => demoTriggerAlarm("fire"));
   $("#demoAlarmContract")?.addEventListener("click",() => demoTriggerAlarm("contract"));
+
+  // Rule editor handlers
+  $$(".rule-toggle").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const i = +cb.dataset.i;
+      ALARM_RULES[i].enabled = cb.checked;
+      showToast(`規則 ${ALARM_RULES[i].code} 已${cb.checked?"啟用":"停用"}`, cb.checked?"ok":"warn", 2000);
+    });
+  });
+  $$(".rule-thr").forEach(inp => {
+    inp.addEventListener("change", () => {
+      ALARM_RULES[+inp.dataset.i].threshold = inp.value;
+      showToast("閾值已更新", "ok", 1500);
+    });
+  });
+  $$(".rule-delay").forEach(inp => {
+    inp.addEventListener("change", () => {
+      ALARM_RULES[+inp.dataset.i].delaySec = +inp.value || 0;
+    });
+  });
+  $$(".rule-test").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const r = ALARM_RULES[+btn.dataset.i];
+      if (!r.enabled) { showToast("規則停用中，無法測試", "warn"); return; }
+      // Map specific rules to demo presets, otherwise generic
+      if (r.code === "cell.temp.high") return demoTriggerAlarm("thermal");
+      if (r.code === "fire.smoke")     return demoTriggerAlarm("fire");
+      if (r.code === "contract.over")  return demoTriggerAlarm("contract");
+      showCriticalAlarm({
+        code: r.code, severity: r.sev, device: "測試設備",
+        message: r.name, detail: `規則測試 — 模擬 ${r.threshold} 觸發`,
+        threshold: r.threshold, value: "(模擬)",
+        action: r.action, actionType: r.actType,
+        recommendation: "此為規則測試，實際運行時將自動執行該動作。",
+        countdownSec: Math.max(5, r.delaySec || 8),
+      });
+    });
+  });
 }
 
 // ────────── 7. Settings ──────────

@@ -224,6 +224,44 @@ const ALARM_LIGHTS = [
   { code: "ALM-032", label: "BAU 通訊故障",   state: "ok" },
 ];
 
+// ────────── Alarm Rules (聯動規則) ──────────
+// Editable thresholds + auto-action mapping (與 db/seed.sql alarm_definitions 對應)
+const ALARM_RULES = [
+  { code:"cell.temp.high",   name:"電芯溫度過高",   sev:"critical", threshold:"≥ 45 °C",  action:"立即停機",       actType:"shutdown", delaySec:0,  enabled:true },
+  { code:"cell.temp.warn",   name:"電芯溫度警告",   sev:"warning",  threshold:"≥ 40 °C",  action:"降功率 50%",      actType:"derate",   delaySec:30, enabled:true },
+  { code:"cell.imbalance",   name:"電芯不平衡",     sev:"warning",  threshold:"ΔV ≥ 80 mV",action:"通知 + 啟動均衡", actType:"notify",   delaySec:0,  enabled:true },
+  { code:"insulation.fault", name:"絕緣異常",       sev:"critical", threshold:"< 100 kΩ",  action:"立即停機",       actType:"shutdown", delaySec:0,  enabled:true },
+  { code:"insulation.low",   name:"絕緣值偏低",     sev:"warning",  threshold:"< 500 kΩ",  action:"降功率 70% + 通知",actType:"derate", delaySec:0,  enabled:true },
+  { code:"pcs.comm.lost",    name:"PCS 通訊中斷",   sev:"error",    threshold:"≥ 12 秒",   action:"自動重連 3 次",   actType:"reset",    delaySec:0,  enabled:true },
+  { code:"bmu.comm.lost",    name:"BMU 通訊中斷",   sev:"error",    threshold:"≥ 30 秒",   action:"通知維運 + Pack 隔離", actType:"notify", delaySec:0, enabled:true },
+  { code:"contract.over",    name:"契約超約預警",   sev:"warning",  threshold:"+10%",      action:"降載至 2,300 kW", actType:"derate",   delaySec:5,  enabled:true },
+  { code:"soc.low",          name:"SoC 過低",       sev:"info",     threshold:"< 15%",     action:"排程下次充電",   actType:"notify",   delaySec:0,  enabled:true },
+  { code:"fire.smoke",       name:"煙感觸發",       sev:"critical", threshold:"煙+溫雙觸發",action:"立即停機 + 排氣", actType:"shutdown", delaySec:0,  enabled:true },
+  { code:"fire.aerosol",     name:"氣溶膠釋放",     sev:"critical", threshold:"已觸發",     action:"系統下電",       actType:"shutdown", delaySec:0,  enabled:true },
+];
+
+// ────────── Action history (近 30 日自動動作執行) ──────────
+const ALARM_HISTORY = {
+  totals: { shutdown: 3, derate: 12, notify: 32 },
+  downtimeHours: 4.2,
+  lostKWh: 612,
+  lostNTD: 4927,
+  topTriggers: [
+    { code:"cell.imbalance",  count:18, recommendation:"建議：縮短均衡周期至 4 小時" },
+    { code:"contract.over",   count: 9, recommendation:"建議：將削峰目標調至 2,250 kW" },
+    { code:"pcs.comm.lost",   count: 7, recommendation:"建議：檢查 switch port 與 PCS 韌體" },
+    { code:"cell.temp.warn",  count: 5, recommendation:"建議：清潔液冷冷凝器、降空調設定 2°C" },
+    { code:"soc.low",         count: 4, recommendation:"建議：增加離峰充電功率至 200 kW" },
+  ],
+  recent: [
+    { ts:"昨 22:30", code:"contract.over",  act:"降載至 2,300 kW", actor:"自動 (策略引擎)", duration:"3 分", outcome:"成功" },
+    { ts:"昨 18:02", code:"pcs.comm.lost",  act:"重連 PCS-A",     actor:"自動",            duration:"15 秒", outcome:"成功" },
+    { ts:"昨 14:18", code:"cell.imbalance", act:"通知 + 均衡",    actor:"自動",            duration:"持續",  outcome:"進行中" },
+    { ts:"04/22 03:11", code:"cell.temp.warn", act:"降功率 50%",  actor:"自動 → 王工程師覆蓋", duration:"2 小時", outcome:"已恢復" },
+    { ts:"04/19 19:55", code:"cell.temp.high", act:"立即停機",    actor:"自動",            duration:"1.8 小時", outcome:"已恢復" },
+  ],
+};
+
 // Alarm list
 const ALARMS = [
   { ts: "04:12", sev: "warn", sys: "SYS-B",  msg: "電池模組#3 溫差告警", detail: "模組間溫差 4.8°C，超過 4°C 閾值" },
