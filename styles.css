@@ -80,6 +80,21 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
 }
 .side-footer { padding: 10px 20px; border-top: 1px solid var(--border-soft); }
 .side-meta { font-size: 11px; color: var(--text-dim); line-height: 1.7; }
+.side-affiliate {
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px dashed var(--border-soft);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.side-affiliate-label {
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 1px;
+}
+.side-affiliate-logo {
+  height: 24px; width: auto; max-width: 100%;
+  opacity: 0.75; transition: opacity 0.15s;
+  filter: brightness(1.4) contrast(1.1);
+}
+.side-affiliate-logo:hover { opacity: 1; }
 
 /* ───── Topbar ───── */
 .topbar {

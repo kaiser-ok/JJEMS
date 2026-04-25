@@ -109,6 +109,20 @@
       margin-top: 60px; font-size: 13px; color: var(--dim);
       letter-spacing: 1.5px;
     }
+    .cover-affiliate {
+      margin-top: 32px; padding-top: 24px;
+      border-top: 1px dashed rgba(255,255,255,0.08);
+      display: inline-flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .cover-affiliate-label {
+      font-size: 11px; color: var(--dim); letter-spacing: 2px;
+    }
+    .cover-affiliate img {
+      height: 36px; width: auto; opacity: 0.85;
+      filter: brightness(1.4) contrast(1.05);
+      transition: opacity 0.15s;
+    }
+    .cover-affiliate img:hover { opacity: 1; }
 
     /* Standard slide layout */
     .title-row { margin-bottom: 28px; max-width: 1280px; }
@@ -395,6 +409,12 @@
           <div class="cover-tag">📱 手機可用</div>
         </div>
         <div class="cover-meta">2026 · 高雄路竹示範站 · v1.0 雛形</div>
+        <div class="cover-affiliate">
+          <div class="cover-affiliate-label">關係企業 · Affiliated Company</div>
+          <a href="https://www.gbgtek.com.tw/en_US/" target="_blank" rel="noopener">
+            <img src="assets/gbgtek-logo.png" alt="GBGtech Co., Ltd · 竑瑞科技" />
+          </a>
+        </div>
       </div>
     </section>
 
