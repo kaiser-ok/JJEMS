@@ -112,6 +112,46 @@ function dailyBalance(strategyId) {
   };
 }
 
+// 32 BMS-level alarm light codes (對標杭州协能 上位機)
+const ALARM_LIGHTS = [
+  // Row 1
+  { code: "ALM-001", label: "充電電池欠溫",   state: "ok" },
+  { code: "ALM-002", label: "單體壓差過大",   state: "warn" },
+  { code: "ALM-003", label: "單體電壓過低",   state: "ok" },
+  { code: "ALM-004", label: "電池溫度差過大", state: "warn" },
+  { code: "ALM-005", label: "功能安全告警",   state: "ok" },
+  { code: "ALM-006", label: "從控概要故障",   state: "ok" },
+  { code: "ALM-007", label: "BMU 通訊故障",   state: "ok" },
+  { code: "ALM-008", label: "EEPROM 故障",    state: "ok" },
+  // Row 2
+  { code: "ALM-009", label: "總電壓差過大",   state: "ok" },
+  { code: "ALM-010", label: "充電電流過高",   state: "ok" },
+  { code: "ALM-011", label: "極柱溫度過高",   state: "ok" },
+  { code: "ALM-012", label: "充電電池過溫",   state: "ok" },
+  { code: "ALM-013", label: "放電電池過溫",   state: "ok" },
+  { code: "ALM-014", label: "模組過壓",       state: "ok" },
+  { code: "ALM-015", label: "EEPROM 故障",    state: "ok" },
+  { code: "ALM-016", label: "拓撲故障",       state: "ok" },
+  // Row 3
+  { code: "ALM-017", label: "熔斷器故障",     state: "ok" },
+  { code: "ALM-018", label: "放電電流過高",   state: "ok" },
+  { code: "ALM-019", label: "高壓箱溫度過高", state: "ok" },
+  { code: "ALM-020", label: "SOC 過高",       state: "ok" },
+  { code: "ALM-021", label: "負載絕緣阻值過低", state: "ok" },
+  { code: "ALM-022", label: "總電壓低",       state: "ok" },
+  { code: "ALM-023", label: "模組欠壓",       state: "ok" },
+  { code: "ALM-024", label: "急停報警",       state: "ok" },
+  // Row 4
+  { code: "ALM-025", label: "高壓箱溫度故障", state: "ok" },
+  { code: "ALM-026", label: "MSD 報警",       state: "ok" },
+  { code: "ALM-027", label: "電池溫升過高",   state: "ok" },
+  { code: "ALM-028", label: "單體電壓過高",   state: "ok" },
+  { code: "ALM-029", label: "SOC 過低",       state: "ok" },
+  { code: "ALM-030", label: "主控初始化故障", state: "ok" },
+  { code: "ALM-031", label: "門禁報警",       state: "ok" },
+  { code: "ALM-032", label: "BAU 通訊故障",   state: "ok" },
+];
+
 // Alarm list
 const ALARMS = [
   { ts: "04:12", sev: "warn", sys: "SYS-B",  msg: "電池模組#3 溫差告警", detail: "模組間溫差 4.8°C，超過 4°C 閾值" },

@@ -562,6 +562,88 @@ function viewSLD() {
         </table>
       </div>
     </div>
+
+    <!-- 接觸器 / DIO 控制面板 -->
+    <div class="grid g-2 mt-16">
+      <div class="card">
+        <div class="card-head">
+          <h3>⚡ 接觸器 / 隔離開關狀態</h3>
+          <span class="tag ok">遠端</span>
+        </div>
+        <div class="contactor-grid">
+          <div class="contactor-card closed">
+            <div class="ct-label">主隔離開關</div>
+            <div class="ct-state">閉合</div>
+            <div class="ct-icon">━●━</div>
+            <div class="ct-meta">22.8kV 主迴路</div>
+          </div>
+          <div class="contactor-card closed">
+            <div class="ct-label">總正接觸器 (K+)</div>
+            <div class="ct-state">閉合</div>
+            <div class="ct-icon">━●━</div>
+            <div class="ct-meta">SYS-A · DC+</div>
+          </div>
+          <div class="contactor-card closed">
+            <div class="ct-label">總負接觸器 (K−)</div>
+            <div class="ct-state">閉合</div>
+            <div class="ct-icon">━●━</div>
+            <div class="ct-meta">SYS-A · DC−</div>
+          </div>
+          <div class="contactor-card open">
+            <div class="ct-label">預充接觸器</div>
+            <div class="ct-state">斷開</div>
+            <div class="ct-icon">━ ●━</div>
+            <div class="ct-meta">預充已完成</div>
+          </div>
+          <div class="contactor-card closed">
+            <div class="ct-label">總正接觸器 (K+)</div>
+            <div class="ct-state">閉合</div>
+            <div class="ct-icon">━●━</div>
+            <div class="ct-meta">SYS-B · DC+</div>
+          </div>
+          <div class="contactor-card closed">
+            <div class="ct-label">總負接觸器 (K−)</div>
+            <div class="ct-state">閉合</div>
+            <div class="ct-icon">━●━</div>
+            <div class="ct-meta">SYS-B · DC−</div>
+          </div>
+        </div>
+        <div class="muted mt-12" style="font-size:11.5px">⚠ 強制開關需主管權限 + 雙人覆核;設備工程模式可進入「協能上位機」處理</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>📡 DIO 數位輸入/輸出狀態</h3>
+          <span class="muted" style="font-size:11.5px">8 DI · 8 DO</span>
+        </div>
+        <div class="dio-grid">
+          ${[
+            { tag: "DI1", label: "急停按鈕",     on: false },
+            { tag: "DI2", label: "門禁感測 #1",  on: false },
+            { tag: "DI3", label: "門禁感測 #2",  on: false },
+            { tag: "DI4", label: "煙霧偵測",     on: false },
+            { tag: "DI5", label: "水浸偵測",     on: false },
+            { tag: "DI6", label: "外部聯防訊號", on: true  },
+            { tag: "DI7", label: "MSD 開關",     on: true  },
+            { tag: "DI8", label: "備用",         on: false },
+            { tag: "DO1", label: "故障燈號",     on: false },
+            { tag: "DO2", label: "蜂鳴器",       on: false },
+            { tag: "DO3", label: "AC 啟動",      on: true  },
+            { tag: "DO4", label: "VESDA 排風",   on: false },
+            { tag: "DO5", label: "預充控制",     on: false },
+            { tag: "DO6", label: "保護動作",     on: false },
+            { tag: "DO7", label: "備用",         on: false },
+            { tag: "DO8", label: "備用",         on: false },
+          ].map(d => `
+            <div class="dio-cell ${d.on?'on':'off'} ${d.tag.startsWith('DI')?'di':'do'}">
+              <span class="dio-tag">${d.tag}</span>
+              <span class="dio-name">${d.label}</span>
+              <span class="dio-led"></span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1587,6 +1669,22 @@ function viewAlarms() {
     </div>
 
     <div class="card mt-16 mb-16">
+      <div class="card-head">
+        <h3>🚨 系統故障燈牆 (BMS Direct)</h3>
+        <div class="row" style="gap:8px">
+          <span class="led-legend"><span class="led led-ok"></span>正常</span>
+          <span class="led-legend"><span class="led led-warn"></span>預警</span>
+          <span class="led-legend"><span class="led led-err"></span>告警</span>
+          <span class="led-legend"><span class="led led-protect"></span>保護</span>
+        </div>
+      </div>
+      <div class="led-wall">
+        ${ALARM_LIGHTS.map(a => `<div class="led-cell led-${a.state}" title="${a.code} · ${a.state}">${a.label}</div>`).join("")}
+      </div>
+      <div class="muted mt-8" style="font-size:11.5px">${ALARM_LIGHTS.length} 項全站故障點 · 直接讀取 BMS BCU 暫存器 · 每秒輪詢</div>
+    </div>
+
+    <div class="card mb-16">
       <div class="card-head"><h3>即時告警</h3>
         <div class="row"><span class="muted" style="font-size:12px">每 10 秒刷新</span></div>
       </div>

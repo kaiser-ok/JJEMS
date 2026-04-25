@@ -299,6 +299,97 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 .chip:hover { color: var(--text); border-color: var(--primary); }
 .chip.active { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
 
+/* Sidebar connection status footer */
+.conn-status { padding: 0 0 10px; border-bottom: 1px solid var(--border-soft); margin-bottom: 8px; }
+.conn-row {
+  display: grid; grid-template-columns: 12px 1fr auto;
+  align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted);
+  padding: 3px 0;
+}
+.conn-row .dot { width: 6px; height: 6px; }
+.conn-rate { font-variant-numeric: tabular-nums; font-size: 10px; color: var(--text-dim); }
+
+/* BMS Alarm light wall */
+.led-wall {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;
+}
+.led-cell {
+  padding: 8px 6px; border-radius: 5px;
+  font-size: 11px; text-align: center; font-weight: 500;
+  border: 1px solid; cursor: default;
+  transition: filter 0.15s;
+}
+.led-cell:hover { filter: brightness(1.15); }
+.led-ok      { background: rgba(16,185,129,0.15);  color: #10b981; border-color: rgba(16,185,129,0.4); }
+.led-warn    { background: rgba(245,158,11,0.15); color: #f59e0b; border-color: rgba(245,158,11,0.4); }
+.led-err     { background: rgba(239,68,68,0.15); color: #ef4444; border-color: rgba(239,68,68,0.4); animation: led-blink 1.4s infinite; }
+.led-protect { background: rgba(220,38,38,0.25); color: #fca5a5; border-color: rgba(220,38,38,0.5); }
+@keyframes led-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+.led-legend { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
+.led { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.led.led-ok      { background: #10b981; }
+.led.led-warn    { background: #f59e0b; }
+.led.led-err     { background: #ef4444; }
+.led.led-protect { background: #dc2626; }
+
+@media (max-width: 768px) {
+  .led-wall { grid-template-columns: repeat(2, 1fr); }
+  .led-cell { font-size: 10.5px; padding: 7px 5px; }
+}
+
+/* Contactor cards (SLD page) */
+.contactor-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.contactor-card {
+  padding: 12px; border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: rgba(255,255,255,0.02);
+  text-align: center;
+  position: relative;
+}
+.contactor-card.closed { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.06); }
+.contactor-card.open   { border-color: rgba(245,158,11,0.45); background: rgba(245,158,11,0.06); }
+.contactor-card.fault  { border-color: rgba(239,68,68,0.5);  background: rgba(239,68,68,0.08); animation: led-blink 1.2s infinite; }
+.ct-label { font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px; }
+.ct-state { font-size: 16px; font-weight: 700; margin: 4px 0; }
+.contactor-card.closed .ct-state { color: var(--green); }
+.contactor-card.open   .ct-state { color: var(--amber); }
+.contactor-card.fault  .ct-state { color: var(--red); }
+.ct-icon { font-family: ui-monospace, "Menlo", monospace; font-size: 18px; letter-spacing: 1px; }
+.ct-meta { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+@media (max-width: 768px) {
+  .contactor-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* DIO grid */
+.dio-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+}
+.dio-cell {
+  display: grid; grid-template-columns: 32px 1fr 16px;
+  align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 5px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-soft);
+  font-size: 11.5px;
+}
+.dio-cell.di { border-left: 3px solid var(--blue); }
+.dio-cell.do { border-left: 3px solid var(--purple); }
+.dio-tag { font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--text-muted); font-weight: 600; }
+.dio-name { color: var(--text); }
+.dio-led { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+.dio-cell.on .dio-led { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.dio-cell.off .dio-led { background: var(--text-dim); }
+.dio-cell.on { background: rgba(16,185,129,0.05); }
+
+@media (max-width: 480px) {
+  .dio-grid { grid-template-columns: 1fr; }
+}
+
 /* Tabs strip (used by Devices) */
 .tabs-strip {
   display: flex; gap: 4px; border-bottom: 1px solid var(--border-soft);
