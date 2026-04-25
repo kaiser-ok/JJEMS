@@ -693,7 +693,7 @@ function viewDevices() {
 
     <div class="card mb-16">
       <div class="card-head">
-        <h3>SYS-A 電芯溫度熱力圖 · 208 cells</h3>
+        <h3>SYS-A 電芯溫度熱力圖 · 208 cells <span class="muted" style="font-size:11px;font-weight:400">Modbus reg [Cell Temp 1‥512]</span></h3>
         <div class="row" style="gap:4px">
           <span class="muted" style="font-size:11px">28°C</span>
           <div style="width:120px;height:8px;background:linear-gradient(90deg,#3b82f6,#10b981,#f59e0b,#ef4444);border-radius:4px"></div>
@@ -701,6 +701,43 @@ function viewDevices() {
         </div>
       </div>
       <div class="heat" id="heat"></div>
+    </div>
+
+    <div class="grid g-3 mb-16">
+      <div class="card">
+        <div class="card-head"><h3>絕緣監測</h3><span class="tag ok">正常</span></div>
+        <table class="data">
+          <tr><td>正極對地</td><td class="num right">3,420 kΩ</td></tr>
+          <tr><td>負極對地</td><td class="num right">3,180 kΩ</td></tr>
+          <tr><td>總絕緣值</td><td class="num right">1,650 kΩ</td></tr>
+          <tr><td>絕緣告警閾值</td><td class="num right">≥ 500 kΩ</td></tr>
+          <tr><td>採集週期</td><td class="num right">5 秒</td></tr>
+        </table>
+        <div class="muted mt-8" style="font-size:11px">Modbus reg: Rack Insulation Value / Pos / Neg</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>電芯不平衡監測</h3><span class="tag warn">關注</span></div>
+        <table class="data">
+          <tr><td>最高電壓 cell</td><td class="num right">#142 · 3.418 V</td></tr>
+          <tr><td>最低電壓 cell</td><td class="num right">#057 · 3.352 V</td></tr>
+          <tr><td>壓差 ΔV</td><td class="num right">66 mV</td></tr>
+          <tr><td>不平衡告警閾值</td><td class="num right">≥ 80 mV</td></tr>
+          <tr><td>主動均衡</td><td><span class="tag ok">運作中</span></td></tr>
+        </table>
+        <div class="muted mt-8" style="font-size:11px">Modbus reg: Max/Min Cell Voltage + Cell ID</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>BMU 通訊狀態</h3><span class="tag ok">13/13 線上</span></div>
+        <table class="data" style="font-size:12px">
+          <tr><td>BMU 1–4</td><td class="num right" style="color:var(--green)">●●●●</td></tr>
+          <tr><td>BMU 5–8</td><td class="num right" style="color:var(--green)">●●●●</td></tr>
+          <tr><td>BMU 9–12</td><td class="num right" style="color:var(--green)">●●●●</td></tr>
+          <tr><td>BMU 13</td><td class="num right" style="color:var(--green)">●</td></tr>
+          <tr><td>BCU ↔ BMU CAN</td><td class="num right">125 kbps</td></tr>
+          <tr><td>掉線次數 (24h)</td><td class="num right">0</td></tr>
+        </table>
+        <div class="muted mt-8" style="font-size:11px">Modbus reg: BMU1-16 Communication State (bitmap)</div>
+      </div>
     </div>
 
     <div class="grid g-2 mt-16">

@@ -1,0 +1,46 @@
+# J&J Power EMS · 本機開發資料庫
+# 用法：cd db && docker compose up -d
+#       初始化：docker exec -i jjems-pg psql -U ems -d ems < schema.sql
+#               docker exec -i jjems-pg psql -U ems -d ems < seed.sql
+
+services:
+  postgres:
+    image: timescale/timescaledb-ha:pg16
+    container_name: jjems-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ems
+      POSTGRES_PASSWORD: ems_dev_only_change_me
+      POSTGRES_DB: ems
+      TS_TUNE_MEMORY: 2GB
+      TS_TUNE_NUM_CPUS: 2
+    ports:
+      - "5432:5432"
+    volumes:
+      - jjems_pgdata:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ems -d ems"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: jjems-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  adminer:
+    image: adminer:4
+    container_name: jjems-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  jjems_pgdata:
