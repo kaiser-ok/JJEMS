@@ -8,10 +8,46 @@ const SITE = {
   tariff: "高壓三段式時間電價 (夏月)",
   industry: "電子元件製造",
   systems: [
-    { id: "SYS-A", pcsKW: 125, batteryKWh: 261, soc: 65, vendor: "J&J Power", cells: 208, temp: 29.4 },
-    { id: "SYS-B", pcsKW: 100, batteryKWh: 215, soc: 72, vendor: "J&J Power", cells: 176, temp: 31.1 },
+    {
+      id: "SYS-A", model: "Zpower-AC-261L-S120-L125-TR-2H", variant: "wide",
+      pcsKW: 125, batteryKWh: 261.248, soc: 65,
+      vendor: "J&J Power", cellsConfig: "1P260S", cells: 260, temp: 29.4,
+      hasMPPT: true, mpptKW: 120, hasSTS: true, hasTransformer: true,
+    },
+    {
+      id: "SYS-B", model: "Zpower-AC-261L-S60-L125-2H", variant: "wide",
+      pcsKW: 125, batteryKWh: 261.248, soc: 72,
+      vendor: "J&J Power", cellsConfig: "1P260S", cells: 260, temp: 31.1,
+      hasMPPT: true, mpptKW: 60, hasSTS: true, hasTransformer: false,
+    },
   ],
   pvKWp: 400,
+};
+
+// Available cabinet models (Zpower-AC-261L series, J&J Power × HiTHIUM)
+const CABINET_MODELS = {
+  "Zpower-AC-261L-S120-L125-TR-2H": { mppt: 120, sts: true, tr: true,  desc: "2×MPPT (120kW) + STS + 幹變" },
+  "Zpower-AC-261L-S60-L125-TR-2H":  { mppt: 60,  sts: true, tr: true,  desc: "1×MPPT (60kW) + STS + 幹變" },
+  "Zpower-AC-261L-S120-L125-2H":    { mppt: 120, sts: true, tr: false, desc: "2×MPPT (120kW) + STS" },
+  "Zpower-AC-261L-S60-L125-2H":     { mppt: 60,  sts: true, tr: false, desc: "1×MPPT (60kW) + STS" },
+  "Zpower-AC-261L-S120-2H":         { mppt: 120, sts: false, tr: false, desc: "2×MPPT (120kW)" },
+  "Zpower-AC-261L-S60-2H":          { mppt: 60,  sts: false, tr: false, desc: "1×MPPT (60kW)" },
+  "Zpower-AC-261L-Narrow":          { mppt: 0,   sts: false, tr: false, desc: "窄版純儲能 (1000mm)" },
+};
+
+// Common specs (all 261L cabinets share the same battery + PCS core)
+const CABINET_CORE = {
+  pcsRatedKW: 125, pcsMaxKW: 150,
+  batteryKWh: 261.248, batteryAh: 314, batteryV: 832,
+  battery: "LFP 1P260S", cRate: 0.5,
+  voltageRange: "728-949V", grid: "300-460Vac",
+  cooling: "液冷 (電池) + 智慧風冷 (PCS)",
+  fire: "氣溶膠 + 煙感 + 溫感 + 氣體探測",
+  ip: "IP55 電池倉 / IP54 電氣倉", c5: true,
+  altitude: "≤4000m", noise: "<75dB",
+  comm: "RS485 / Ethernet / 4G",
+  cert: ["IEC 62619", "IEC 62477", "IEC 60730", "IEC 61000", "UN 38.3"],
+  parallelMax: 12, parallelMaxKW: 1500, parallelMaxKWh: 3134,
 };
 
 const TARIFF = {
