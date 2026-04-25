@@ -55,7 +55,7 @@
       <div class="topbar-left">
         <div class="site-pill">
           <span class="dot dot-ok"></span>
-          <span>高雄路竹廠 · 225kW / 476kWh</span>
+          <span class="site-name">高雄路竹廠 · 225kW / 476kWh</span>
         </div>
       </div>
       <div class="topbar-stats" id="topbar-stats">
@@ -63,7 +63,8 @@
       </div>
       <div class="topbar-right">
         <div class="mode-pill" id="mode-pill">時間套利模式</div>
-        <div class="icon-btn" title="告警">🔔<span class="dot dot-warn"></span></div>
+        <a class="icon-btn" href="#/alarms" title="告警">🔔<span class="dot dot-warn"></span></a>
+        <a class="icon-btn mobile-only" href="#/settings" title="設定">⚙</a>
         <div class="user">
           <div class="avatar">王</div>
           <div class="user-meta">
@@ -78,6 +79,25 @@
     <main class="main" id="view">
       <!-- Rendered by router -->
     </main>
+
+    <!-- Mobile bottom navigation -->
+    <nav class="bottom-nav" aria-label="行動底部導覽">
+      <a class="bnav-item" href="#/dashboard" data-route="dashboard">
+        <span class="ic">▦</span><span class="lbl">總覽</span>
+      </a>
+      <a class="bnav-item" href="#/sld" data-route="sld">
+        <span class="ic">⎔</span><span class="lbl">單線圖</span>
+      </a>
+      <a class="bnav-item" href="#/devices" data-route="devices">
+        <span class="ic">▢</span><span class="lbl">設備</span>
+      </a>
+      <a class="bnav-item" href="#/schedule" data-route="schedule">
+        <span class="ic">◷</span><span class="lbl">排程</span>
+      </a>
+      <a class="bnav-item" href="#/finance" data-route="finance">
+        <span class="ic">$</span><span class="lbl">財務</span>
+      </a>
+    </nav>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

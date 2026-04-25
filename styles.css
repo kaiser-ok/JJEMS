@@ -295,17 +295,138 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 .inp:focus { outline: none; border-color: var(--primary); }
 
+/* Bottom nav (default hidden, shown only on mobile) */
+.bottom-nav { display: none; }
+.mobile-only { display: none; }
+
 /* Responsive */
 @media (max-width: 1280px) {
   .kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .g-2 { grid-template-columns: 1fr; }
   .g-3 { grid-template-columns: 1fr 1fr; }
 }
-@media (max-width: 900px) {
+@media (max-width: 900px) and (min-width: 769px) {
   #app { grid-template-columns: 68px 1fr; }
   .brand-text, .nav-item span:not(.ic):not(.badge), .side-meta { display: none; }
   .brand { justify-content: center; padding: 4px 0 22px; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .g-3 { grid-template-columns: 1fr; }
   .topbar-stats { display: none; }
+}
+
+/* ───── Mobile (≤ 768px) ───── */
+@media (max-width: 768px) {
+  /* Layout: single column, sidebar hidden, bottom-nav shown */
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 56px 1fr 60px;
+    grid-template-areas:
+      "topbar"
+      "main"
+      "bottom";
+  }
+  .sidebar { display: none; }
+  .mobile-only { display: inline-flex; }
+
+  /* Topbar slim */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-left { min-width: 0; flex: 1; }
+  .topbar-stats { display: none; }
+  .topbar-right { gap: 10px; }
+  .user-meta { display: none; }
+  .user { padding-left: 0; border-left: none; }
+  .avatar { width: 28px; height: 28px; font-size: 12px; }
+  .mode-pill {
+    padding: 4px 10px; font-size: 11px;
+    max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .site-pill { padding: 4px 10px; font-size: 11px; }
+  .site-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; display: inline-block; vertical-align: middle; }
+
+  /* Main */
+  .main { padding: 14px 12px 16px; }
+
+  /* Page header */
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+  .page-title { font-size: 17px; }
+  .page-sub { font-size: 12px; }
+  .page-actions { flex-wrap: wrap; gap: 6px; width: 100%; overflow-x: auto; }
+  .page-actions::-webkit-scrollbar { display: none; }
+  .page-actions .btn { padding: 5px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+
+  /* Cards & grids — single column */
+  .card { padding: 14px; border-radius: 10px; }
+  .card-head { flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .card-head h3 { font-size: 13.5px; }
+  .g-2, .g-3, .g-2e { grid-template-columns: 1fr; }
+  .grid { gap: 12px; }
+
+  /* KPI 2 cols */
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .kpi { padding: 12px 13px; border-radius: 10px; }
+  .kpi-label { font-size: 11.5px; }
+  .kpi-value { font-size: 18px; }
+  .kpi-foot { font-size: 11px; }
+
+  /* Charts shorter */
+  .chart-wrap { height: 220px; }
+  .chart-wrap.tall { height: 240px; }
+  .chart-wrap.short { height: 150px; }
+
+  /* Tables — smaller font, scrollable wrap */
+  .data { font-size: 12px; }
+  .data th, .data td { padding: 7px 8px; }
+  .card > table.data { display: block; overflow-x: auto; }
+
+  /* Flow mini — 3 cols */
+  .flow-mini { grid-template-columns: repeat(3, 1fr); }
+  .flow-node { padding: 10px 8px; }
+  .flow-node .fn-val { font-size: 14px; }
+
+  /* Single-line diagram — horizontal scroll, keep readable */
+  .sld { min-height: 420px; overflow-x: auto; }
+  .sld svg { min-width: 920px; }
+
+  /* Schedule grid — keep 24 cols, smaller cells */
+  .sched-cell { height: 28px; }
+  .sched-cell .lbl { font-size: 9px; }
+  .hour-axis span { font-size: 8.5px; }
+
+  /* Heat map — 13 cols */
+  .heat { grid-template-columns: repeat(13, 1fr); gap: 2px; }
+  .heat-cell { font-size: 7.5px; }
+
+  /* Bottom nav fixed at bottom */
+  .bottom-nav {
+    grid-area: bottom;
+    display: flex; align-items: stretch;
+    background: var(--sidebar);
+    border-top: 1px solid var(--border-soft);
+    padding: 0 4px;
+    z-index: 10;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  }
+  .bnav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; padding: 6px 4px;
+    color: var(--text-muted); text-decoration: none;
+    font-size: 10.5px; transition: color 0.15s;
+    border-top: 2px solid transparent;
+  }
+  .bnav-item .ic { font-size: 18px; line-height: 1; }
+  .bnav-item .lbl { font-size: 10.5px; }
+  .bnav-item.active { color: var(--primary); border-top-color: var(--primary); }
+  .bnav-item:active { background: rgba(0,194,168,0.08); }
+
+  /* Alarm row tighter */
+  .alarm-row { grid-template-columns: 60px 1fr auto; padding: 8px 4px; }
+  .alarm-ts { font-size: 11px; }
+  .alarm-msg { font-size: 12.5px; }
+}
+
+/* ───── Very small phones (≤ 360px) ───── */
+@media (max-width: 360px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .site-name { max-width: 110px; }
+  .mode-pill { max-width: 70px; }
 }

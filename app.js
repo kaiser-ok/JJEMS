@@ -47,7 +47,7 @@ function router() {
   const hash = (location.hash || "#/dashboard").replace("#/", "");
   const route = routes[hash] ? hash : "dashboard";
   killCharts();
-  $$(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.route === route));
+  $$(".nav-item, .bnav-item").forEach(el => el.classList.toggle("active", el.dataset.route === route));
   $("#view").innerHTML = "";
   routes[route]();
   window.scrollTo(0,0);
