@@ -3,8 +3,17 @@
 // ==========================
 const $  = (q, el=document) => el.querySelector(q);
 const $$ = (q, el=document) => [...el.querySelectorAll(q)];
-const fmt = (n, d=0) => n == null ? "-" : n.toLocaleString("zh-TW", { maximumFractionDigits: d, minimumFractionDigits: d });
-const money = n => "NT$ " + Math.round(n).toLocaleString("zh-TW");
+function fmt(n, d=0) {
+  if (n == null) return "-";
+  const fx = (typeof fxOf === "function") ? fxOf() : { locale: "zh-TW" };
+  return n.toLocaleString(fx.locale, { maximumFractionDigits: d, minimumFractionDigits: d });
+}
+function money(n) {
+  const fx = (typeof fxOf === "function") ? fxOf() : { rate: 1, locale: "zh-TW", symbol: "NT$ ", suffix: "" };
+  const v = Math.round(n * fx.rate);
+  const formatted = v.toLocaleString(fx.locale, { maximumFractionDigits: 0 });
+  return `${fx.symbol}${formatted}${fx.suffix}`;
+}
 
 // Chart.js global style
 Chart.defaults.color = "#8b98b0";
@@ -1671,18 +1680,21 @@ function viewAlarms() {
 
     <div class="card mt-16 mb-16">
       <div class="card-head">
-        <h3>🚨 系統故障燈牆 (BMS Direct)</h3>
+        <h3>${t("alm.led.title")}</h3>
         <div class="row" style="gap:8px">
-          <span class="led-legend"><span class="led led-ok"></span>正常</span>
-          <span class="led-legend"><span class="led led-warn"></span>預警</span>
-          <span class="led-legend"><span class="led led-err"></span>告警</span>
-          <span class="led-legend"><span class="led led-protect"></span>保護</span>
+          <span class="led-legend"><span class="led led-ok"></span>${t("alm.legend.ok")}</span>
+          <span class="led-legend"><span class="led led-warn"></span>${t("alm.legend.warn")}</span>
+          <span class="led-legend"><span class="led led-err"></span>${t("alm.legend.err")}</span>
+          <span class="led-legend"><span class="led led-protect"></span>${t("alm.legend.protect")}</span>
         </div>
       </div>
       <div class="led-wall">
-        ${ALARM_LIGHTS.map(a => `<div class="led-cell led-${a.state}" title="${a.code} · ${a.state}">${a.label}</div>`).join("")}
+        ${ALARM_LIGHTS.map((a,i) => {
+          const key = `alm.${String(i+1).padStart(3,"0")}`;
+          return `<div class="led-cell led-${a.state}" title="${a.code} · ${a.state}">${t(key)}</div>`;
+        }).join("")}
       </div>
-      <div class="muted mt-8" style="font-size:11.5px">${ALARM_LIGHTS.length} 項全站故障點 · 直接讀取 BMS BCU 暫存器 · 每秒輪詢</div>
+      <div class="muted mt-8" style="font-size:11.5px">${ALARM_LIGHTS.length} ${t("alm.led.poll")}</div>
     </div>
 
     <div class="card mb-16">
@@ -2114,9 +2126,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="lang-opt ${state.lang===id?'active':''}" data-lang="${id}">
           <span class="lang-opt-code">${l.code}</span>
           <span class="lang-opt-name">${l.name}</span>
+          <span class="lang-opt-cur">${FX[id].symbol||FX[id].suffix}${FX[id].code}</span>
           ${state.lang===id?'<span class="lang-opt-check">✓</span>':''}
         </div>
-      `).join("");
+      `).join("") + `<div class="lang-fx-note muted">${t("lang.fxNote")}</div>`;
       langDD.querySelectorAll(".lang-opt").forEach(el => {
         el.addEventListener("click", () => {
           setLang(el.dataset.lang);

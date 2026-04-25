@@ -184,7 +184,17 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
 .lang-opt.active { background: rgba(0,194,168,0.08); color: var(--primary); }
 .lang-opt-code { font-family: ui-monospace,monospace; font-size: 11px; color: var(--text-muted); width: 30px; }
 .lang-opt-name { flex: 1; }
-.lang-opt-check { color: var(--primary); font-weight: 700; }
+.lang-opt-cur {
+  font-size: 10.5px; color: var(--text-dim);
+  padding: 1px 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.04);
+  font-family: ui-monospace,monospace;
+}
+.lang-opt-check { color: var(--primary); font-weight: 700; margin-left: 4px; }
+.lang-fx-note {
+  padding: 8px 12px 4px; font-size: 10.5px;
+  border-top: 1px solid var(--border-soft); margin-top: 4px;
+}
 
 @media (max-width: 768px) {
   .lang-dropdown { right: -28px; width: 200px; }

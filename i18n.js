@@ -7,6 +7,15 @@ const LANGS = {
   "de":    { code: "DE",   name: "Deutsch" },
   "ja":    { code: "JA",   name: "日本語" },
 };
+
+// Locale + FX rates (approximate, for demo). Base currency: TWD.
+const FX = {
+  "zh-TW": { rate: 1,         locale: "zh-TW", symbol: "NT$ ", suffix: "",     code: "TWD" },
+  "en":    { rate: 1/31.5,    locale: "en-US", symbol: "$",    suffix: "",     code: "USD" },
+  "de":    { rate: 1/35.0,    locale: "de-DE", symbol: "",     suffix: " €",   code: "EUR" },
+  "ja":    { rate: 4.6,       locale: "ja-JP", symbol: "¥",    suffix: "",     code: "JPY" },
+};
+function fxOf() { return FX[(typeof state !== "undefined" && state.lang) || "zh-TW"] || FX["zh-TW"]; }
 const LANG_INDEX = { "zh-TW": 0, "en": 1, "de": 2, "ja": 3 };
 
 // Each key: [zh-TW, en, de, ja]
@@ -196,6 +205,45 @@ const I18N = {
 
   // ─── Chat suggestions ───
   "chat.lang.partial": ["※ 對話僅支援繁體中文", "※ Chat available in zh-TW only", "※ Chat nur auf Chinesisch", "※ チャットは繁体字中文のみ"],
+  "lang.fxNote":      ["金額依語系自動轉換 (示意匯率)", "Amounts auto-converted by locale (illustrative FX)", "Beträge automatisch umgerechnet (Demo-Kurs)", "金額はロケールに応じて変換 (参考レート)"],
+
+  // ─── 32 BMS Alarm light labels ───
+  "alm.001": ["充電電池欠溫",   "Charge cell undertemp",      "Lade-Zelle Untertemp.",      "充電セル低温"],
+  "alm.002": ["單體壓差過大",   "Cell V spread excessive",    "Zellen-V Spreizung zu hoch", "セル電圧偏差過大"],
+  "alm.003": ["單體電壓過低",   "Cell undervoltage",          "Zellen-Unterspannung",       "セル電圧低下"],
+  "alm.004": ["電池溫度差過大", "Cell ΔT excessive",          "Zellen-ΔT zu hoch",          "セル温度差過大"],
+  "alm.005": ["功能安全告警",   "Functional safety alarm",    "Funktionssicherheits-Alarm", "機能安全アラーム"],
+  "alm.006": ["從控概要故障",   "Slave summary fault",        "Slave-Sammelfehler",         "従制御概要故障"],
+  "alm.007": ["BMU 通訊故障",   "BMU comm fault",             "BMU-Kommunikationsfehler",   "BMU通信故障"],
+  "alm.008": ["EEPROM 故障",    "EEPROM fault",               "EEPROM-Fehler",              "EEPROM故障"],
+  "alm.009": ["總電壓差過大",   "Pack V difference high",     "Pack-V-Differenz zu hoch",   "総電圧差過大"],
+  "alm.010": ["充電電流過高",   "Charge overcurrent",         "Lade-Überstrom",             "充電過電流"],
+  "alm.011": ["極柱溫度過高",   "Terminal overtemp",          "Polübertemp.",               "端子過温"],
+  "alm.012": ["充電電池過溫",   "Charge cell overtemp",       "Lade-Zelle Übertemp.",       "充電セル過温"],
+  "alm.013": ["放電電池過溫",   "Discharge cell overtemp",    "Entlade-Zelle Übertemp.",    "放電セル過温"],
+  "alm.014": ["模組過壓",       "Module overvoltage",         "Modul-Überspannung",         "モジュール過電圧"],
+  "alm.015": ["EEPROM 故障",    "EEPROM fault",               "EEPROM-Fehler",              "EEPROM故障"],
+  "alm.016": ["拓撲故障",       "Topology fault",             "Topologie-Fehler",           "トポロジー故障"],
+  "alm.017": ["熔斷器故障",     "Fuse fault",                 "Sicherungsfehler",           "ヒューズ故障"],
+  "alm.018": ["放電電流過高",   "Discharge overcurrent",      "Entlade-Überstrom",          "放電過電流"],
+  "alm.019": ["高壓箱溫度過高", "HV box overtemp",            "HV-Box Übertemp.",           "高圧BOX過温"],
+  "alm.020": ["SOC 過高",       "SOC too high",               "SOC zu hoch",                "SOC過高"],
+  "alm.021": ["負載絕緣阻值過低","Load insulation low",       "Last-Isolation niedrig",     "負荷絶縁低下"],
+  "alm.022": ["總電壓低",       "Pack undervoltage",          "Pack-Unterspannung",         "総電圧低下"],
+  "alm.023": ["模組欠壓",       "Module undervoltage",        "Modul-Unterspannung",        "モジュール低電圧"],
+  "alm.024": ["急停報警",       "E-stop alarm",               "Not-Halt Alarm",             "緊急停止アラーム"],
+  "alm.025": ["高壓箱溫度故障", "HV box temp fault",          "HV-Box Temp.-Fehler",        "高圧BOX温度故障"],
+  "alm.026": ["MSD 報警",       "MSD alarm",                  "MSD-Alarm",                  "MSDアラーム"],
+  "alm.027": ["電池溫升過高",   "Cell ΔT/Δt high",            "Zellen-ΔT/Δt hoch",          "セル温度上昇大"],
+  "alm.028": ["單體電壓過高",   "Cell overvoltage",           "Zellen-Überspannung",        "セル過電圧"],
+  "alm.029": ["SOC 過低",       "SOC too low",                "SOC zu niedrig",             "SOC低下"],
+  "alm.030": ["主控初始化故障", "Master init fault",          "Master-Init-Fehler",         "主制御初期化故障"],
+  "alm.031": ["門禁報警",       "Door alarm",                 "Türalarm",                   "ドアアラーム"],
+  "alm.032": ["BAU 通訊故障",   "BAU comm fault",             "BAU-Kommunikationsfehler",   "BAU通信故障"],
+  "alm.legend.ok":      ["正常", "Normal", "Normal", "正常"],
+  "alm.legend.warn":    ["預警", "Pre-warn", "Vorwarnung", "予警"],
+  "alm.legend.err":     ["告警", "Alarm", "Alarm", "アラーム"],
+  "alm.legend.protect": ["保護", "Protected", "Schutz", "保護"],
 };
 
 function t(key) {
