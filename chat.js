@@ -415,6 +415,8 @@
 
   // Track whether /api/chat is reachable (decided on first call)
   let liveAI = null;  // null = unknown, true = working, false = offline
+  let lastApiCall = 0;
+  const MIN_GAP_MS = 1500;  // client-side cooldown to avoid bursting OpenRouter rate limit
 
   function setBadge(state) {
     const sub = document.querySelector(".chat-sub");
@@ -459,6 +461,10 @@
 
     // Try real LLM via /api/chat first (unless we know it's offline)
     if (liveAI !== false) {
+      // Client-side cooldown to avoid hammering OpenRouter
+      const since = Date.now() - lastApiCall;
+      if (since < MIN_GAP_MS) await new Promise(r => setTimeout(r, MIN_GAP_MS - since));
+      lastApiCall = Date.now();
       try {
         const resp = await fetch("/api/chat", {
           method: "POST",

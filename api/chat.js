@@ -87,8 +87,10 @@ export default async function handler(req) {
     { role: "user",   content: question.slice(0, 1200) },
   ];
 
+  const isFree = (m) => m.endsWith(":free");
   let lastErr = null;
   let lastStatus = 500;
+
   for (const model of MODELS) {
     try {
       const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -112,20 +114,35 @@ export default async function handler(req) {
       lastErr = detail;
       lastStatus = upstream.status;
 
-      // 402 = account-level (no credits) — bail out, no point trying more models
+      // 402 = no credits → bail out
       if (upstream.status === 402) {
         return json({
           error: "OpenRouter requires account credits",
-          hint: "OpenRouter 帳戶需至少 $1 信用額度才能使用任何模型 (含 :free)。請至 https://openrouter.ai/credits 加值。",
-          status: 402,
+          hint: "OpenRouter 帳戶需要 credits。請至 https://openrouter.ai/credits 加值至少 $5。",
           detail,
         }, 402);
       }
-      // 429 = try next model
-      // other errors = also try next, but stop if we hit auth issues
+
+      // 401/403 = auth → bail out
       if (upstream.status === 401 || upstream.status === 403) {
-        return json({ error: `Auth error ${upstream.status}`, detail, hint: "檢查 OPENROUTER_API_KEY 是否有效" }, upstream.status);
+        return json({
+          error: `Auth error ${upstream.status}`,
+          hint: "OPENROUTER_API_KEY 無效或已撤銷,請於 Vercel env vars 重新設定。",
+          detail,
+        }, upstream.status);
       }
+
+      // 429 on PAID model = account-level limit (low credits) → bail, retrying free won't help
+      if (upstream.status === 429 && !isFree(model)) {
+        return json({
+          error: "OpenRouter account-level rate limit",
+          hint: "付費模型也被限流,通常是帳戶餘額過低 (<$10) 觸發 free-tier 級別限制 (20 req/min, 50/日)。請至 https://openrouter.ai/credits 加值到 $10 以上。",
+          detail,
+        }, 429);
+      }
+
+      // 429 on FREE model → try next free model
+      // Other status (5xx) → try next
     } catch (e) {
       lastErr = e?.message || String(e);
     }
@@ -133,8 +150,8 @@ export default async function handler(req) {
 
   // All models exhausted
   return json({
-    error: `All free models exhausted (last status ${lastStatus})`,
-    hint: "所有免費模型都被限流，建議稍後再試或加少量 credits 切換到便宜付費模型 (例如 google/gemini-flash-1.5-8b)",
+    error: `All models exhausted (last status ${lastStatus})`,
+    hint: "所有模型都被限流。建議稍後再試,或加值 OpenRouter credits 提升上限。",
     detail: lastErr,
   }, lastStatus);
 }
