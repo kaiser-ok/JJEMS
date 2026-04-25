@@ -1803,6 +1803,180 @@ function viewSettings() {
       </div>
     </div>
 
+    <!-- Protocol map -->
+    <div class="card mb-16">
+      <div class="card-head">
+        <h3>通訊協議地圖</h3>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple)">◼ MQTT/TLS</span>
+          <span class="tag" style="background:rgba(0,194,168,0.12);color:var(--primary)">◼ Modbus TCP</span>
+          <span class="tag" style="background:rgba(245,158,11,0.12);color:var(--amber)">◼ Modbus RTU / DLT645</span>
+          <span class="tag" style="background:rgba(236,72,153,0.12);color:var(--pink)">◼ CAN bus</span>
+          <span class="tag" style="background:rgba(59,130,246,0.12);color:var(--blue)">◼ IEC 104</span>
+        </div>
+      </div>
+      <div class="proto-map-wrap">
+      <svg viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg" class="proto-map">
+        <defs>
+          <marker id="pa-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#8b5cf6"/>
+          </marker>
+          <marker id="pa-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#00c2a8"/>
+          </marker>
+          <marker id="pa-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#f59e0b"/>
+          </marker>
+          <marker id="pa-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#ec4899"/>
+          </marker>
+          <marker id="pa-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#3b82f6"/>
+          </marker>
+        </defs>
+
+        <!-- Cloud layer -->
+        <g>
+          <rect x="450" y="20" width="300" height="68" rx="34" fill="#1a1230" stroke="#8b5cf6" stroke-width="1.5"/>
+          <text x="600" y="48" text-anchor="middle" fill="#c4b5fd" font-size="14" font-weight="700">☁  雲端平台 (Cloud)</text>
+          <text x="600" y="68" text-anchor="middle" fill="#8b98b0" font-size="11">J&amp;J Cloud · iVPP · TimescaleDB · Grafana</text>
+        </g>
+
+        <!-- TPC trading platform (right of cloud) -->
+        <g>
+          <rect x="900" y="30" width="220" height="48" rx="8" fill="#0a1830" stroke="#3b82f6" stroke-width="1.2"/>
+          <text x="1010" y="50" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="600">⚡ 台電交易平台</text>
+          <text x="1010" y="68" text-anchor="middle" fill="#8b98b0" font-size="10.5">sReg / dReg / 即時備轉</text>
+        </g>
+
+        <!-- MQTT line cloud→站控 -->
+        <line x1="600" y1="88" x2="600" y2="160" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#pa-purple)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.5s" repeatCount="indefinite"/>
+        </line>
+        <text x="612" y="118" fill="#a78bfa" font-size="11" font-weight="600">MQTT (TLS, port 8883)</text>
+        <text x="612" y="132" fill="#8b98b0" font-size="10">topic: jjpower/site/{id}/...</text>
+
+        <!-- IEC 104 line tpc→站控 -->
+        <path d="M 1010 78 Q 1010 130, 750 175" stroke="#3b82f6" stroke-width="2" fill="none" stroke-dasharray="5,3" marker-end="url(#pa-blue)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.8s" repeatCount="indefinite"/>
+        </path>
+        <text x="900" y="130" fill="#60a5fa" font-size="11" font-weight="600">IEC 60870-5-104</text>
+
+        <!-- Site controller -->
+        <g>
+          <rect x="450" y="160" width="300" height="74" rx="10" fill="#0a2024" stroke="#00c2a8" stroke-width="2"/>
+          <text x="600" y="188" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">站控一體機 (Site Controller)</text>
+          <text x="600" y="208" text-anchor="middle" fill="#e6edf5" font-size="11.5">HiEMS-SCU-V2-2 · BCM2711 · Linux</text>
+          <text x="600" y="224" text-anchor="middle" fill="#8b98b0" font-size="10.5">每案場 1 台 · 策略引擎 · 雲端代理 · OTA</text>
+        </g>
+
+        <!-- Site → meter (RS485) -->
+        <line x1="450" y1="195" x2="280" y2="280" stroke="#f59e0b" stroke-width="2" marker-end="url(#pa-amber)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.6s" repeatCount="indefinite"/>
+        </line>
+        <text x="280" y="240" fill="#fbbf24" font-size="11" font-weight="600">DLT645 / Modbus RTU</text>
+        <text x="280" y="254" fill="#8b98b0" font-size="10">RS485 · 9600 baud · 光纖 (option)</text>
+
+        <!-- Meters -->
+        <g>
+          <rect x="100" y="280" width="220" height="68" rx="8" fill="#1a1505" stroke="#f59e0b" stroke-width="1.2"/>
+          <text x="210" y="306" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="600">📊 關口表 / 儲能表</text>
+          <text x="210" y="324" text-anchor="middle" fill="#8b98b0" font-size="10.5">三相多功能電錶</text>
+          <text x="210" y="340" text-anchor="middle" fill="#8b98b0" font-size="10.5">P / Q / V / I / kWh / 功率因數</text>
+        </g>
+
+        <!-- Site → switch (Ethernet) -->
+        <line x1="600" y1="234" x2="600" y2="290" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)"/>
+        <text x="612" y="270" fill="#00c2a8" font-size="11" font-weight="600">Ethernet (1 GbE)</text>
+
+        <!-- Switch -->
+        <g>
+          <rect x="490" y="290" width="220" height="42" rx="6" fill="#101a2e" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="600" y="312" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="700">⇆ 工業 Switch (8-port, IP30)</text>
+          <text x="600" y="326" text-anchor="middle" fill="#8b98b0" font-size="10">192.168.1.0/24</text>
+        </g>
+
+        <!-- Switch → Cabinet 1 -->
+        <line x1="540" y1="332" x2="280" y2="400" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.3s" repeatCount="indefinite"/>
+        </line>
+        <text x="320" y="370" fill="#00c2a8" font-size="11" font-weight="600">Modbus TCP</text>
+        <text x="320" y="384" fill="#8b98b0" font-size="10">port 502 · Unit 1</text>
+
+        <!-- Switch → Cabinet 2 -->
+        <line x1="660" y1="332" x2="920" y2="400" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.4s" repeatCount="indefinite"/>
+        </line>
+        <text x="820" y="370" fill="#00c2a8" font-size="11" font-weight="600">Modbus TCP</text>
+        <text x="820" y="384" fill="#8b98b0" font-size="10">port 502 · Unit 2</text>
+
+        <!-- Cabinet 1 outline -->
+        <g>
+          <rect x="80" y="400" width="400" height="296" rx="10" fill="#0a0e1e" stroke="#1b2740" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="280" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">SYS-A 儲能櫃 (Zpower-AC-261L)</text>
+
+          <!-- 櫃控 -->
+          <rect x="120" y="436" width="320" height="58" rx="8" fill="#0a2024" stroke="#00c2a8" stroke-width="1.5"/>
+          <text x="280" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">櫃控一體機 (Cabinet Controller)</text>
+          <text x="280" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">CM4 · 每櫃 1 台 · 隨櫃標配</text>
+
+          <!-- PCS -->
+          <line x1="180" y1="494" x2="180" y2="530" stroke="#00c2a8" stroke-width="1.5" marker-end="url(#pa-teal)"/>
+          <text x="125" y="514" fill="#00c2a8" font-size="10" font-weight="600">Modbus TCP</text>
+          <rect x="120" y="530" width="120" height="44" rx="6" fill="#0f1729" stroke="#00c2a8" stroke-width="1"/>
+          <text x="180" y="550" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">PCS</text>
+          <text x="180" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">125 kW · port 502</text>
+
+          <!-- BCU -->
+          <line x1="380" y1="494" x2="380" y2="530" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
+          <text x="392" y="514" fill="#f9a8d4" font-size="10" font-weight="600">CAN bus</text>
+          <rect x="320" y="530" width="120" height="44" rx="6" fill="#1a0a14" stroke="#ec4899" stroke-width="1"/>
+          <text x="380" y="550" text-anchor="middle" fill="#fbcfe8" font-size="11" font-weight="700">BCU (簇控)</text>
+          <text x="380" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">高壓箱</text>
+
+          <!-- BCU → BMUs -->
+          <line x1="380" y1="574" x2="380" y2="600" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
+          <text x="392" y="592" fill="#f9a8d4" font-size="9.5">CAN</text>
+          <rect x="290" y="600" width="60" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.8"/>
+          <text x="320" y="619" text-anchor="middle" fill="#fbcfe8" font-size="10" font-weight="600">BMU 1</text>
+          <rect x="354" y="600" width="60" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.8"/>
+          <text x="384" y="619" text-anchor="middle" fill="#fbcfe8" font-size="10" font-weight="600">BMU 2</text>
+          <rect x="418" y="600" width="20" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.5"/>
+          <text x="428" y="623" text-anchor="middle" fill="#fbcfe8" font-size="9">···</text>
+          <text x="380" y="654" text-anchor="middle" fill="#8b98b0" font-size="10">每 Pack 1 個 BMU · 共 13 串</text>
+          <text x="380" y="670" text-anchor="middle" fill="#8b98b0" font-size="9.5">電芯電壓 / 溫度 / 均衡</text>
+
+          <!-- I/O 設備 -->
+          <rect x="120" y="595" width="120" height="44" rx="6" fill="#0f1729" stroke="#f59e0b" stroke-width="1"/>
+          <text x="180" y="615" text-anchor="middle" fill="#fbbf24" font-size="10.5" font-weight="700">消防 / 液冷 / 門禁</text>
+          <text x="180" y="630" text-anchor="middle" fill="#8b98b0" font-size="9.5">DI/DO 8 路 + RS485</text>
+          <line x1="180" y1="595" x2="180" y2="574" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="125" y="588" fill="#fbbf24" font-size="9.5">DI/DO</text>
+        </g>
+
+        <!-- Cabinet 2 outline (mirror) -->
+        <g>
+          <rect x="720" y="400" width="400" height="200" rx="10" fill="#0a0e1e" stroke="#1b2740" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="920" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">SYS-B 儲能櫃 (Zpower-AC-261L)</text>
+          <rect x="760" y="436" width="320" height="58" rx="8" fill="#0a2024" stroke="#00c2a8" stroke-width="1.5"/>
+          <text x="920" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">櫃控一體機</text>
+          <text x="920" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">同 SYS-A 架構</text>
+          <line x1="820" y1="494" x2="820" y2="530" stroke="#00c2a8" stroke-width="1.5" marker-end="url(#pa-teal)"/>
+          <rect x="760" y="530" width="120" height="44" rx="6" fill="#0f1729" stroke="#00c2a8" stroke-width="1"/>
+          <text x="820" y="550" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">PCS</text>
+          <text x="820" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">125 kW</text>
+          <line x1="1020" y1="494" x2="1020" y2="530" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
+          <rect x="960" y="530" width="120" height="44" rx="6" fill="#1a0a14" stroke="#ec4899" stroke-width="1"/>
+          <text x="1020" y="550" text-anchor="middle" fill="#fbcfe8" font-size="11" font-weight="700">BCU + BMU × 13</text>
+          <text x="1020" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">261 kWh LFP</text>
+        </g>
+      </svg>
+      </div>
+      <div class="proto-foot">
+        <strong>讀法</strong>：上層走 MQTT 跨網（雲端通訊）、中層走 Modbus TCP 走本地 LAN（站控 ↔ 櫃控 ↔ PCS）、櫃內走 CAN（電芯保護即時性 &lt; 10ms）、電錶走 DLT645 / Modbus RTU（傳統 RS485 介面）。
+      </div>
+    </div>
+
     <div class="grid g-3 mb-16">
       <div class="card">
         <div class="card-head"><h3>通訊協定</h3></div>
