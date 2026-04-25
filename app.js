@@ -17,13 +17,39 @@ function addChart(c) { charts.push(c); return c; }
 function killCharts() { while (charts.length) { try { charts.pop().destroy(); } catch {} } }
 
 // Global app state — strategy is shared across views
-const state = { strategy: "arbitrage" };
+const state = {
+  strategy: "arbitrage",
+  scheduleOverride: {},   // hour (0-23) -> { mode, kw, label }
+  editTool: "auto",       // "auto" | "charge" | "discharge" | "idle"
+};
+
+// ────────── Toast notifications ──────────
+function showToast(msg, type = "info", duration = 3000) {
+  let host = document.getElementById("toast-host");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "toast-host";
+    document.body.appendChild(host);
+  }
+  const t = document.createElement("div");
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<span class="toast-icon">${ {info:"ⓘ",ok:"✓",warn:"!",err:"✕"}[type] || "ⓘ" }</span><span>${msg}</span>`;
+  host.appendChild(t);
+  requestAnimationFrame(() => t.classList.add("show"));
+  setTimeout(() => {
+    t.classList.remove("show");
+    setTimeout(() => t.remove(), 300);
+  }, duration);
+}
 
 function setStrategy(id) {
   if (!STRATEGIES[id] || state.strategy === id) return;
+  const hadEdits = Object.keys(state.scheduleOverride).length > 0;
   state.strategy = id;
+  state.scheduleOverride = {}; // clear edits when strategy changes
   renderModePill();
   router(); // re-render current view to reflect new strategy
+  showToast(`已切換為「${STRATEGIES[id].full}」${hadEdits ? "，自訂排程已清除" : ""}`, "ok");
 }
 
 function renderModePill() {
@@ -731,8 +757,20 @@ function viewSchedule() {
           <span class="tag ok">◼ 充電</span>
           <span class="tag err">◼ 放電</span>
           <span class="tag mute">◼ 待機</span>
+          ${Object.keys(state.scheduleOverride).length>0?`<span class="tag warn">已修改 ${Object.keys(state.scheduleOverride).length} 格</span>`:""}
         </div>
       </div>
+
+      <!-- Edit toolbar -->
+      <div class="edit-toolbar mb-12">
+        <span class="muted" style="font-size:12px">編輯工具：</span>
+        <button class="tool-btn ${state.editTool==='auto'?'active':''}" data-tool="auto"><span class="dot dot-idle"></span>策略預設</button>
+        <button class="tool-btn ${state.editTool==='charge'?'active':''}" data-tool="charge" style="--c:#10b981"><span class="dot" style="background:#10b981"></span>充電</button>
+        <button class="tool-btn ${state.editTool==='discharge'?'active':''}" data-tool="discharge" style="--c:#ef4444"><span class="dot" style="background:#ef4444"></span>放電</button>
+        <button class="tool-btn ${state.editTool==='idle'?'active':''}" data-tool="idle"><span class="dot dot-idle"></span>待機</button>
+        <button class="btn btn-ghost" id="resetEdits" style="margin-left:auto;font-size:12px;padding:5px 12px" ${Object.keys(state.scheduleOverride).length===0?"disabled":""}>重置編輯</button>
+      </div>
+
       <div class="sched-grid" id="sched"></div>
       <div class="hour-axis">${Array.from({length:24}, (_,i)=>`<span>${String(i).padStart(2,"0")}</span>`).join("")}</div>
 
@@ -769,13 +807,98 @@ function viewSchedule() {
     el.addEventListener("click", () => setStrategy(el.dataset.strategy));
   });
 
-  // Render schedule cells
-  $("#sched").innerHTML = plan.map(p => {
-    const price = tariffOf(p.h).price;
-    return `<div class="sched-cell ${p.mode}" title="${p.h}:00 · ${p.mode} · ${p.kw} kW · 電價 NT$${price}">
-      <span class="lbl">${p.label || ""}</span>
-    </div>`;
-  }).join("");
+  // Wire tool buttons
+  $$(".tool-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.editTool = btn.dataset.tool;
+      $$(".tool-btn").forEach(b => b.classList.toggle("active", b.dataset.tool === state.editTool));
+    });
+  });
+
+  // Reset edits
+  $("#resetEdits").addEventListener("click", () => {
+    state.scheduleOverride = {};
+    showToast("已清除自訂排程", "ok");
+    router();
+  });
+
+  // 啟用排程
+  $$(".page-actions .btn-primary").forEach(btn => {
+    if (btn.textContent.trim() === "啟用排程") {
+      btn.addEventListener("click", () => {
+        const editCount = Object.keys(state.scheduleOverride).length;
+        showToast(`已下傳排程到 PCS 控制器${editCount?` (含 ${editCount} 格自訂)`:""}`, "ok", 4000);
+      });
+    }
+  });
+
+  // Render schedule cells with edit handler
+  const renderCells = () => {
+    const cells = Array.from({length:24}, (_,h) => ({ h, ...planFor(state.strategy, h) }));
+    $("#sched").innerHTML = cells.map(p => {
+      const price = tariffOf(p.h).price;
+      const edited = state.scheduleOverride[p.h] !== undefined;
+      return `<div class="sched-cell ${p.mode} ${edited?'edited':''}" data-h="${p.h}" title="${p.h}:00 · ${p.mode} · ${p.kw} kW · 電價 NT$${price}${edited?' · 已修改':''}">
+        <span class="lbl">${p.label || ""}</span>
+        ${edited ? '<span class="edit-mark"></span>' : ''}
+      </div>`;
+    }).join("");
+    // Attach click handlers
+    $$("#sched .sched-cell").forEach(cell => {
+      cell.addEventListener("click", () => {
+        const h = +cell.dataset.h;
+        applyTool(h);
+      });
+    });
+  };
+
+  function applyTool(h) {
+    if (state.editTool === "auto") {
+      delete state.scheduleOverride[h];
+    } else if (state.editTool === "charge") {
+      state.scheduleOverride[h] = { mode: "charge", kw: -180, label: "充" };
+    } else if (state.editTool === "discharge") {
+      state.scheduleOverride[h] = { mode: "discharge", kw: 215, label: "放" };
+    } else if (state.editTool === "idle") {
+      state.scheduleOverride[h] = { mode: "idle", kw: 0, label: "" };
+    }
+    refreshScheduleView();
+  }
+
+  function refreshScheduleView() {
+    renderCells();
+    // refresh chart data
+    const chart = Chart.getChart("schedChart");
+    if (chart) {
+      const newPlan = Array.from({length:24}, (_,h) => planFor(state.strategy, h));
+      chart.data.datasets[0].data = newPlan.map(p => p.kw);
+      chart.data.datasets[0].backgroundColor = newPlan.map(p => p.mode==="charge" ? "rgba(16,185,129,0.5)" : p.mode==="discharge" ? "rgba(239,68,68,0.55)" : "rgba(139,152,176,0.2)");
+      chart.data.datasets[0].borderColor = newPlan.map(p => p.mode==="charge" ? "#10b981" : p.mode==="discharge" ? "#ef4444" : "#8b98b0");
+      chart.update("none");
+    }
+    // refresh benefit table
+    const b = estimateBenefit(state.strategy);
+    const tbl = document.querySelector(".grid.g-2 .card:last-child table.data");
+    if (tbl) {
+      tbl.innerHTML = `
+        <tr><td>充電電量</td><td class="num right">${fmt(b.chargeKWh)} kWh</td><td class="num right">支出 ${money(b.chargeCost)}</td></tr>
+        <tr><td>放電電量 (含 91.8% 效率)</td><td class="num right">${fmt(b.dischargeKWh)} kWh</td><td class="num right">收益 ${money(b.dischargeRev)}</td></tr>
+        <tr><td>循環次數</td><td class="num right">${(b.dischargeKWh/476).toFixed(2)} 次</td><td class="num right">-</td></tr>
+        <tr><td><strong>淨益</strong></td><td colspan="2" class="num right"><strong style="color:${b.net>=0?"var(--green)":"var(--red)"};font-size:16px">${money(b.net)}</strong></td></tr>
+      `;
+    }
+    // refresh badge
+    const editCount = Object.keys(state.scheduleOverride).length;
+    const tagsRow = document.querySelector(".card-head .row");
+    if (tagsRow) {
+      tagsRow.querySelector(".tag.warn")?.remove();
+      if (editCount > 0) tagsRow.insertAdjacentHTML("beforeend", `<span class="tag warn">已修改 ${editCount} 格</span>`);
+    }
+    const resetBtn = $("#resetEdits");
+    if (resetBtn) resetBtn.disabled = editCount === 0;
+  }
+
+  renderCells();
 
   // schedule chart
   const labels = Array.from({length:24}, (_,i)=>`${String(i).padStart(2,"0")}:00`);

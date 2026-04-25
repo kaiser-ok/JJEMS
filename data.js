@@ -167,7 +167,16 @@ const STRATEGIES = {
   },
 };
 
+// Public plan function — checks state.scheduleOverride first (user edits),
+// otherwise falls back to strategy default
 function planFor(strategyId, hour) {
+  if (typeof state !== "undefined" && state.scheduleOverride && state.scheduleOverride[hour] !== undefined) {
+    return state.scheduleOverride[hour];
+  }
+  return _planForStrategy(strategyId, hour);
+}
+
+function _planForStrategy(strategyId, hour) {
   switch (strategyId) {
     case "arbitrage":
       if (hour >= 1 && hour <= 5)   return { mode: "charge",    kw: -180, label: "充" };
