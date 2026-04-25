@@ -136,7 +136,49 @@ INSERT INTO modbus_points (device_type, vendor, name_zh, name_en, address, funct
 -- Cell-level (range 133-134 voltage, 135-136 temperature)
 -- Use array reference; ETL worker expands these into 512 individual reads
 
+-- ----------------------------------------
+-- Deployment topology for demo site (A. 邊緣單站)
+-- ----------------------------------------
+UPDATE sites SET deployment_mode = 'combined'
+WHERE id = '33333333-0000-0000-0000-000000000001'::UUID;
+
+-- ----------------------------------------
+-- MQTT gateway (HiTHIUM SCU 對接 demo)
+-- ----------------------------------------
+INSERT INTO mqtt_gateways (id, site_id, client_id, username, password_hash,
+  device_topic, gateway_topic, firmware_version, connection_state)
+VALUES ('55555555-0000-0000-0000-000000000001'::UUID,
+  '33333333-0000-0000-0000-000000000001'::UUID,
+  'jjpower-kh-luzhu-scu-001', 'kh_luzhu_scu',
+  '$argon2id$v=19$m=65536,t=3,p=4$DEMO_HASH_REPLACE_IN_PROD',
+  'site/kh-luzhu/scu-001', 'gw/jjpower-kh-luzhu-scu-001',
+  'V2.2.1', 'offline');
+
+-- ----------------------------------------
+-- MQTT field map (代表性 14 筆，從 V1.4 規範 107 個字段挑出)
+-- 6 大類：BMS / PCS / 溫濕度 / 消防 / 關口表 / 儲能表
+-- ----------------------------------------
+INSERT INTO mqtt_field_map (device_kind, field_id, name_zh, name_en, data_type, value_type, unit, scale, target_table, target_column) VALUES
+-- BMS
+('BMS',  1, '簇狀態',           'Rack State',         '遙測','enum',  '',    1.0, NULL,                    NULL),
+('BMS',  2, '簇電壓',           'Rack Voltage',       '遙測','int16', 'V',   0.1, 'telemetry_cabinet_1s',  'dc_voltage'),
+('BMS',  3, '簇電流',           'Rack Current',       '遙測','int16', 'A',   0.1, 'telemetry_cabinet_1s',  'dc_current'),
+('BMS',  4, '簇SOC',            'Rack SOC',           '遙測','int16', '%',   0.1, 'telemetry_cabinet_1s',  'soc'),
+('BMS',  5, '簇SOH',            'Rack SOH',           '遙測','int16', '%',   0.1, 'telemetry_cabinet_1s',  'soh'),
+('BMS',  6, '絕緣電阻',         'Insulation',         '遙測','int16', 'kΩ',  1.0, 'telemetry_cabinet_1s',  'insulation_kohm'),
+('BMS',  8, '平均單體溫度',     'Avg Cell Temp',      '遙測','int16', '°C',  0.1, 'telemetry_cabinet_1s',  'temp_avg'),
+('BMS', 13, '最高單體溫度',     'Max Cell Temp',      '遙測','int16', '°C',  0.1, 'telemetry_cabinet_1s',  'temp_max'),
+-- PCS
+('PCS',  1, '即時有功功率',     'PCS Active Power',   '遙測','int16', 'kW',  0.1, 'telemetry_cabinet_1s',  'pcs_p_kw'),
+('PCS',  2, '即時無功功率',     'PCS Reactive Power', '遙測','int16', 'kVAR',0.1, 'telemetry_cabinet_1s',  'pcs_q_kvar'),
+('PCS',  3, '電網頻率',         'Grid Frequency',     '遙測','uint16','Hz',  0.01,'telemetry_cabinet_1s',  'frequency'),
+-- 關口表
+('關口表', 1, '即時有功功率',   'Meter Active Power',  '遙測','int16', 'kW',  0.1, 'telemetry_meter_1m',    'p_kw'),
+('關口表', 2, '功率因數',       'Meter PF',            '遙測','int16', '',    0.01,'telemetry_meter_1m',    'pf'),
+('關口表', 3, '累計購入電量',   'Meter Import kWh',    '遙測','uint32','kWh', 0.1, 'telemetry_meter_1m',    'import_kwh_cumul');
+
 -- ============================================================
 -- Done. Demo data ready.
 -- Next: register a user, run worker to start ingesting telemetry.
+-- 三拓撲說明見 DEPLOYMENT.md
 -- ============================================================

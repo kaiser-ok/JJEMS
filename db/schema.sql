@@ -579,6 +579,91 @@ CREATE TABLE openrouter_credits (
 CREATE INDEX idx_openrouter_credits_org_ts ON openrouter_credits(org_id, ts DESC);
 
 -- ============================================================
+-- I. MQTT Northbound Layer (對接 HiTHIUM SCU)
+-- 依「海辰数能EMS对接数能云MQTT协议规范 V1.4」實作
+-- ============================================================
+
+CREATE TABLE mqtt_gateways (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id             UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+  client_id           TEXT NOT NULL UNIQUE,                  -- MQTT ClientId
+  username            TEXT NOT NULL,
+  password_hash       TEXT NOT NULL,                          -- argon2id
+  device_topic        TEXT NOT NULL,                          -- $ESS/{x}/data
+  gateway_topic       TEXT NOT NULL,                          -- $ESC/{x}/rpcreq
+  firmware_version    TEXT,
+  last_connect_at     TIMESTAMPTZ,
+  last_disconnect_at  TIMESTAMPTZ,
+  connection_state    TEXT DEFAULT 'offline',
+  ip_address          INET,
+  metadata            JSONB DEFAULT '{}',
+  created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_mqtt_gateways_site ON mqtt_gateways(site_id);
+
+-- 預先加 site 的 deployment_mode (依先前討論：combined / split / flat)
+ALTER TABLE sites ADD COLUMN deployment_mode TEXT DEFAULT 'combined'
+  CHECK (deployment_mode IN ('combined','split','flat'));
+
+CREATE TYPE mqtt_direction AS ENUM ('inbound','outbound');
+
+CREATE TABLE mqtt_messages_raw (
+  ts            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  gateway_id    UUID NOT NULL,
+  topic         TEXT NOT NULL,
+  direction     mqtt_direction NOT NULL,
+  method        TEXT,                                         -- FULL / VARY / RPC name
+  msg_id        TEXT,
+  device_id     TEXT,                                         -- payload.dId
+  payload       JSONB NOT NULL,
+  qos           SMALLINT DEFAULT 1,
+  size_bytes    INTEGER
+);
+SELECT create_hypertable('mqtt_messages_raw', 'ts', chunk_time_interval => INTERVAL '1 day');
+CREATE INDEX idx_mqtt_raw_gateway_ts ON mqtt_messages_raw(gateway_id, ts DESC);
+CREATE INDEX idx_mqtt_raw_method ON mqtt_messages_raw(method, ts DESC);
+ALTER TABLE mqtt_messages_raw SET (timescaledb.compress, timescaledb.compress_segmentby = 'gateway_id');
+SELECT add_compression_policy('mqtt_messages_raw', INTERVAL '7 days');
+SELECT add_retention_policy('mqtt_messages_raw', INTERVAL '30 days');
+
+CREATE TABLE mqtt_commands (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  gateway_id        UUID NOT NULL REFERENCES mqtt_gateways(id) ON DELETE CASCADE,
+  issued_at         TIMESTAMPTZ DEFAULT NOW(),
+  issued_by         UUID REFERENCES users(id) ON DELETE SET NULL,
+  method            TEXT NOT NULL,
+  device_id         TEXT NOT NULL,                            -- target dId
+  msg_id            TEXT NOT NULL UNIQUE,
+  request_payload   JSONB NOT NULL,
+  resp_topic        TEXT,
+  ack_status        TEXT DEFAULT 'pending',                   -- pending/success/failed/timeout
+  ack_code          INTEGER,                                  -- 0=success, 1=failed (per spec)
+  ack_payload       JSONB,
+  ack_at            TIMESTAMPTZ,
+  timeout_at        TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '30 seconds'
+);
+CREATE INDEX idx_mqtt_commands_gateway_ts ON mqtt_commands(gateway_id, issued_at DESC);
+CREATE INDEX idx_mqtt_commands_pending ON mqtt_commands(ack_status, timeout_at)
+  WHERE ack_status = 'pending';
+
+-- 上行字段對應字典（規格表 107 fields → 我方欄位）
+CREATE TABLE mqtt_field_map (
+  id            BIGSERIAL PRIMARY KEY,
+  device_kind   TEXT NOT NULL,                                -- 'BMS','PCS','温湿度','消防','关口表','储能表'
+  field_id      INTEGER NOT NULL,
+  name_zh       TEXT NOT NULL,
+  name_en       TEXT,
+  data_type     TEXT,                                         -- '遙測' / '遙信'
+  value_type    TEXT,                                         -- 'int16','float','enum','bitmap'
+  unit          TEXT,
+  scale         DECIMAL(10,4) DEFAULT 1.0,
+  enum_values   JSONB,                                        -- e.g. {"0":"在线","1":"离线"}
+  target_table  TEXT,                                         -- 'telemetry_cabinet_1s' etc
+  target_column TEXT,
+  UNIQUE(device_kind, field_id)
+);
+
+-- ============================================================
 -- Row Level Security (basic policies)
 -- ============================================================
 

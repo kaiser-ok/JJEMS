@@ -600,10 +600,101 @@
       <div class="footer"><span>J&amp;J Power EMS · 七大功能模組</span><span>2026</span></div>
     </section>
 
-    <!-- ───── Slide 5: Dashboard screenshot ───── -->
+    <!-- ───── Slide 5: Deployment topologies ───── -->
     <section class="slide" data-i="5">
       <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
-      <div class="pageno"><strong>05</strong> / 11</div>
+      <div class="pageno"><strong>05</strong> / 12</div>
+      <div class="title-row">
+        <h2>部署彈性 · <span class="accent">三種拓撲、一份程式</span></h2>
+        <p class="subtitle">同一份 codebase + 同一份 schema，依需求切換為邊緣 / 純 IP 多站 / 完整三層</p>
+      </div>
+      <div class="body single">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1200px">
+
+          <!-- A. Edge -->
+          <div style="padding:20px;background:linear-gradient(180deg,rgba(0,194,168,0.08),rgba(0,194,168,0.02));border:1px solid rgba(0,194,168,0.3);border-radius:12px">
+            <div style="font-size:11px;letter-spacing:2px;color:var(--primary);font-weight:700">拓撲 A</div>
+            <div style="font-size:20px;font-weight:800;margin:6px 0 4px">邊緣單站</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">on-premise · 不上雲</div>
+            <pre style="background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;font-size:10px;color:var(--text);line-height:1.4;font-family:ui-monospace,monospace;overflow:hidden">┌──────────────┐
+│ J&amp;J EMS Edge │ 案場機房
+│ + MQTT broker│ 1 台 mini-PC
+└──────┬───────┘
+       ↓ LAN
+   [站控+多櫃]</pre>
+            <div style="margin-top:14px;font-size:12.5px;line-height:1.7">
+              ✓ 大部分 C&amp;I 案場<br>
+              ✓ 資料完全自有<br>
+              ✓ WAN 斷線不影響<br>
+              ✗ 不支援多站聚合
+            </div>
+            <div style="margin-top:14px;padding:8px 10px;background:rgba(0,194,168,0.1);border-radius:6px;font-size:11.5px">
+              <strong>BOM</strong>：NT$ 30K (一次性)<br>
+              <strong>月費</strong>：NT$ 0
+            </div>
+          </div>
+
+          <!-- B. IP multi-site -->
+          <div style="padding:20px;background:linear-gradient(180deg,rgba(59,130,246,0.08),rgba(59,130,246,0.02));border:1px solid rgba(59,130,246,0.3);border-radius:12px">
+            <div style="font-size:11px;letter-spacing:2px;color:var(--blue);font-weight:700">拓撲 B</div>
+            <div style="font-size:20px;font-weight:800;margin:6px 0 4px">純 IP 多站</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">cloud · 省站控</div>
+            <pre style="background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;font-size:10px;color:var(--text);line-height:1.4;font-family:ui-monospace,monospace;overflow:hidden">┌──────────────┐
+│ J&amp;J EMS Cloud│ 雲端集中
+└──────┬───────┘
+       ↓ MQTT/TLS
+   [櫃控-1] ... [櫃控-N]
+   (各案場直連雲)</pre>
+            <div style="margin-top:14px;font-size:12.5px;line-height:1.7">
+              ✓ 多站聚合 + VPP<br>
+              ✓ 跨站排程最佳化<br>
+              ✓ 無需站控硬體<br>
+              ✗ 需全 IP 化案場<br>
+              ✗ 無法接 RS485/DI/O
+            </div>
+            <div style="margin-top:14px;padding:8px 10px;background:rgba(59,130,246,0.12);border-radius:6px;font-size:11.5px">
+              <strong>BOM</strong>：NT$ 0 (硬體)<br>
+              <strong>月費</strong>：NT$ 5–30K (雲端)
+            </div>
+          </div>
+
+          <!-- C. Full -->
+          <div style="padding:20px;background:linear-gradient(180deg,rgba(139,92,246,0.08),rgba(139,92,246,0.02));border:1px solid rgba(139,92,246,0.3);border-radius:12px">
+            <div style="font-size:11px;letter-spacing:2px;color:var(--purple);font-weight:700">拓撲 C</div>
+            <div style="font-size:20px;font-weight:800;margin:6px 0 4px">完整三層</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">cloud + edge SCU</div>
+            <pre style="background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;font-size:10px;color:var(--text);line-height:1.4;font-family:ui-monospace,monospace;overflow:hidden">┌──────────────┐
+│ J&amp;J EMS Cloud│
+└──────┬───────┘
+       ↓ MQTT/TLS
+   [站控 per site]
+       ↓ Modbus/CAN/I/O
+   [多櫃+RS485+DI/O]</pre>
+            <div style="margin-top:14px;font-size:12.5px;line-height:1.7">
+              ✓ 接 RS485 電錶<br>
+              ✓ DI/O 消防/門禁<br>
+              ✓ 本地策略 + WAN 斷線運轉<br>
+              ✓ ms 級安全閥 (sReg/AFC)<br>
+              ✗ 站控硬體成本最高
+            </div>
+            <div style="margin-top:14px;padding:8px 10px;background:rgba(139,92,246,0.12);border-radius:6px;font-size:11.5px">
+              <strong>BOM</strong>：NT$ 50K+ (站控)<br>
+              <strong>月費</strong>：NT$ 5–30K (雲端)
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:32px;padding:16px 20px;background:rgba(0,194,168,0.06);border-left:3px solid var(--primary);border-radius:8px;max-width:1200px;font-size:13.5px">
+          <strong>關鍵</strong>：Schema 都一樣（<code style="background:rgba(0,0,0,0.3);padding:1px 6px;border-radius:3px;font-size:12px">sites.deployment_mode</code> 區分），北向 MQTT 都遵循「海辰数能EMS对接数能云 V1.4」協議。客戶可從 A 起步，未來無痛升級到 B 或 C，**歷史資料完整保留**。
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 部署拓撲</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 6: Dashboard screenshot ───── -->
+    <section class="slide" data-i="6">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>06</strong> / 12</div>
       <div class="title-row">
         <h2>首頁總覽 · <span class="accent">一眼掌握全站</span></h2>
         <p class="subtitle">當前策略 / KPI 卡 / 即時能源流向 / 24 小時功率曲線 / SoC / 告警 — 維運主管打開電腦第一個看的畫面</p>
@@ -649,9 +740,9 @@
     </section>
 
     <!-- ───── Slide 6: Single-line diagram ───── -->
-    <section class="slide" data-i="6">
+    <section class="slide" data-i="7">
       <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
-      <div class="pageno"><strong>06</strong> / 11</div>
+      <div class="pageno"><strong>07</strong> / 12</div>
       <div class="title-row">
         <h2>案場單線圖 · <span class="accent">電氣系統一目了然</span></h2>
         <p class="subtitle">SVG 動態繪製，含動畫電流方向、CB 狀態、保護電驛、變壓器即時資訊</p>
@@ -695,9 +786,9 @@
     </section>
 
     <!-- ───── Slide 7: Schedule + Strategy ───── -->
-    <section class="slide" data-i="7">
+    <section class="slide" data-i="8">
       <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
-      <div class="pageno"><strong>07</strong> / 11</div>
+      <div class="pageno"><strong>08</strong> / 12</div>
       <div class="title-row">
         <h2>排程與策略 · <span class="accent">6 種運行模式</span></h2>
         <p class="subtitle">點擊切換 / 拖曳多格 / 雙擊精細編輯，所見即所得</p>
@@ -744,9 +835,9 @@
     </section>
 
     <!-- ───── Slide 8: Devices ───── -->
-    <section class="slide" data-i="8">
+    <section class="slide" data-i="9">
       <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
-      <div class="pageno"><strong>08</strong> / 11</div>
+      <div class="pageno"><strong>09</strong> / 12</div>
       <div class="title-row">
         <h2>設備監控 · <span class="accent">電芯級可視化</span></h2>
         <p class="subtitle">PCS / BMS / 環控全整合，208 顆電芯溫度熱力圖即時顯示</p>
@@ -792,9 +883,9 @@
     </section>
 
     <!-- ───── Slide 9: Finance ───── -->
-    <section class="slide" data-i="9">
+    <section class="slide" data-i="10">
       <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
-      <div class="pageno"><strong>09</strong> / 11</div>
+      <div class="pageno"><strong>10</strong> / 12</div>
       <div class="title-row">
         <h2>財務效益 · <span class="accent">IRR 11.8% / 6.2 年回本</span></h2>
         <p class="subtitle">從每月帳單到 15 年現金流，數字會自己說話</p>
@@ -840,9 +931,9 @@
     </section>
 
     <!-- ───── Slide 10: AI Copilot + Mobile ───── -->
-    <section class="slide" data-i="10">
+    <section class="slide" data-i="11">
       <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
-      <div class="pageno"><strong>10</strong> / 11</div>
+      <div class="pageno"><strong>11</strong> / 12</div>
       <div class="title-row">
         <h2>AI Energy Copilot + 手機支援</h2>
         <p class="subtitle">右下角 🤖 隨時提問，手機自動切換為精簡介面</p>
@@ -888,9 +979,9 @@
     </section>
 
     <!-- ───── Slide 11: Roadmap ───── -->
-    <section class="slide" data-i="11">
+    <section class="slide" data-i="12">
       <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
-      <div class="pageno"><strong>11</strong> / 11</div>
+      <div class="pageno"><strong>12</strong> / 12</div>
       <div class="title-row">
         <h2>產品路線圖 · <span class="accent">迎接 AI 儲能新時代</span></h2>
         <p class="subtitle">7 大模組 + AI Copilot</p>
@@ -975,7 +1066,7 @@
   <!-- Navigation -->
   <div class="nav">
     <button class="nav-btn" id="prev" title="上一頁 (←)">‹</button>
-    <span class="nav-page"><strong id="cur">1</strong> / <span id="tot">11</span></span>
+    <span class="nav-page"><strong id="cur">1</strong> / <span id="tot">12</span></span>
     <button class="nav-btn" id="next" title="下一頁 (→)">›</button>
   </div>
 

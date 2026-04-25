@@ -3,6 +3,70 @@
 > Target: PostgreSQL 16 + TimescaleDB (時序資料) + 可選 Redis (即時 cache)
 > Last updated: 2026-04-25
 
+## 〇、定位 — 三種部署拓撲
+
+**J&J Power EMS** 同一份 codebase + 同一份 schema，依 `DEPLOYMENT_MODE` 環境變數與每站 `sites.deployment_mode` 欄位，可部署成三種拓撲。北向統一遵循 [`海辰数能EMS对接数能云MQTT协议规范 V1.4`](../hi_doc/)。
+
+### A. 邊緣單站 (`combined`，最常見)
+
+```
+┌────────────────────────────────┐
+│  J&J EMS Edge  (案場現場 1 台)  │  Web UI + 內嵌 MQTT broker + DB
+└────────┬───────────────────────┘
+         ↓ LAN MQTT (QoS 1)
+   ┌─────────────┐
+   │ 站控 (HiTHIUM SCU 或 J&J Edge) │
+   └──────┬──────┘
+          ↓ Modbus TCP / CAN / I/O
+       [PCS / BCU / BMU / 環控]
+```
+適用：大部分 C&I 案場、客戶要求資料**不上雲**、單站獨立。
+
+### B. 純 IP 多站 (`flat`，VPP / 大客戶)
+
+```
+┌──────────────────────────────────┐
+│  J&J EMS Cloud  (取代海辰数能云)   │
+└────────┬─────────────────────────┘
+         ↓ 公網 MQTT/TLS (port 8883)
+   ┌─────────┬─────────┬─────────┐
+   │ 櫃控 1  │ 櫃控 2  │ 櫃控 N  │  ← 直連雲，**省站控**
+   └─────────┴─────────┴─────────┘
+```
+適用：全 IP 化案場、無 RS485/DI/O 周邊設備、可信網路。
+**省站控**的代價：櫃控要做本地保護、無法整合廠房既有 RS485 電錶或消防 DI/O。
+
+### C. 完整三層 (`split`，大型 / 複雜整合)
+
+```
+┌──────────────────────────────────┐
+│  J&J EMS Cloud                    │
+└────────┬─────────────────────────┘
+         ↓ 公網 MQTT/TLS
+┌────────┴────────┐  ←── 站控仍然不可或缺，因為：
+│ 站控 (per site)  │       1. 整合 RS485 關口表 / 儲能表
+└──┬─────────┬───┘       2. DI/DO 接消防、門禁、廠房急停、液冷 alarm
+   ↓ Modbus  ↓ DI/O      3. 本地策略執行 (WAN 斷線仍能運轉、安全閥)
+[多櫃 + 周邊 RS485/I/O 設備]   4. 流量收斂 (聚合再上送，省頻寬)
+```
+適用：大型案場、有複雜周邊整合、要做 VPP / 輔助服務市場。
+
+---
+
+### 拓撲對照表
+
+| 拓撲 | `sites.deployment_mode` | DB 部署 | MQTT broker | 是否需站控 | 多租戶 |
+|---|---|---|---|---|---|
+| **A. 邊緣單站** | `combined` | 本機 PostgreSQL + Timescale | 內嵌 Mosquitto | ✅ | 通常單租戶 |
+| **B. 純 IP 多站** | `flat` | 雲端 RDS / Timescale Cloud | Managed (HiveMQ / EMQX) | ❌ | 真多租戶 + RLS |
+| **C. 完整三層** | `split` | 雲端 RDS / Timescale Cloud | Managed | ✅ | 真多租戶 + RLS |
+
+詳細部署步驟參見 [`DEPLOYMENT.md`](./DEPLOYMENT.md)。
+
+關鍵：**Schema 都一樣**，不需要為三拓撲維護不同分支。
+
+---
+
 ## 一、整體架構
 
 ```
@@ -43,6 +107,7 @@
 | **F. 財務與結算** | tariff_plans, tariff_periods, billing_periods, savings_records, capex_records | 電費試算與績效 |
 | **G. 預測與最佳化** | load_forecasts, pv_forecasts, weather_observations, optimization_runs | AI / 排程引擎 |
 | **H. 外部整合** | tpc_signals, openrouter_credits | 台電、雲端 LLM |
+| **I. MQTT 對接層** | mqtt_gateways, mqtt_messages_raw, mqtt_commands, mqtt_field_map | 北向協議 (與 SCU 通訊) |
 
 ---
 
@@ -557,6 +622,83 @@ SELECT add_retention_policy('telemetry_cabinet_1s', INTERVAL '90 days');
 | price_per_kwh | DECIMAL(6,3) | 補償單價 |
 | status | TEXT | accepted / declined / completed |
 | compliance_pct | DECIMAL(5,2) | 執行率 |
+
+---
+
+### I. MQTT 對接層 (Northbound, with HiTHIUM SCU)
+
+#### `mqtt_gateways`
+每台註冊到雲端的站控（MQTT client）
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| id | UUID PK | |
+| site_id | UUID FK | 通常 1 站對 1 gateway |
+| client_id | TEXT UNIQUE | 雲端核發 |
+| username | TEXT | 雲端核發 |
+| password_hash | TEXT | argon2 |
+| device_topic | TEXT | 上行 topic 中的 `{設備主題}` |
+| gateway_topic | TEXT | 下行 topic 中的 `{網關設備標識}` |
+| firmware_version | TEXT | |
+| last_connect_at | TIMESTAMPTZ | |
+| last_disconnect_at | TIMESTAMPTZ | |
+| connection_state | TEXT | 'online' / 'offline' |
+| ip_address | INET | broker 端紀錄的客戶端 IP |
+| metadata | JSONB | |
+
+#### `mqtt_messages_raw`
+**所有上行訊息原始 payload（Hypertable，稽核 + 重放用）**
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| ts | TIMESTAMPTZ | 接收時間 |
+| gateway_id | UUID | |
+| topic | TEXT | `$ESS/.../data` |
+| direction | ENUM | inbound / outbound |
+| method | TEXT | FULL / VARY / RPC name |
+| msg_id | TEXT | client 端訊息序號 |
+| device_id | TEXT | payload 內 `dId` |
+| payload | JSONB | 完整原始 JSON |
+| qos | SMALLINT | |
+| size_bytes | INTEGER | |
+
+→ Hypertable, 7 天壓縮, 30 天保留（重放、debug 用，不用永久存）
+
+#### `mqtt_commands`
+**所有下行 RPC 與其回覆**
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| id | UUID PK | |
+| gateway_id | UUID FK | |
+| issued_at | TIMESTAMPTZ | |
+| issued_by | UUID FK NULL | NULL=自動策略 |
+| method | TEXT | UpdateStrategyData / SetStrategyPower / StartStrategy / ... |
+| dId | TEXT | 目標設備 ID |
+| msg_id | TEXT UNIQUE | |
+| request_payload | JSONB | 完整 payload |
+| resp_topic | TEXT | 回覆 topic |
+| ack_status | TEXT | pending / success / failed / timeout |
+| ack_code | INTEGER | 0=成功, 1=失敗 |
+| ack_payload | JSONB | |
+| ack_at | TIMESTAMPTZ | |
+| timeout_at | TIMESTAMPTZ | issued_at + 30s |
+
+#### `mqtt_field_map`
+107 個上行字段的對應表（規格表 → 我方資料庫欄位）
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| id | BIGSERIAL PK | |
+| device_kind | TEXT | 'BMS' / 'PCS' / '溫濕度' / '消防' / '關口表' / '儲能表' |
+| field_id | INTEGER | 1‥107 之類 |
+| name_zh | TEXT | '簇電壓' |
+| name_en | TEXT | 'Rack Voltage' |
+| data_type | TEXT | '遙測' / '遙信' |
+| value_type | TEXT | 'int16' / 'float' / 'enum' / 'bitmap' |
+| unit | TEXT | 'V' / 'kW' / '%' |
+| scale | DECIMAL | |
+| enum_values | JSONB | `{"0":"在線","1":"離線"}` |
+| target_table | TEXT | 'telemetry_cabinet_1s' / 'telemetry_cell_30s' |
+| target_column | TEXT | 'soc' / 'temp_max' |
+
+讓 ETL worker 不用寫死 fields，可以動態映射。
 
 ---
 

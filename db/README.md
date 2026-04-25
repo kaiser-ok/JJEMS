@@ -36,6 +36,18 @@ ems=# SELECT * FROM v_active_alarms;
 | Redis | `redis://localhost:6379` |
 | Adminer | http://localhost:8081 |
 
+## 三種部署拓撲
+
+J&J Power EMS 同一份 codebase + 同一份 schema，靠 `DEPLOYMENT_MODE` env 與 `sites.deployment_mode` 欄位切換：
+
+| 拓撲 | env | 站點欄位 | 適用 |
+|---|---|---|---|
+| **A. 邊緣單站** | `edge` | `combined` | 大部分 C&I 案場、不上雲 |
+| **B. 純 IP 多站** | `cloud` | `flat` | VPP、全 IP 化、無周邊整合 |
+| **C. 完整三層** | `cloud` | `split` | 大型 + 有 RS485/DI/O 周邊 |
+
+詳細部署步驟見 [`DEPLOYMENT.md`](./DEPLOYMENT.md)。
+
 ## 關鍵設計原則
 
 1. **多租戶隔離**：所有資料都帶 `org_id`，啟用 PostgreSQL Row Level Security
