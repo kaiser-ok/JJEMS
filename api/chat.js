@@ -139,13 +139,24 @@ export default async function handler(req) {
           attempts,
         }, 402);
       }
-      // 401/403 = auth → bail out
-      if (status === 401 || status === 403) {
+      // 401 = invalid key
+      if (status === 401) {
         return json({
-          error: `Auth error ${status}`,
-          hint: "OPENROUTER_API_KEY 無效或已撤銷,請於 Vercel env vars 重新設定。",
+          error: "Invalid API key",
+          hint: "OPENROUTER_API_KEY 無效或已撤銷。到 https://openrouter.ai/settings/keys 建新 key,更新 Vercel env vars 後 Redeploy。",
           attempts,
-        }, status);
+        }, 401);
+      }
+      // 403 — could be key spending cap exceeded OR auth scope issue
+      if (status === 403) {
+        const isKeyLimit = /key.?limit|limit exceeded|spend/i.test(detail);
+        return json({
+          error: isKeyLimit ? "OpenRouter key spending cap reached" : "Forbidden",
+          hint: isKeyLimit
+            ? "這把 API key 的消費上限已用完。到 https://openrouter.ai/settings/keys 找到 key → Edit → 把 'Credit limit' 拉高或改成 unlimited (留空); 不需要建新 key。"
+            : "權限不足,請檢查 key scope 與 OpenRouter 帳戶狀態。",
+          attempts,
+        }, 403);
       }
       // 429 on PAID model = account-level limit → bail
       if (status === 429 && !isFree(model)) {
