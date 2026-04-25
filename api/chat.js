@@ -5,13 +5,13 @@
 
 export const config = { runtime: "edge" };
 
-// Primary: cheap paid Gemini Flash 1.5 8B (~$0.0375/M input, $0.15/M output)
-// — pennies for thousands of demo queries, no free-tier rate limits.
-// Fallback: a couple of free models in case of transient outages.
+// Primary: Gemini 2.5 Flash Lite — cheap paid, current generation,
+// reliable, multilingual. Fallback chain for transient outages.
 const MODELS = [
-  "google/gemini-flash-1.5-8b",                // primary, cheap paid
+  "google/gemini-2.5-flash-lite",              // primary, ~$0.10/M in, $0.40/M out
+  "google/gemini-2.0-flash-001",               // fallback paid
+  "google/gemini-flash-1.5",                   // legacy paid fallback
   "google/gemini-2.0-flash-exp:free",          // free fallback
-  "meta-llama/llama-3.3-70b-instruct:free",    // free fallback
 ];
 
 const LANG_NAME = {
@@ -155,15 +155,16 @@ export default async function handler(req) {
           attempts,
         }, 429);
       }
-      // 4xx other than rate/auth/credit = likely model name issue → bail
-      if (status >= 400 && status < 500 && status !== 429) {
+      // 404 = model not available → try next
+      // 429 on FREE / 5xx → try next
+      // Other 4xx (400/405/etc) = real client error → bail
+      if (status >= 400 && status < 500 && status !== 429 && status !== 404) {
         return json({
           error: `Upstream ${status} on model "${model}"`,
-          hint: "可能是模型名稱已變更或不存在,請檢查 OpenRouter model list。",
+          hint: "請求格式錯誤,請檢查 prompt/messages 結構。",
           attempts,
         }, status);
       }
-      // 429 on FREE / 5xx → try next
     } catch (e) {
       attempts.push({ model, error: e?.message || String(e) });
     }
