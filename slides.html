@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>J&J Power EMS · 產品簡報</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a1020;
+      --bg-elev: #111a2e;
+      --bg-card: #0f1729;
+      --border: #1b2740;
+      --text: #e6edf5;
+      --muted: #8b98b0;
+      --dim: #5b6886;
+      --primary: #00c2a8;
+      --blue: #3b82f6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+      --pv: #facc15;
+      --teal: #14b8a6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: "Noto Sans TC", "Inter", system-ui, sans-serif;
+      overflow: hidden;
+    }
+    .deck { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+    .slide {
+      position: absolute; inset: 0;
+      padding: 56px 72px 72px;
+      display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.5s ease;
+      transform: translateX(40px);
+      background: radial-gradient(ellipse at top right, rgba(0,194,168,0.06), transparent 50%), var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; transform: translateX(0); z-index: 5; }
+
+    /* Slide chrome */
+    .slide::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--blue), var(--purple));
+    }
+    .stamp {
+      position: absolute; top: 24px; left: 40px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: var(--muted);
+    }
+    .stamp-mark {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--primary), var(--blue));
+      display: grid; place-items: center;
+      color: #001b20; font-weight: 800; font-size: 10px;
+    }
+    .pageno {
+      position: absolute; top: 24px; right: 40px;
+      font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+    }
+    .pageno strong { color: var(--text); font-weight: 700; }
+    .footer {
+      position: absolute; bottom: 24px; left: 40px; right: 40px;
+      display: flex; justify-content: space-between;
+      font-size: 11.5px; color: var(--dim);
+    }
+
+    /* Cover */
+    .slide.cover {
+      align-items: center; justify-content: center;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(0,194,168,0.18), transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(59,130,246,0.15), transparent 50%),
+        var(--bg);
+    }
+    .cover-content { text-align: center; max-width: 900px; }
+    .kicker {
+      display: inline-block; padding: 6px 14px;
+      border: 1px solid rgba(0,194,168,0.3); border-radius: 999px;
+      color: var(--primary); font-size: 13px; font-weight: 600;
+      background: rgba(0,194,168,0.08); margin-bottom: 32px;
+      letter-spacing: 1px;
+    }
+    .cover-content h1 {
+      font-size: 96px; font-weight: 900; line-height: 1.05;
+      background: linear-gradient(135deg, var(--text) 30%, var(--primary));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+    .cover-content .lead {
+      font-size: 22px; color: var(--muted); line-height: 1.6;
+      margin-bottom: 40px;
+    }
+    .cover-tags { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .cover-tag {
+      padding: 8px 16px; border-radius: 999px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      font-size: 13px; color: var(--text);
+    }
+    .cover-meta {
+      margin-top: 60px; font-size: 13px; color: var(--dim);
+      letter-spacing: 1.5px;
+    }
+
+    /* Standard slide layout */
+    .title-row { margin-bottom: 28px; max-width: 1280px; }
+    h2 {
+      font-size: 38px; font-weight: 800; line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    h2 .accent { color: var(--primary); }
+    .subtitle {
+      font-size: 16px; color: var(--muted); line-height: 1.5;
+    }
+
+    /* Two-column body */
+    .body {
+      flex: 1; display: grid; grid-template-columns: 1fr 1.3fr;
+      gap: 40px; min-height: 0; align-items: center;
+    }
+    .body.single { grid-template-columns: 1fr; }
+    .body.text-only {
+      grid-template-columns: 1fr 1fr; gap: 60px;
+    }
+
+    /* Bullet list */
+    .points { list-style: none; display: flex; flex-direction: column; gap: 18px; }
+    .point {
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .point-num {
+      flex: 0 0 auto;
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(0,194,168,0.12);
+      border: 1px solid rgba(0,194,168,0.3);
+      display: grid; place-items: center;
+      color: var(--primary); font-weight: 700; font-size: 14px;
+    }
+    .point-body h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .point-body p { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+    /* Stat cards */
+    .stats {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+      max-width: 600px;
+    }
+    .stat {
+      padding: 20px 22px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border); border-radius: 12px;
+      position: relative; overflow: hidden;
+    }
+    .stat::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--primary);
+    }
+    .stat.blue::before { background: var(--blue); }
+    .stat.amber::before { background: var(--amber); }
+    .stat.green::before { background: var(--green); }
+    .stat.purple::before { background: var(--purple); }
+    .stat .lbl { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .stat .val { font-size: 26px; font-weight: 800; line-height: 1.1; }
+    .stat .val .u { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+    .stat .sub { font-size: 11.5px; color: var(--dim); margin-top: 4px; }
+
+    /* Screenshot frame (live iframe of the EMS) */
+    .screen-wrap {
+      position: relative; border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,194,168,0.1);
+      background: var(--bg-card);
+      aspect-ratio: 16/10;
+    }
+    .screen-wrap.tall { aspect-ratio: 16/11; }
+    .screen-wrap iframe {
+      position: absolute; top: 0; left: 0;
+      width: 1440px; height: 920px;
+      border: 0;
+      transform: scale(0.55);
+      transform-origin: top left;
+    }
+    .screen-cap {
+      position: absolute; top: 12px; right: 12px;
+      padding: 4px 10px; border-radius: 6px;
+      background: rgba(15,23,41,0.85); backdrop-filter: blur(4px);
+      border: 1px solid var(--border);
+      color: var(--primary); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .screen-bar {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 28px; background: rgba(15,23,41,0.9);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 6px; padding: 0 12px;
+      z-index: 2;
+    }
+    .screen-bar i {
+      width: 10px; height: 10px; border-radius: 50%; background: #ef4444;
+    }
+    .screen-bar i:nth-child(2) { background: #f59e0b; }
+    .screen-bar i:nth-child(3) { background: #10b981; }
+    .screen-bar .url {
+      flex: 1; padding: 3px 10px; background: rgba(0,0,0,0.3);
+      border-radius: 5px; font-size: 11px; color: var(--muted);
+      font-family: ui-monospace, monospace; margin-left: 8px;
+    }
+
+    /* Architecture diagram */
+    .arch {
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 1200px;
+    }
+    .arch-card {
+      padding: 22px; border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .arch-card .ic {
+      font-size: 28px; margin-bottom: 12px;
+      display: inline-block;
+      width: 48px; height: 48px; border-radius: 12px;
+      display: grid; place-items: center;
+      background: rgba(0,194,168,0.1); color: var(--primary);
+    }
+    .arch-card.blue .ic { background: rgba(59,130,246,0.12); color: var(--blue); }
+    .arch-card.amber .ic { background: rgba(245,158,11,0.12); color: var(--amber); }
+    .arch-card.green .ic { background: rgba(16,185,129,0.12); color: var(--green); }
+    .arch-card.purple .ic { background: rgba(139,92,246,0.12); color: var(--purple); }
+    .arch-card.pink .ic { background: rgba(236,72,153,0.12); color: var(--pink); }
+    .arch-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .arch-card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+    /* Strategy table */
+    .strat-table {
+      width: 100%; max-width: 1100px;
+      border-collapse: separate; border-spacing: 0 6px;
+      font-size: 13.5px;
+    }
+    .strat-table th {
+      text-align: left; padding: 8px 14px; color: var(--muted);
+      font-weight: 500; font-size: 12px;
+    }
+    .strat-table td {
+      padding: 14px; background: rgba(255,255,255,0.02);
+      border-top: 1px solid var(--border-soft);
+      border-bottom: 1px solid var(--border-soft);
+      vertical-align: top;
+    }
+    .strat-table td:first-child { border-left: 1px solid var(--border-soft); border-radius: 8px 0 0 8px; }
+    .strat-table td:last-child  { border-right: 1px solid var(--border-soft); border-radius: 0 8px 8px 0; }
+    .strat-name { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .strat-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* Roadmap */
+    .timeline { display: flex; gap: 0; align-items: stretch; }
+    .tl-step { flex: 1; padding: 0 6px; }
+    .tl-step .ts-head {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .tl-step .ts-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--primary); color: #001b20;
+      display: grid; place-items: center; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .tl-step.future .ts-num { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px dashed var(--border); }
+    .tl-step .ts-line { flex: 1; height: 2px; background: var(--border); }
+    .tl-step .ts-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .tl-step .ts-date { font-size: 11.5px; color: var(--muted); margin-bottom: 12px; }
+    .tl-step ul { list-style: none; padding: 0; }
+    .tl-step ul li {
+      font-size: 12.5px; color: var(--muted); padding: 4px 0;
+      padding-left: 14px; position: relative;
+    }
+    .tl-step ul li::before {
+      content: "›"; position: absolute; left: 0; color: var(--primary);
+    }
+    .tl-step.future ul li::before { color: var(--dim); }
+
+    /* Cover spec */
+    .spec-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+      max-width: 1100px; margin-top: 24px;
+    }
+    .spec-card {
+      padding: 32px;
+      background: linear-gradient(135deg, rgba(0,194,168,0.06), rgba(59,130,246,0.04));
+      border: 1px solid rgba(0,194,168,0.2); border-radius: 16px;
+      position: relative; overflow: hidden;
+    }
+    .spec-card .sys-id {
+      font-size: 13px; color: var(--primary); font-weight: 700;
+      letter-spacing: 2px; margin-bottom: 8px;
+    }
+    .spec-card .sys-spec {
+      font-size: 42px; font-weight: 800; line-height: 1.1;
+      margin-bottom: 12px;
+    }
+    .spec-card .sys-spec .small { font-size: 22px; color: var(--muted); font-weight: 500; }
+    .spec-card .sys-meta { font-size: 13px; color: var(--muted); }
+
+    /* Quote / highlight */
+    .pullquote {
+      padding: 28px 32px; max-width: 900px;
+      background: linear-gradient(135deg, rgba(0,194,168,0.08), transparent);
+      border-left: 4px solid var(--primary);
+      border-radius: 0 12px 12px 0;
+      font-size: 22px; line-height: 1.5; font-weight: 500;
+    }
+    .pullquote .em { color: var(--primary); font-weight: 700; }
+
+    /* Navigation */
+    .nav {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 8px;
+      background: rgba(15,23,41,0.9); backdrop-filter: blur(8px);
+      border: 1px solid var(--border); border-radius: 999px;
+      z-index: 100;
+      font-size: 13px;
+    }
+    .nav-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--text); font-size: 18px; line-height: 1;
+      display: grid; place-items: center;
+      transition: background 0.15s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.08); }
+    .nav-page { padding: 0 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .nav-page strong { color: var(--text); }
+    .dots {
+      position: fixed; right: 24px; top: 50%;
+      transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 100;
+    }
+    .dot-btn {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); border: none;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .dot-btn.active { background: var(--primary); transform: scale(1.5); box-shadow: 0 0 8px var(--primary); }
+    .dot-btn:hover { background: rgba(255,255,255,0.4); }
+
+    /* Help overlay */
+    .help-tip {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      padding: 6px 14px; border-radius: 6px;
+      background: rgba(0,194,168,0.1); border: 1px solid rgba(0,194,168,0.3);
+      color: var(--primary); font-size: 12px;
+      opacity: 0; transition: opacity 0.5s;
+      pointer-events: none; z-index: 99;
+    }
+    .help-tip.show { opacity: 1; }
+
+    @media print {
+      .nav, .dots, .help-tip { display: none !important; }
+      .slide { position: relative; opacity: 1 !important; transform: none !important;
+               page-break-after: always; min-height: 100vh; }
+      .deck { height: auto; overflow: visible; }
+      html, body { overflow: visible; height: auto; background: white; color: black; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+
+    <!-- ───── Slide 1: Cover ───── -->
+    <section class="slide cover active" data-i="1">
+      <div class="cover-content">
+        <div class="kicker">J&amp;J POWER · 智慧儲能解決方案</div>
+        <h1>EMS<br>能源管理系統</h1>
+        <p class="lead">
+          表後工商業儲能整合方案<br>
+          <span style="color:var(--text);font-weight:700">125 kW / 261 kWh　·　100 kW / 215 kWh</span>
+        </p>
+        <div class="cover-tags">
+          <div class="cover-tag">⚡ 即時監控</div>
+          <div class="cover-tag">📊 6 種運行策略</div>
+          <div class="cover-tag">💰 IRR 11.8%</div>
+          <div class="cover-tag">🤖 AI Copilot</div>
+          <div class="cover-tag">📱 手機可用</div>
+        </div>
+        <div class="cover-meta">2026 · 高雄路竹示範站 · v1.0 雛形</div>
+      </div>
+    </section>
+
+    <!-- ───── Slide 2: Why EMS ───── -->
+    <section class="slide" data-i="2">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>02</strong> / 11</div>
+      <div class="title-row">
+        <h2>為什麼要做 <span class="accent">EMS</span>？</h2>
+        <p class="subtitle">表後儲能不只是電池，而是隨時間電價與電網訊號做最佳化的「能源資產」</p>
+      </div>
+      <div class="body">
+        <ul class="points">
+          <li class="point">
+            <span class="point-num">1</span>
+            <div class="point-body">
+              <h3>電價結構複雜</h3>
+              <p>台灣高壓三段式時間電價尖離峰價差達 NT$ 5.87/度，沒有 EMS 就只是電池放著不會生錢。</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">2</span>
+            <div class="point-body">
+              <h3>多重收益來源</h3>
+              <p>同一套儲能可同時做時間套利、削峰填谷、需量反應 (sReg)、調頻輔助 (AFC)，需要 EMS 智慧切換。</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">3</span>
+            <div class="point-body">
+              <h3>避免超約罰款</h3>
+              <p>5,000 kW 以上用電大戶超約 10% 內罰 2 倍基本電費，超過罰 3 倍。EMS 即時削峰可避免動輒數十萬罰款。</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">4</span>
+            <div class="point-body">
+              <h3>延長電池壽命</h3>
+              <p>溫控、SoC 區間管理、循環次數監控，可延長 LFP 電池使用 20–30%。</p>
+            </div>
+          </li>
+        </ul>
+        <div>
+          <div class="pullquote">
+            「沒有 EMS 的儲能，就像買了一台跑車卻不會換檔」<br>
+            <span style="font-size:14px;color:var(--muted);font-weight:400;margin-top:12px;display:inline-block">
+              — 加雲聯網 iVPP 研討會, 2025
+            </span>
+          </div>
+          <div style="margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:480px">
+            <div class="stat amber">
+              <div class="lbl">尖峰電價</div>
+              <div class="val">$8.05<span class="u">/度</span></div>
+              <div class="sub">夏月 16:00–22:00</div>
+            </div>
+            <div class="stat green">
+              <div class="lbl">離峰電價</div>
+              <div class="val">$2.18<span class="u">/度</span></div>
+              <div class="sub">夏月 00:00–09:00</div>
+            </div>
+            <div class="stat purple">
+              <div class="lbl">尖離峰價差</div>
+              <div class="val">$5.87<span class="u">/度</span></div>
+              <div class="sub">理論套利空間</div>
+            </div>
+            <div class="stat blue">
+              <div class="lbl">系統效率</div>
+              <div class="val">91.8<span class="u">%</span></div>
+              <div class="sub">含 PCS + 電池</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 為什麼要做 EMS</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 3: System specs ───── -->
+    <section class="slide" data-i="3">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>03</strong> / 11</div>
+      <div class="title-row">
+        <h2>產品規格 · <span class="accent">兩套整合系統</span></h2>
+        <p class="subtitle">Power Conversion System (PCS) + 磷酸鐵鋰電池櫃 + 液冷溫控 + EMS 智慧調度</p>
+      </div>
+      <div class="body single">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <div class="sys-id">SYSTEM A</div>
+            <div class="sys-spec">125 <span class="small">kW</span> / 261 <span class="small">kWh</span></div>
+            <div class="sys-meta">
+              ◆ 2.09 小時放電時長<br>
+              ◆ 13 模組串、208 cells (LFP)<br>
+              ◆ 480V AC 輸出 · 三相<br>
+              ◆ 液冷溫控 + Modbus TCP
+            </div>
+          </div>
+          <div class="spec-card">
+            <div class="sys-id">SYSTEM B</div>
+            <div class="sys-spec">100 <span class="small">kW</span> / 215 <span class="small">kWh</span></div>
+            <div class="sys-meta">
+              ◆ 2.15 小時放電時長<br>
+              ◆ 11 模組串、176 cells (LFP)<br>
+              ◆ 480V AC 輸出 · 三相<br>
+              ◆ 液冷溫控 + Modbus TCP
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:32px;max-width:1100px">
+          <div class="stat blue"><div class="lbl">合計裝置容量</div><div class="val">225<span class="u">kW</span> / 476<span class="u">kWh</span></div><div class="sub">兩系統並聯</div></div>
+          <div class="stat green"><div class="lbl">電池技術</div><div class="val">LFP</div><div class="sub">磷酸鐵鋰 · 高安全</div></div>
+          <div class="stat amber"><div class="lbl">循環壽命</div><div class="val">6,000<span class="u">+</span></div><div class="sub">@ 80% DoD</div></div>
+          <div class="stat purple"><div class="lbl">設計運行年限</div><div class="val">15<span class="u">年</span></div><div class="sub">含 10 年保固</div></div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 產品規格</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 4: Architecture ───── -->
+    <section class="slide" data-i="4">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>04</strong> / 11</div>
+      <div class="title-row">
+        <h2>七大功能模組 · <span class="accent">一站式 EMS</span></h2>
+        <p class="subtitle">從即時監控、設備運維、智慧排程到財務分析全包，符合 ISO 50001 架構</p>
+      </div>
+      <div class="body single">
+        <div class="arch" style="grid-template-columns:repeat(4,1fr)">
+          <div class="arch-card">
+            <div class="ic">▦</div>
+            <h4>首頁總覽</h4>
+            <p>6 張 KPI 卡、即時能源流向、24h 功率曲線、SoC、能量平衡</p>
+          </div>
+          <div class="arch-card blue">
+            <div class="ic">⎔</div>
+            <h4>單線圖</h4>
+            <p>SVG 動態 SLD、即時電力流向、CB 狀態、保護電驛、變壓器資訊</p>
+          </div>
+          <div class="arch-card amber">
+            <div class="ic">▢</div>
+            <h4>設備監控</h4>
+            <p>PCS / BMS 即時、208 電芯熱力圖、HVAC、消防、門禁、UPS</p>
+          </div>
+          <div class="arch-card green">
+            <div class="ic">◷</div>
+            <h4>排程策略</h4>
+            <p>6 種運行策略、24h 編輯排程（拖拉/雙擊精細）、套利試算</p>
+          </div>
+          <div class="arch-card purple">
+            <div class="ic">$</div>
+            <h4>財務效益</h4>
+            <p>節費組成、IRR / NPV、15 年現金流、月度明細</p>
+          </div>
+          <div class="arch-card pink">
+            <div class="ic">!</div>
+            <h4>告警事件</h4>
+            <p>4 級分類、Line / Email 推播、台電 OpenADR 整合</p>
+          </div>
+          <div class="arch-card">
+            <div class="ic">⚙</div>
+            <h4>系統設定</h4>
+            <p>站點 / 規格 / 通訊協定 / IEC 62443 資安 / RBAC</p>
+          </div>
+          <div class="arch-card blue">
+            <div class="ic">🤖</div>
+            <h4>AI Copilot</h4>
+            <p>自然語言查詢、策略建議、告警診斷、節費分析</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 七大功能模組</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 5: Dashboard screenshot ───── -->
+    <section class="slide" data-i="5">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>05</strong> / 11</div>
+      <div class="title-row">
+        <h2>首頁總覽 · <span class="accent">一眼掌握全站</span></h2>
+        <p class="subtitle">當前策略 / KPI 卡 / 即時能源流向 / 24 小時功率曲線 / SoC / 告警 — 維運主管打開電腦第一個看的畫面</p>
+      </div>
+      <div class="body">
+        <ul class="points">
+          <li class="point">
+            <span class="point-num">★</span>
+            <div class="point-body">
+              <h3>策略 banner</h3>
+              <p>頂部即時顯示當前運行策略、收益模式、約束條件，一眼看懂系統現在在做什麼</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">★</span>
+            <div class="point-body">
+              <h3>6 張 KPI 卡片</h3>
+              <p>今日電費、今日節費、本月累計、平均 SoC、最大放電功率、最高電芯溫度</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">★</span>
+            <div class="point-body">
+              <h3>能源流向 5 節點</h3>
+              <p>市電 / PV / 儲能 / 負載 / 用電表，即時顯示充放電方向與數值</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">★</span>
+            <div class="point-body">
+              <h3>24h 功率曲線</h3>
+              <p>市電、太陽能、儲能、負載四線疊圖，掌握全日能源動態</p>
+            </div>
+          </li>
+        </ul>
+        <div class="screen-wrap tall">
+          <div class="screen-bar"><i></i><i></i><i></i><div class="url">ems.jjpower.com / #/dashboard</div></div>
+          <iframe src="./#/dashboard" loading="lazy"></iframe>
+          <div class="screen-cap">LIVE DEMO</div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 首頁總覽</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 6: Single-line diagram ───── -->
+    <section class="slide" data-i="6">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>06</strong> / 11</div>
+      <div class="title-row">
+        <h2>案場單線圖 · <span class="accent">電氣系統一目了然</span></h2>
+        <p class="subtitle">SVG 動態繪製，含動畫電流方向、CB 狀態、保護電驛、變壓器即時資訊</p>
+      </div>
+      <div class="body">
+        <div>
+          <div class="pullquote" style="font-size:18px">
+            <span class="em">維運難題：</span>傳統 SCADA 圖表複雜難讀，工程師找問題常需翻 5 張紙本圖。<br><br>
+            <span class="em">EMS 解法：</span>單一 SVG 圖整合台電 → 主變壓器 → LV BUS → PCS/BAT/PV/負載饋線，配色與動畫讓非電氣背景的人也能秒懂。
+          </div>
+          <div style="margin-top:24px">
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+              <div style="width:14px;height:3px;background:#fbbf24;"></div>
+              <span style="font-size:13px;color:var(--muted)">台電 22.8kV 高壓饋線</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+              <div style="width:14px;height:3px;background:#3b82f6;"></div>
+              <span style="font-size:13px;color:var(--muted)">廠內 480V 低壓 BUS</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+              <div style="width:14px;height:3px;background:#14b8a6;"></div>
+              <span style="font-size:13px;color:var(--muted)">儲能 PCS 雙向饋線</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+              <div style="width:14px;height:3px;background:#facc15;"></div>
+              <span style="font-size:13px;color:var(--muted)">太陽能發電饋線</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div style="width:14px;height:3px;background:#a78bfa;"></div>
+              <span style="font-size:13px;color:var(--muted)">負載輸出饋線</span>
+            </div>
+          </div>
+        </div>
+        <div class="screen-wrap tall">
+          <div class="screen-bar"><i></i><i></i><i></i><div class="url">ems.jjpower.com / #/sld</div></div>
+          <iframe src="./#/sld" loading="lazy"></iframe>
+          <div class="screen-cap">LIVE DEMO</div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 單線圖</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 7: Schedule + Strategy ───── -->
+    <section class="slide" data-i="7">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>07</strong> / 11</div>
+      <div class="title-row">
+        <h2>排程與策略 · <span class="accent">6 種運行模式</span></h2>
+        <p class="subtitle">點擊切換 / 拖曳多格 / 雙擊精細編輯，所見即所得</p>
+      </div>
+      <div class="body">
+        <div>
+          <table class="strat-table">
+            <tr>
+              <td><div class="strat-name"><span class="strat-dot" style="background:var(--primary)"></span>時間套利</div></td>
+              <td>離峰充、尖峰放，賺價差</td>
+            </tr>
+            <tr>
+              <td><div class="strat-name"><span class="strat-dot" style="background:var(--blue)"></span>削峰填谷</div></td>
+              <td>需量超標自動放電，避免超約</td>
+            </tr>
+            <tr>
+              <td><div class="strat-name"><span class="strat-dot" style="background:var(--amber)"></span>需量反應 sReg</div></td>
+              <td>接收台電 OpenADR 派遣</td>
+            </tr>
+            <tr>
+              <td><div class="strat-name"><span class="strat-dot" style="background:var(--purple)"></span>調頻輔助 AFC</div></td>
+              <td>毫秒級頻率回應</td>
+            </tr>
+            <tr>
+              <td><div class="strat-name"><span class="strat-dot" style="background:var(--pv)"></span>光儲自用</div></td>
+              <td>PV 餘電儲存，夜間放出</td>
+            </tr>
+            <tr>
+              <td><div class="strat-name"><span class="strat-dot" style="background:var(--muted)"></span>手動</div></td>
+              <td>工程測試 / 特殊調度</td>
+            </tr>
+          </table>
+          <div style="margin-top:20px;padding:14px 18px;background:rgba(0,194,168,0.08);border-left:3px solid var(--primary);border-radius:6px;font-size:13px;color:var(--text)">
+            <strong>互動編輯：</strong>切換策略後，24h 排程格、功率柱狀圖、SoC、財務試算<strong style="color:var(--primary)">全部即時連動</strong>。
+          </div>
+        </div>
+        <div class="screen-wrap tall">
+          <div class="screen-bar"><i></i><i></i><i></i><div class="url">ems.jjpower.com / #/schedule</div></div>
+          <iframe src="./#/schedule" loading="lazy"></iframe>
+          <div class="screen-cap">LIVE DEMO</div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 排程與策略</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 8: Devices ───── -->
+    <section class="slide" data-i="8">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>08</strong> / 11</div>
+      <div class="title-row">
+        <h2>設備監控 · <span class="accent">電芯級可視化</span></h2>
+        <p class="subtitle">PCS / BMS / 環控全整合，208 顆電芯溫度熱力圖即時顯示</p>
+      </div>
+      <div class="body">
+        <ul class="points">
+          <li class="point">
+            <span class="point-num">A</span>
+            <div class="point-body">
+              <h3>系統儀表卡</h3>
+              <p>SYS-A、SYS-B 雙系統獨立顯示 SoC、功率、溫度</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">B</span>
+            <div class="point-body">
+              <h3>208 cells 熱力圖</h3>
+              <p>每顆電芯溫度即時可視化，異常顆粒一眼看出</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">C</span>
+            <div class="point-body">
+              <h3>PCS / BMS 即時參數</h3>
+              <p>P/Q、DC 電壓電流、效率、SOH、循環次數、累積吞吐</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">D</span>
+            <div class="point-body">
+              <h3>環控整合</h3>
+              <p>3 台空調、消防 VESDA、門禁、UPS 全部一頁看完</p>
+            </div>
+          </li>
+        </ul>
+        <div class="screen-wrap tall">
+          <div class="screen-bar"><i></i><i></i><i></i><div class="url">ems.jjpower.com / #/devices</div></div>
+          <iframe src="./#/devices" loading="lazy"></iframe>
+          <div class="screen-cap">LIVE DEMO</div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 設備監控</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 9: Finance ───── -->
+    <section class="slide" data-i="9">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>09</strong> / 11</div>
+      <div class="title-row">
+        <h2>財務效益 · <span class="accent">IRR 11.8% / 6.2 年回本</span></h2>
+        <p class="subtitle">從每月帳單到 15 年現金流，數字會自己說話</p>
+      </div>
+      <div class="body">
+        <div>
+          <div class="stats">
+            <div class="stat green">
+              <div class="lbl">年度總節費</div>
+              <div class="val">$1.54M</div>
+              <div class="sub">vs 無儲能情境</div>
+            </div>
+            <div class="stat blue">
+              <div class="lbl">套利收益</div>
+              <div class="val">$378K</div>
+              <div class="sub">/ 年</div>
+            </div>
+            <div class="stat amber">
+              <div class="lbl">契約降載</div>
+              <div class="val">$1.09M</div>
+              <div class="sub">/ 年 · ↓ 300 kW</div>
+            </div>
+            <div class="stat purple">
+              <div class="lbl">15 年 NPV (r=5%)</div>
+              <div class="val">$6.84M</div>
+              <div class="sub">淨現值</div>
+            </div>
+          </div>
+          <div class="pullquote" style="margin-top:24px;font-size:16px">
+            <span class="em">投資 9.5M 元 · 6.2 年回本 · 15 年累積淨收益 12.15M</span>
+            <div style="font-size:13px;color:var(--muted);font-weight:400;margin-top:8px">
+              再加上參與 sReg 輔助服務市場，每年可額外貢獻約 $230K 收益
+            </div>
+          </div>
+        </div>
+        <div class="screen-wrap tall">
+          <div class="screen-bar"><i></i><i></i><i></i><div class="url">ems.jjpower.com / #/finance</div></div>
+          <iframe src="./#/finance" loading="lazy"></iframe>
+          <div class="screen-cap">LIVE DEMO</div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 財務效益</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 10: AI Copilot + Mobile ───── -->
+    <section class="slide" data-i="10">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>10</strong> / 11</div>
+      <div class="title-row">
+        <h2>AI Energy Copilot + 手機支援</h2>
+        <p class="subtitle">右下角 🤖 隨時提問，手機自動切換為精簡介面</p>
+      </div>
+      <div class="body">
+        <ul class="points">
+          <li class="point">
+            <span class="point-num">🤖</span>
+            <div class="point-body">
+              <h3>自然語言問答</h3>
+              <p>「目前的策略好嗎？」「為什麼 SYS-B 比較熱？」「今晚要不要充電？」AI 直接給答案</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">⚡</span>
+            <div class="point-body">
+              <h3>AI 也會操作系統</h3>
+              <p>對 AI 說「切換到削峰填谷」，它會直接執行 setStrategy()，不只是回答</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">📱</span>
+            <div class="point-body">
+              <h3>手機原生介面</h3>
+              <p>≤768px 自動轉為單欄 + 底部 5 個 Tab，KPI 雙欄、單線圖橫向滑動、觸控優化</p>
+            </div>
+          </li>
+          <li class="point">
+            <span class="point-num">🔔</span>
+            <div class="point-body">
+              <h3>多通道告警</h3>
+              <p>Line Notify、Email、Webhook、台電 OpenADR 全整合，重大告警 5 分鐘重送</p>
+            </div>
+          </li>
+        </ul>
+        <div class="screen-wrap tall">
+          <div class="screen-bar"><i></i><i></i><i></i><div class="url">ems.jjpower.com / #/alarms</div></div>
+          <iframe src="./#/alarms" loading="lazy"></iframe>
+          <div class="screen-cap">LIVE DEMO</div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · AI Copilot &amp; 手機介面</span><span>2026</span></div>
+    </section>
+
+    <!-- ───── Slide 11: Roadmap ───── -->
+    <section class="slide" data-i="11">
+      <div class="stamp"><div class="stamp-mark">J&amp;J</div>J&amp;J Power EMS</div>
+      <div class="pageno"><strong>11</strong> / 11</div>
+      <div class="title-row">
+        <h2>產品路線圖 · <span class="accent">從雛形到正式產品</span></h2>
+        <p class="subtitle">當前已完成 7 大模組 + AI Copilot 雛形，下階段串接真實設備上線</p>
+      </div>
+      <div class="body single">
+        <div class="timeline">
+          <div class="tl-step">
+            <div class="ts-head">
+              <div class="ts-num">✓</div>
+              <div class="ts-line"></div>
+            </div>
+            <div class="ts-title" style="color:var(--primary)">Phase 1 · Web 雛形</div>
+            <div class="ts-date">2026-04 已完成</div>
+            <ul>
+              <li>7 視圖完整 SPA</li>
+              <li>6 種策略可切換</li>
+              <li>排程編輯（拖拉 + 精細）</li>
+              <li>財務 IRR 試算</li>
+              <li>AI Copilot 雛形</li>
+              <li>手機響應式</li>
+            </ul>
+          </div>
+          <div class="tl-step future">
+            <div class="ts-head">
+              <div class="ts-num">2</div>
+              <div class="ts-line"></div>
+            </div>
+            <div class="ts-title">Phase 2 · 接真實設備</div>
+            <div class="ts-date">Q3 2026</div>
+            <ul>
+              <li>Modbus TCP 接 PCS/BMS</li>
+              <li>BACnet/IP 接環控</li>
+              <li>MQTT 雲端遙測</li>
+              <li>TimescaleDB 歷史資料</li>
+              <li>WebSocket 即時推送</li>
+            </ul>
+          </div>
+          <div class="tl-step future">
+            <div class="ts-head">
+              <div class="ts-num">3</div>
+              <div class="ts-line"></div>
+            </div>
+            <div class="ts-title">Phase 3 · 智慧最佳化</div>
+            <div class="ts-date">Q4 2026</div>
+            <ul>
+              <li>負載預測 (LSTM)</li>
+              <li>PV 預測 (氣象 API)</li>
+              <li>MILP 排程最佳化</li>
+              <li>真 LLM (GPT-4)</li>
+              <li>異常偵測 (Isolation Forest)</li>
+            </ul>
+          </div>
+          <div class="tl-step future">
+            <div class="ts-head">
+              <div class="ts-num">4</div>
+            </div>
+            <div class="ts-title">Phase 4 · 平台化</div>
+            <div class="ts-date">2027</div>
+            <ul>
+              <li>多站點切換</li>
+              <li>角色權限 (RBAC)</li>
+              <li>IEC 62443 認證</li>
+              <li>iVPP 平台對接</li>
+              <li>API 開放 (REST + GraphQL)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="margin-top:48px;padding:24px 32px;background:linear-gradient(135deg,rgba(0,194,168,0.1),rgba(59,130,246,0.06));border-radius:14px;border:1px solid rgba(0,194,168,0.25);text-align:center">
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px">立即線上體驗</div>
+          <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px">所有功能可直接互動，本簡報的「LIVE DEMO」截圖就是即時嵌入</div>
+          <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-family:ui-monospace,monospace;font-size:13px">
+            <a href="./" style="color:var(--primary);text-decoration:none;padding:8px 16px;background:rgba(0,194,168,0.1);border-radius:8px;border:1px solid rgba(0,194,168,0.3)">→ 開啟 EMS</a>
+            <a href="https://github.com/kaiser-ok/JJEMS" target="_blank" style="color:var(--muted);text-decoration:none;padding:8px 16px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--border)">↗ GitHub Repo</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><span>J&amp;J Power EMS · 產品路線圖</span><span>2026</span></div>
+    </section>
+
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav">
+    <button class="nav-btn" id="prev" title="上一頁 (←)">‹</button>
+    <span class="nav-page"><strong id="cur">1</strong> / <span id="tot">11</span></span>
+    <button class="nav-btn" id="next" title="下一頁 (→)">›</button>
+  </div>
+
+  <div class="dots" id="dots"></div>
+  <div class="help-tip" id="help">← / → 切換頁　·　按 F 全螢幕　·　按 P 列印</div>
+
+  <script>
+    const slides = document.querySelectorAll(".slide");
+    const total = slides.length;
+    const cur = document.getElementById("cur");
+    const tot = document.getElementById("tot");
+    const dotsEl = document.getElementById("dots");
+    const help = document.getElementById("help");
+    let idx = 0;
+
+    tot.textContent = total;
+
+    // Dot indicators
+    for (let i = 0; i < total; i++) {
+      const b = document.createElement("button");
+      b.className = "dot-btn";
+      b.title = `第 ${i+1} 頁`;
+      b.addEventListener("click", () => go(i));
+      dotsEl.appendChild(b);
+    }
+    const dots = dotsEl.querySelectorAll(".dot-btn");
+
+    function go(i) {
+      idx = Math.max(0, Math.min(total - 1, i));
+      slides.forEach((s, j) => s.classList.toggle("active", j === idx));
+      dots.forEach((d, j) => d.classList.toggle("active", j === idx));
+      cur.textContent = idx + 1;
+      // Update URL hash for sharing
+      history.replaceState(null, "", `#${idx + 1}`);
+    }
+    function next() { go(idx + 1); }
+    function prev() { go(idx - 1); }
+
+    document.getElementById("next").addEventListener("click", next);
+    document.getElementById("prev").addEventListener("click", prev);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); next(); }
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); prev(); }
+      else if (e.key === "Home") { go(0); }
+      else if (e.key === "End") { go(total - 1); }
+      else if (e.key.toLowerCase() === "f") { document.documentElement.requestFullscreen?.(); }
+      else if (e.key.toLowerCase() === "p") { window.print(); }
+    });
+
+    // Touch swipe support
+    let touchX = 0;
+    document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; });
+    document.addEventListener("touchend", (e) => {
+      const dx = e.changedTouches[0].clientX - touchX;
+      if (Math.abs(dx) > 50) dx > 0 ? prev() : next();
+    });
+
+    // Init from hash
+    const initHash = parseInt(location.hash.slice(1));
+    if (!isNaN(initHash) && initHash >= 1 && initHash <= total) go(initHash - 1);
+    else go(0);
+
+    // Show help tip briefly on first load
+    setTimeout(() => help.classList.add("show"), 600);
+    setTimeout(() => help.classList.remove("show"), 5000);
+  </script>
+</body>
+</html>
