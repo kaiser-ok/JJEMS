@@ -1651,8 +1651,8 @@ function viewAlarms() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">告警與事件</h1>
-        <p class="page-sub">全站設備即時告警 / 歷史事件 / 通訊軟體推播</p>
+        <h1 class="page-title">${t("page.alm.title")}</h1>
+        <p class="page-sub">${t("page.alm.sub")}</p>
       </div>
       <div class="page-actions">
         <button class="btn">全部</button>
@@ -1744,12 +1744,12 @@ function viewSettings() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">系統設定</h1>
-        <p class="page-sub">站點資訊、電價方案、設備規格、通訊協定</p>
+        <h1 class="page-title">${t("page.set.title")}</h1>
+        <p class="page-sub">${t("page.set.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-ghost">取消</button>
-        <button class="btn btn-primary">儲存變更</button>
+        <button class="btn btn-ghost">${t("btn.cancel")}</button>
+        <button class="btn btn-primary">${t("btn.save")}</button>
       </div>
     </div>
 
