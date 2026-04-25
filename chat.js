@@ -469,22 +469,33 @@
           const data = await resp.json();
           if (liveAI !== true) { liveAI = true; setBadge("live"); }
           hideTyping();
-          addBot(md(data.reply));
+          const modelTag = data.model ? `<div class="muted" style="font-size:10.5px;margin-top:4px;opacity:0.7">via ${data.model}</div>` : "";
+          addBot(md(data.reply) + modelTag);
           return;
-        } else {
-          // Mark offline only on 404/500 (env not set, function missing); 429 keep trying
-          if (resp.status === 404 || resp.status === 500) {
-            liveAI = false; setBadge("off");
-          }
-          // Otherwise fall through to mock
         }
-      } catch {
-        // Network error → mark offline
+
+        // Read error info to show user
+        let errInfo = {};
+        try { errInfo = await resp.json(); } catch {}
+        liveAI = false; setBadge("off");
+
+        // Mark offline + show actual error to help debug
+        hideTyping();
+        addBot(`
+          <div style="padding:8px 10px;border-left:3px solid var(--amber);background:rgba(245,158,11,0.06);border-radius:4px">
+            <div style="font-weight:600;color:var(--amber);font-size:12.5px">⚠ Live AI 暫不可用 (HTTP ${resp.status})</div>
+            ${errInfo.hint ? `<div style="font-size:12px;margin-top:4px">${errInfo.hint}</div>` : ""}
+            ${errInfo.error ? `<div class="muted" style="font-size:11px;margin-top:4px">${errInfo.error}</div>` : ""}
+            <div class="muted" style="font-size:11px;margin-top:6px">→ 改用本地規則回覆</div>
+          </div>
+        `);
+        // Fall through to local matching for the actual question
+      } catch (e) {
         liveAI = false; setBadge("off");
       }
     }
 
-    // Fallback: local intent matching
+    // Fallback: local intent matching (or first try after error banner above)
     const delay = 200 + Math.random() * 300;
     setTimeout(() => {
       hideTyping();

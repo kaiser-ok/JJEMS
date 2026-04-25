@@ -5,7 +5,16 @@
 
 export const config = { runtime: "edge" };
 
-const MODEL = "meta-llama/llama-3.3-70b-instruct:free";  // free tier; swap if rate-limited
+// Fallback chain — try in order until one works.
+// 429 = rate limit on that model → try next
+// 402 = account needs credits → propagate to user
+const MODELS = [
+  "google/gemini-2.0-flash-exp:free",          // Google free
+  "meta-llama/llama-3.3-70b-instruct:free",    // Llama 70B free
+  "meta-llama/llama-3.2-3b-instruct:free",     // smaller Llama, lower limits
+  "qwen/qwen-2.5-7b-instruct:free",            // Qwen (good Chinese)
+  "mistralai/mistral-7b-instruct:free",        // Mistral
+];
 
 const LANG_NAME = {
   "zh-TW": "Traditional Chinese (繁體中文)",
@@ -75,37 +84,61 @@ export default async function handler(req) {
 
   const referer = req.headers.get("referer") || "https://jjems.vercel.app";
 
-  try {
-    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": referer,
-        "X-Title": "J&J Power EMS",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: buildSystemPrompt(context, lang) },
-          { role: "user",   content: question.slice(0, 1200) },  // hard cap
-        ],
-        max_tokens: 600,
-        temperature: 0.4,
-      }),
-    });
+  const messages = [
+    { role: "system", content: buildSystemPrompt(context, lang) },
+    { role: "user",   content: question.slice(0, 1200) },
+  ];
 
-    if (!upstream.ok) {
+  let lastErr = null;
+  let lastStatus = 500;
+  for (const model of MODELS) {
+    try {
+      const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": referer,
+          "X-Title": "J&J Power EMS",
+        },
+        body: JSON.stringify({ model, messages, max_tokens: 600, temperature: 0.4 }),
+      });
+
+      if (upstream.ok) {
+        const data = await upstream.json();
+        const reply = data?.choices?.[0]?.message?.content || "(empty reply)";
+        return json({ reply, model: data?.model || model, usage: data?.usage });
+      }
+
       const detail = (await upstream.text()).slice(0, 500);
-      return json({ error: `OpenRouter ${upstream.status}`, detail }, upstream.status);
-    }
+      lastErr = detail;
+      lastStatus = upstream.status;
 
-    const data = await upstream.json();
-    const reply = data?.choices?.[0]?.message?.content || "(empty reply)";
-    return json({ reply, model: data?.model, usage: data?.usage });
-  } catch (e) {
-    return json({ error: e?.message || "fetch failed" }, 500);
+      // 402 = account-level (no credits) — bail out, no point trying more models
+      if (upstream.status === 402) {
+        return json({
+          error: "OpenRouter requires account credits",
+          hint: "OpenRouter 帳戶需至少 $1 信用額度才能使用任何模型 (含 :free)。請至 https://openrouter.ai/credits 加值。",
+          status: 402,
+          detail,
+        }, 402);
+      }
+      // 429 = try next model
+      // other errors = also try next, but stop if we hit auth issues
+      if (upstream.status === 401 || upstream.status === 403) {
+        return json({ error: `Auth error ${upstream.status}`, detail, hint: "檢查 OPENROUTER_API_KEY 是否有效" }, upstream.status);
+      }
+    } catch (e) {
+      lastErr = e?.message || String(e);
+    }
   }
+
+  // All models exhausted
+  return json({
+    error: `All free models exhausted (last status ${lastStatus})`,
+    hint: "所有免費模型都被限流，建議稍後再試或加少量 credits 切換到便宜付費模型 (例如 google/gemini-flash-1.5-8b)",
+    detail: lastErr,
+  }, lastStatus);
 }
 
 function json(obj, status = 200) {
