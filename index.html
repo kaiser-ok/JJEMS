@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>J&J Power EMS · 儲能能源管理系統</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">J&amp;J</div>
+        <div class="brand-text">
+          <div class="brand-name">J&amp;J Power EMS</div>
+          <div class="brand-sub">儲能能源管理系統</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a class="nav-item" href="#/dashboard" data-route="dashboard">
+          <span class="ic">▦</span><span>首頁總覽</span>
+        </a>
+        <a class="nav-item" href="#/sld" data-route="sld">
+          <span class="ic">⎔</span><span>案場單線圖</span>
+        </a>
+        <a class="nav-item" href="#/devices" data-route="devices">
+          <span class="ic">▢</span><span>設備監控</span>
+        </a>
+        <a class="nav-item" href="#/schedule" data-route="schedule">
+          <span class="ic">◷</span><span>排程與策略</span>
+        </a>
+        <a class="nav-item" href="#/finance" data-route="finance">
+          <span class="ic">$</span><span>財務效益</span>
+        </a>
+        <a class="nav-item" href="#/alarms" data-route="alarms">
+          <span class="ic">!</span><span>告警與事件</span>
+          <span class="badge" id="alarm-badge">3</span>
+        </a>
+        <a class="nav-item" href="#/settings" data-route="settings">
+          <span class="ic">⚙</span><span>系統設定</span>
+        </a>
+      </nav>
+      <div class="side-footer">
+        <div class="side-meta">v0.1 · 雛形 Demo</div>
+        <div class="side-meta">© 2026 J&amp;J Power</div>
+      </div>
+    </aside>
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="site-pill">
+          <span class="dot dot-ok"></span>
+          <span>高雄路竹廠 · 225kW / 476kWh</span>
+        </div>
+      </div>
+      <div class="topbar-stats" id="topbar-stats">
+        <!-- filled by app.js -->
+      </div>
+      <div class="topbar-right">
+        <div class="mode-pill" id="mode-pill">時間套利模式</div>
+        <div class="icon-btn" title="告警">🔔<span class="dot dot-warn"></span></div>
+        <div class="user">
+          <div class="avatar">王</div>
+          <div class="user-meta">
+            <div class="user-name">王工程師</div>
+            <div class="user-role">維運管理員</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="main" id="view">
+      <!-- Rendered by router -->
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
