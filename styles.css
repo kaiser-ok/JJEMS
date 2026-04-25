@@ -299,6 +299,22 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 .chip:hover { color: var(--text); border-color: var(--primary); }
 .chip.active { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
 
+/* Battery Passport — timeline */
+.timeline { position: relative; padding-left: 18px; }
+.timeline::before {
+  content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px;
+  width: 2px; background: var(--border-soft);
+}
+.tl-row { position: relative; padding: 8px 0 12px 14px; }
+.tl-row:last-child { padding-bottom: 0; }
+.tl-dot {
+  position: absolute; left: -18px; top: 12px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--bg-card); border: 2px solid var(--text-muted);
+}
+.tl-dot.cur { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 4px rgba(0,194,168,0.15); }
+.tl-body { font-size: 13px; }
+
 /* Schedule edit toolbar */
 .edit-toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -574,13 +590,13 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
   }
   .bnav-item {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 2px; padding: 6px 4px;
+    gap: 2px; padding: 6px 2px; min-width: 0;
     color: var(--text-muted); text-decoration: none;
-    font-size: 10.5px; transition: color 0.15s;
+    font-size: 10px; transition: color 0.15s;
     border-top: 2px solid transparent;
   }
-  .bnav-item .ic { font-size: 18px; line-height: 1; }
-  .bnav-item .lbl { font-size: 10.5px; }
+  .bnav-item .ic { font-size: 16px; line-height: 1; }
+  .bnav-item .lbl { font-size: 10px; }
   .bnav-item.active { color: var(--primary); border-top-color: var(--primary); }
   .bnav-item:active { background: rgba(0,194,168,0.08); }
 

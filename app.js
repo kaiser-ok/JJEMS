@@ -106,10 +106,12 @@ function renderTopbar() {
 }
 
 // ────────── Routing ──────────
+state.passportSys = "SYS-A";
 const routes = {
   dashboard: viewDashboard,
   sld: viewSLD,
   devices: viewDevices,
+  passport: viewPassport,
   schedule: viewSchedule,
   finance: viewFinance,
   alarms: viewAlarms,
@@ -1461,6 +1463,281 @@ function viewSettings() {
       </div>
     </div>
   `;
+}
+
+// ────────── 8. Battery Passport ──────────
+function fakeQR(seed) {
+  let h = 0x811c9dc5;
+  for (const c of seed) { h ^= c.charCodeAt(0); h = (h * 0x01000193) >>> 0; }
+  const N = 25;
+  const cells = Array.from({length:N}, () => Array(N).fill(false));
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    cells[y][x] = (h & 1) === 1;
+  }
+  // Three finder corners
+  for (const [fx, fy] of [[0,0],[N-7,0],[0,N-7]]) {
+    for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) {
+      const isOn = (x===0||x===6||y===0||y===6) || (x>=2&&x<=4&&y>=2&&y<=4);
+      cells[fy+y][fx+x] = isOn;
+    }
+    // White separator
+    for (let y = -1; y < 8; y++) for (let x = -1; x < 8; x++) {
+      const yy = fy+y, xx = fx+x;
+      if (yy<0||xx<0||yy>=N||xx>=N) continue;
+      if ((x===-1||x===7||y===-1||y===7) && yy>=0 && xx>=0) cells[yy][xx] = false;
+    }
+  }
+  let svg = `<svg viewBox="0 0 ${N} ${N}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;background:#fff;border-radius:6px;padding:6px;box-sizing:border-box">`;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++)
+    if (cells[y][x]) svg += `<rect x="${x}" y="${y}" width="1.05" height="1.05" fill="#000"/>`;
+  svg += `</svg>`;
+  return svg;
+}
+
+function viewPassport() {
+  const sysId = state.passportSys || "SYS-A";
+  const p = PASSPORTS[sysId];
+  const qrUrl = `https://ems.jjpower.com.tw/passport/${p.sn}`;
+
+  $("#view").innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">電池數位護照</h1>
+        <p class="page-sub">符合 EU 2023/1542 電池法規 · 完整生命週期履歷</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn ${sysId==='SYS-A'?'btn-primary':'btn-ghost'}" data-pp="SYS-A">SYS-A · 261 kWh</button>
+        <button class="btn ${sysId==='SYS-B'?'btn-primary':'btn-ghost'}" data-pp="SYS-B">SYS-B · 215 kWh</button>
+        <button class="btn">列印</button>
+        <button class="btn btn-primary">下載 PDF</button>
+      </div>
+    </div>
+
+    <!-- Hero card: QR + identity -->
+    <div class="card mb-16" style="display:grid;grid-template-columns:200px 1fr auto;gap:24px;align-items:center">
+      <div>
+        <div style="width:160px;height:160px;background:#fff;border-radius:8px">${fakeQR(p.sn)}</div>
+        <div class="muted" style="font-size:11px;text-align:center;margin-top:6px">掃描查看完整履歷</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span class="tag" style="background:rgba(0,194,168,0.15);color:var(--primary);font-size:11px;padding:3px 10px">EU PASSPORT v1.0</span>
+          <span class="tag ok">✓ 已認證</span>
+          <span class="muted" style="font-size:11.5px">最後更新 2026-04-15</span>
+        </div>
+        <h2 style="margin:0 0 4px;font-size:22px">${p.model}</h2>
+        <div class="muted" style="font-size:12.5px;margin-bottom:14px">序號 <strong style="color:var(--text);font-family:monospace">${p.sn}</strong></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+          <div><div class="muted" style="font-size:11px">製造商</div><div style="font-size:13px;margin-top:2px">${p.manufacturer}</div></div>
+          <div><div class="muted" style="font-size:11px">出廠日期</div><div style="font-size:13px;margin-top:2px">${p.mfgDate}</div></div>
+          <div><div class="muted" style="font-size:11px">安裝日期</div><div style="font-size:13px;margin-top:2px">${p.installDate}</div></div>
+          <div><div class="muted" style="font-size:11px">保固至</div><div style="font-size:13px;margin-top:2px">${p.warrantyEnd}</div></div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <div class="muted" style="font-size:11px;margin-bottom:4px">護照 ID</div>
+        <div style="font-family:monospace;font-size:13px;color:var(--primary);font-weight:600">EU-PP-2026-${p.sn.slice(-4)}</div>
+      </div>
+    </div>
+
+    <!-- 3 columns: Chemistry / Carbon / Performance -->
+    <div class="grid g-3 mb-16">
+      <div class="card">
+        <div class="card-head"><h3>⚗ 化學組成</h3><span class="tag info">LFP</span></div>
+        <table class="data" style="margin-top:-4px">
+          <tr><td>化學類型</td><td class="num right">${p.chemistry.type}</td></tr>
+          <tr><td>正極材料</td><td class="num right">${p.chemistry.cathode}</td></tr>
+          <tr><td>負極材料</td><td class="num right">${p.chemistry.anode}</td></tr>
+          <tr><td>電解液</td><td class="num right">${p.chemistry.electrolyte}</td></tr>
+          <tr><td>隔膜</td><td class="num right">${p.chemistry.separator}</td></tr>
+          <tr><td>電芯廠</td><td class="num right">${p.chemistry.cellMaker}</td></tr>
+          <tr><td>電芯型號</td><td class="num right">${p.chemistry.cellModel}</td></tr>
+          <tr><td>電芯數量</td><td class="num right">${p.chemistry.cellCount}</td></tr>
+          <tr><td>單顆規格</td><td class="num right">${p.chemistry.cellNominal}</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>🌱 碳足跡</h3><span class="tag ok">ISO 14064-1</span></div>
+        <div style="text-align:center;padding:8px 0 12px">
+          <div style="font-size:30px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">${p.carbon.perKWh}</div>
+          <div class="muted" style="font-size:12px">kg CO₂e / kWh</div>
+          <div style="font-size:13px;margin-top:6px">總排放：<strong>${(p.carbon.total/1000).toFixed(1)}</strong> 噸 CO₂e</div>
+        </div>
+        <div class="chart-wrap" style="height:140px"><canvas id="chartCarbon"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>📈 性能履歷</h3><span class="tag ok">SOH ${p.performance.soh}%</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;font-size:12.5px;margin-bottom:10px">
+          <div><div class="muted" style="font-size:11px">額定容量</div><div class="num strong">${p.performance.ratedKWh} kWh</div></div>
+          <div><div class="muted" style="font-size:11px">實測容量</div><div class="num strong">${p.performance.actualKWh} kWh</div></div>
+          <div><div class="muted" style="font-size:11px">累積循環</div><div class="num strong">${p.performance.cyclesUsed} / ${p.performance.cyclesRated}</div></div>
+          <div><div class="muted" style="font-size:11px">累積吞吐</div><div class="num strong">${p.performance.throughputMWh} MWh</div></div>
+          <div><div class="muted" style="font-size:11px">平均效率</div><div class="num strong">${p.performance.avgEff}%</div></div>
+          <div><div class="muted" style="font-size:11px">SOH 衰退率</div><div class="num strong" style="color:var(--green)">${p.performance.sohTrend}%/月</div></div>
+        </div>
+        <div class="muted" style="font-size:11px;margin-bottom:4px">循環使用率 ${(p.performance.cyclesUsed/p.performance.cyclesRated*100).toFixed(1)}%</div>
+        <div class="pbar"><span style="width:${p.performance.cyclesUsed/p.performance.cyclesRated*100}%"></span></div>
+      </div>
+    </div>
+
+    <!-- SOH trend with prediction -->
+    <div class="card mb-16">
+      <div class="card-head">
+        <h3>SOH 時序與 ML 預測 (24 個月)</h3>
+        <div class="row">
+          <span class="tag info">◼ 歷史</span>
+          <span class="tag" style="color:var(--purple);background:rgba(139,92,246,0.12)">◼ AI 預測</span>
+          <span class="tag warn">--- EOL 80% 閾值</span>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartSoh"></canvas></div>
+    </div>
+
+    <!-- Materials & Recycling -->
+    <div class="grid g-2 mb-16">
+      <div class="card">
+        <div class="card-head"><h3>📦 材料組成與再生比例</h3></div>
+        <table class="data">
+          <thead><tr><th>材料</th><th class="right">重量比</th><th class="right">再生料</th><th>來源驗證</th></tr></thead>
+          <tbody>
+            ${p.materials.map(m=>`
+              <tr>
+                <td>${m.name}</td>
+                <td class="num right">${m.percent}%</td>
+                <td class="num right" style="color:${m.recycled>=30?'var(--green)':m.recycled>=10?'var(--amber)':'var(--text-muted)'}">${m.recycled}%</td>
+                <td><span class="tag ${m.recycled>0?'ok':'mute'}">${m.recycled>0?'已驗證':'N/A'}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div class="muted mt-12" style="font-size:11.5px">※ 依 EU 2023/1542 §8 揭露要求；2027 年起鋰再生料須 ≥ 6%、鈷 ≥ 16%</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>♻ 回收路徑與二次利用</h3></div>
+        <div style="background:rgba(16,185,129,0.06);border-left:3px solid var(--green);padding:10px 14px;border-radius:6px;margin-bottom:12px">
+          <div style="font-size:13px"><strong>回收夥伴：</strong>${p.recycling.partner}</div>
+          <div style="font-size:12px;margin-top:4px;color:var(--text-muted)">聯繫：${p.recycling.contact} · 標準：${p.recycling.standard}</div>
+        </div>
+        <table class="data">
+          <tr><td>材料回收率</td><td class="num right" style="color:var(--green)">${p.recycling.recoveryRate}%</td></tr>
+          <tr><td>處理流向</td><td class="num right">${p.recycling.destination}</td></tr>
+          <tr><td>EOL 預估</td><td class="num right">${p.secondLife.eolEstimate}</td></tr>
+          <tr><td>EOL 殘值</td><td class="num right" style="color:var(--green)">${money(p.secondLife.residualValue)}</td></tr>
+        </table>
+        <div class="mt-12">
+          <div class="muted" style="font-size:11.5px;margin-bottom:6px">建議二次利用路徑：</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${p.secondLife.paths.map(x=>`<span class="tag info" style="font-size:11px">${x}</span>`).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certifications -->
+    <div class="card mb-16">
+      <div class="card-head"><h3>🏛 合規認證</h3><span class="tag ok">${p.certs.length} 項全數通過</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        ${p.certs.map(c=>`
+          <div style="padding:10px 12px;background:rgba(16,185,129,0.05);border-left:3px solid var(--green);border-radius:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong style="font-size:13px">${c.name}</strong>
+              <span class="tag ok">${c.status}</span>
+            </div>
+            <div class="muted" style="font-size:11.5px;margin-top:4px">${c.scope}</div>
+            <div class="muted" style="font-size:11px;margin-top:2px">${c.date}</div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- Service event timeline -->
+    <div class="card">
+      <div class="card-head"><h3>🕒 維運事件時間軸</h3><span class="muted" style="font-size:11.5px">區塊鏈不可篡改紀錄</span></div>
+      <div class="timeline">
+        ${p.events.map((e,i)=>`
+          <div class="tl-row">
+            <div class="tl-dot ${i===0?'cur':''}"></div>
+            <div class="tl-body">
+              <div class="row between"><strong>${e.type}</strong><span class="muted" style="font-size:11.5px">${e.date}</span></div>
+              <div class="muted" style="font-size:12px;margin-top:2px">${e.note}</div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  // System switch
+  $$("[data-pp]").forEach(b => b.addEventListener("click", () => {
+    state.passportSys = b.dataset.pp;
+    router();
+  }));
+
+  // Carbon donut
+  addChart(new Chart($("#chartCarbon"), {
+    type: "doughnut",
+    data: {
+      labels: p.carbon.breakdown.map(x=>x.stage),
+      datasets: [{
+        data: p.carbon.breakdown.map(x=>x.value),
+        backgroundColor: ["#10b981","#3b82f6","#f59e0b","#8b5cf6","#ec4899"],
+        borderColor: "#0f1729", borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "55%",
+      plugins: {
+        legend: { position: "right", labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: c => `${c.label}: ${fmt(c.parsed)} kg (${(c.parsed/p.carbon.total*100).toFixed(1)}%)` } }
+      }
+    }
+  }));
+
+  // SOH timeline + prediction
+  const months = [];
+  const histSoh = [];
+  const predSoh = [];
+  // 16 months history (start at 100%, decline by ~0.18%/month)
+  for (let m = -16; m <= 0; m++) {
+    months.push(m === 0 ? "今" : `${m}m`);
+    histSoh.push(+(100 + m * Math.abs(p.performance.sohTrend) + (Math.random()-0.5)*0.15).toFixed(2));
+    predSoh.push(null);
+  }
+  // 8 months prediction
+  for (let m = 1; m <= 8; m++) {
+    months.push(`+${m}m`);
+    histSoh.push(null);
+    const last = predSoh[predSoh.length-1] ?? histSoh[16];
+    predSoh.push(+(p.performance.soh - m * Math.abs(p.performance.sohTrend)).toFixed(2));
+  }
+  // Connect last hist to first pred
+  predSoh[16] = histSoh[16];
+
+  addChart(new Chart($("#chartSoh"), {
+    type: "line",
+    data: {
+      labels: months,
+      datasets: [
+        { label: "歷史 SOH", data: histSoh, borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.15)", fill:true, tension:.3, pointRadius:0, borderWidth:2, spanGaps:false },
+        { label: "AI 預測", data: predSoh, borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,0.1)", fill:true, tension:.3, pointRadius:0, borderWidth:2, borderDash:[5,4], spanGaps:false },
+        { label: "EOL 80%", data: months.map(()=>80), borderColor: "#f59e0b", borderWidth: 1.5, borderDash:[3,3], pointRadius:0, fill:false }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => c.parsed.y == null ? "" : `${c.dataset.label}: ${c.parsed.y}%` } }
+      },
+      scales: {
+        x: { grid: { color: "rgba(139,152,176,0.06)" } },
+        y: { min: 75, max: 102, grid: { color: "rgba(139,152,176,0.08)" }, ticks: { callback: v => v + "%" } }
+      }
+    }
+  }));
 }
 
 // ────────── Boot ──────────
