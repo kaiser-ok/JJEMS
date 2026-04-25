@@ -52,6 +52,162 @@ function showToast(msg, type = "info", duration = 3000) {
   }, duration);
 }
 
+// ────────── Critical alarm banner (full-screen, with countdown) ──────────
+const alarmBannerState = { active: null, timer: null };
+
+function showCriticalAlarm({
+  code, severity = "critical", device = "—", message,
+  detail = "", action = "立即停機", actionType = "shutdown",
+  threshold = "", value = "", recommendation = "",
+  countdownSec = 12, onExecute, onCancel
+}) {
+  // Don't stack — close existing first
+  closeCriticalAlarm();
+
+  const overlay = document.createElement("div");
+  overlay.className = `critical-alarm-overlay sev-${severity}`;
+  overlay.innerHTML = `
+    <div class="critical-alarm">
+      <div class="ca-header">
+        <span class="ca-icon">${severity === "critical" ? "🚨" : severity === "error" ? "⛔" : "⚠️"}</span>
+        <div class="ca-titles">
+          <div class="ca-title">${ {critical:"重大告警",error:"嚴重告警",warning:"告警",info:"通知"}[severity] || "告警"} · ${device}</div>
+          <div class="ca-msg">${message}</div>
+        </div>
+        <div class="ca-code">${code || ""}</div>
+      </div>
+
+      <div class="ca-body">
+        ${detail ? `<div class="ca-detail">${detail}</div>` : ""}
+        ${(threshold || value) ? `
+          <div class="ca-metrics">
+            ${value ? `<div><span class="muted">當前值</span><strong>${value}</strong></div>` : ""}
+            ${threshold ? `<div><span class="muted">閾值</span><strong>${threshold}</strong></div>` : ""}
+          </div>` : ""}
+        <div class="ca-action-row">
+          <span class="ca-action-label">自動動作：</span>
+          <span class="ca-action-tag ca-act-${actionType}">${
+            actionType==="shutdown" ? "🛑" : actionType==="derate" ? "🔻" : actionType==="reset" ? "🔁" : "⚡"
+          } ${action}</span>
+        </div>
+        <div class="ca-countdown" id="caCountdown">
+          倒數 <strong id="caSec">${countdownSec}</strong> 秒後執行
+          <div class="ca-progress"><div class="ca-progress-bar" id="caBar" style="width:100%"></div></div>
+        </div>
+        ${recommendation ? `
+          <div class="ca-recommendation">
+            <strong>建議處置：</strong>${recommendation}
+          </div>` : ""}
+      </div>
+
+      <div class="ca-actions">
+        <button class="btn ca-btn-pause" id="caPause">⏸ 暫停倒數</button>
+        <button class="btn btn-primary ca-btn-now" id="caNow">✓ 立即執行</button>
+        <button class="btn ca-btn-cancel" id="caCancel">✕ 取消動作</button>
+      </div>
+      <div class="ca-footer muted">操作員：王工程師 · ${new Date().toLocaleString("zh-TW", { hour12:false })}</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  alarmBannerState.active = overlay;
+
+  // Beep (browser audio)
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const beep = (freq, dur, delay) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = freq; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.2, ctx.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+      o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + dur);
+    };
+    if (severity === "critical") { beep(880,0.2,0); beep(660,0.2,0.25); beep(880,0.3,0.5); }
+    else if (severity === "error") { beep(660,0.3,0); }
+  } catch {}
+
+  // Countdown
+  let remaining = countdownSec;
+  let paused = false;
+  const secEl = overlay.querySelector("#caSec");
+  const barEl = overlay.querySelector("#caBar");
+  const tick = () => {
+    if (paused) return;
+    remaining -= 0.1;
+    secEl.textContent = Math.max(0, Math.ceil(remaining));
+    barEl.style.width = Math.max(0, (remaining / countdownSec * 100)).toFixed(1) + "%";
+    if (remaining <= 0) {
+      clearInterval(alarmBannerState.timer);
+      execute();
+    }
+  };
+  alarmBannerState.timer = setInterval(tick, 100);
+
+  const execute = () => {
+    closeCriticalAlarm();
+    if (onExecute) onExecute();
+    showToast(`✓ ${action} 已執行`, "ok", 4000);
+  };
+  const cancel = () => {
+    closeCriticalAlarm();
+    if (onCancel) onCancel();
+    showToast(`動作已取消，告警仍存在 (操作員覆蓋)`, "warn", 4000);
+  };
+
+  overlay.querySelector("#caPause").addEventListener("click", () => {
+    paused = !paused;
+    overlay.querySelector("#caPause").textContent = paused ? "▶ 繼續倒數" : "⏸ 暫停倒數";
+    overlay.querySelector("#caCountdown").style.opacity = paused ? "0.5" : "1";
+  });
+  overlay.querySelector("#caNow").addEventListener("click", execute);
+  overlay.querySelector("#caCancel").addEventListener("click", cancel);
+}
+
+function closeCriticalAlarm() {
+  if (alarmBannerState.timer) { clearInterval(alarmBannerState.timer); alarmBannerState.timer = null; }
+  if (alarmBannerState.active) { alarmBannerState.active.remove(); alarmBannerState.active = null; }
+}
+
+// Demo trigger (used by alarms page button)
+function demoTriggerAlarm(kind = "thermal") {
+  const presets = {
+    thermal: {
+      code: "cell.temp.high", severity: "critical",
+      device: "SYS-B · Pack #07 Cell #142",
+      message: "電芯溫度過高",
+      detail: "液冷回水溫度上升至 32 °C，AC-3 風扇全速仍無法降溫；推測冷凝器積塵或冷媒不足。",
+      threshold: "≥ 45 °C", value: "47.2 °C",
+      action: "降功率 50% → 5 秒後停機", actionType: "shutdown",
+      recommendation: "立即派人檢查液冷機組、清潔冷凝器、確認冷媒壓力 (E70C/E70D 暫存器查詢)。",
+      countdownSec: 12,
+      onExecute: () => showToast("PCS-B 已下達 P=0 指令，BCU 進入安全模式", "info", 5000),
+    },
+    fire: {
+      code: "fire.smoke", severity: "critical",
+      device: "SYS-A · 電池倉",
+      message: "煙感探測器觸發",
+      detail: "VESDA #1 煙感與 #2 溫感同時觸發，符合消防策略觸發條件。",
+      threshold: "煙 + 溫雙觸發", value: "已確認",
+      action: "立即系統下電 + 啟動氣溶膠", actionType: "shutdown",
+      recommendation: "全員撤離廠區，連絡 119，確認門禁狀態。",
+      countdownSec: 5,
+      onExecute: () => showToast("SYS-A 已下電、消防氣溶膠已釋放、保險公司已通知", "err", 8000),
+    },
+    contract: {
+      code: "contract.over", severity: "warning",
+      device: "全廠 · 關口表",
+      message: "契約超約預警",
+      detail: "本期最大需量達 2,612 kW，超過契約 2,500 kW 共 4.5%。15 分鐘內若不降載，本月將觸發超約罰款 2 倍基本電費。",
+      threshold: "≥ 2,500 kW", value: "2,612 kW",
+      action: "啟動削峰策略，目標 2,300 kW", actionType: "derate",
+      recommendation: "確認非必要負載 (HVAC、空壓) 是否可暫停。",
+      countdownSec: 30,
+      onExecute: () => { setStrategy("peakShave"); showToast("已切換為削峰填谷策略", "ok", 4000); },
+    },
+  };
+  const cfg = presets[kind] || presets.thermal;
+  showCriticalAlarm(cfg);
+}
+
 function setStrategy(id) {
   if (!STRATEGIES[id] || state.strategy === id) return;
   const hadEdits = Object.keys(state.scheduleOverride).length > 0;
@@ -123,6 +279,7 @@ const routes = {
   devices: viewDevices,
   passport: viewPassport,
   schedule: viewSchedule,
+  tariff: viewTariff,
   finance: viewFinance,
   alarms: viewAlarms,
   settings: viewSettings,
@@ -1525,6 +1682,244 @@ function viewSchedule() {
   }));
 }
 
+// ────────── 5. Tariff editor ──────────
+function viewTariff() {
+  // Working copy (mutated by edits in this view)
+  if (!state.tariffDraft) state.tariffDraft = JSON.parse(JSON.stringify(TARIFF_PLAN));
+  const tp = state.tariffDraft;
+  const PERIOD_META = {
+    P: { label: "尖峰",   color: "#ef4444", bg: "rgba(239,68,68,0.55)"  },
+    M: { label: "半尖峰", color: "#f59e0b", bg: "rgba(245,158,11,0.45)" },
+    O: { label: "離峰",   color: "#10b981", bg: "rgba(16,185,129,0.35)" },
+  };
+  const days = ["週一","週二","週三","週四","週五","週六","週日"];
+
+  // Compute monthly bill estimate from current grid + dailyBalance
+  const bal = dailyBalance(state.strategy);
+  const dailyByPeriod = { P: 0, M: 0, O: 0 };
+  // Distribute the day's gridImport (kWh) across hours weighted by typical load curve
+  const hrLoad = gen24h(state.strategy).reduce((acc, p) => {
+    const hr = Math.floor(p.t);
+    acc[hr] = (acc[hr] || 0) + Math.max(0, p.grid) * 0.25;
+    return acc;
+  }, {});
+  for (let h = 0; h < 24; h++) {
+    const t = tp.grid[0][h]; // weekday baseline
+    dailyByPeriod[t] += hrLoad[h] || 0;
+  }
+  const monthlyByPeriod = {
+    P: Math.round(dailyByPeriod.P * 22),
+    M: Math.round(dailyByPeriod.M * 26),
+    O: Math.round(dailyByPeriod.O * 30),
+  };
+  const energyCost =
+    monthlyByPeriod.P * tp.prices.P +
+    monthlyByPeriod.M * tp.prices.M +
+    monthlyByPeriod.O * tp.prices.O;
+  const peakDemand = 5131; // demo value
+  const basicCost = peakDemand * tp.basicCharges.routine.ratePerKW;
+  const totalCost = energyCost + basicCost;
+  const overPct = ((peakDemand - SITE.contractKW) / SITE.contractKW * 100);
+  const penalty = overPct > 0
+    ? (overPct <= 10
+        ? (peakDemand - SITE.contractKW) * tp.basicCharges.routine.ratePerKW * tp.overContractPenalty.withinMultiplier
+        : SITE.contractKW * 0.1 * tp.basicCharges.routine.ratePerKW * tp.overContractPenalty.withinMultiplier
+          + (peakDemand - SITE.contractKW * 1.1) * tp.basicCharges.routine.ratePerKW * tp.overContractPenalty.aboveMultiplier)
+    : 0;
+
+  $("#view").innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">電價方案</h1>
+        <p class="page-sub">編輯時段、單價、契約配置 — 所有計算（排程、財務頁）即時連動</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-ghost" id="tariffReset">恢復預設</button>
+        <button class="btn">新增方案</button>
+        <button class="btn btn-primary" id="tariffSave">儲存變更</button>
+      </div>
+    </div>
+
+    <!-- 1. Plan selector -->
+    <div class="card mb-16">
+      <div class="card-head">
+        <h3>📋 方案選擇</h3>
+        <span class="muted" style="font-size:11.5px">生效期 ${tp.effectiveFrom} 起</span>
+      </div>
+      <div class="row" style="gap:14px;flex-wrap:wrap">
+        <select class="inp" style="min-width:280px">
+          <option>${tp.name}</option>
+          <option>高壓三段式時間電價 (非夏月)</option>
+          <option>高壓二段式時間電價</option>
+          <option>低壓電力</option>
+          <option>+ 新增自訂方案…</option>
+        </select>
+        <div class="row" style="gap:6px">
+          <button class="btn btn-ghost" style="font-size:12px">複製當前</button>
+          <button class="btn btn-ghost" style="font-size:12px">匯出 JSON</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 24h × 7day heat map -->
+    <div class="card mb-16">
+      <div class="card-head">
+        <h3>🗓 時段視覺化 (24h × 7day)</h3>
+        <div class="row" style="gap:10px;flex-wrap:wrap">
+          <span class="muted" style="font-size:11.5px">畫筆：</span>
+          <button class="tariff-tool active" data-tool="P" style="--c:#ef4444"><span class="dot" style="background:#ef4444"></span>尖峰</button>
+          <button class="tariff-tool" data-tool="M" style="--c:#f59e0b"><span class="dot" style="background:#f59e0b"></span>半尖峰</button>
+          <button class="tariff-tool" data-tool="O" style="--c:#10b981"><span class="dot" style="background:#10b981"></span>離峰</button>
+        </div>
+      </div>
+      <div class="tariff-grid-wrap">
+        <div class="tariff-hour-axis">
+          <div></div>${Array.from({length:24}, (_,h)=>`<div>${String(h).padStart(2,"0")}</div>`).join("")}
+        </div>
+        ${days.map((dn, di) => `
+          <div class="tariff-row">
+            <div class="tariff-day">${dn}</div>
+            ${tp.grid[di].map((t, h) => `
+              <div class="tariff-cell" data-day="${di}" data-hour="${h}"
+                   style="background:${PERIOD_META[t].bg}" title="${dn} ${String(h).padStart(2,"0")}:00 · ${PERIOD_META[t].label}">${PERIOD_META[t].label[0]}</div>
+            `).join("")}
+          </div>
+        `).join("")}
+      </div>
+      <div class="muted mt-12" style="font-size:11.5px">點擊或拖曳格子套用畫筆。常見用法：複製週一規則到週二–週五，或把週六改半尖峰。</div>
+    </div>
+
+    <!-- 3 & 4. Prices + basic charges -->
+    <div class="grid g-2 mb-16">
+      <div class="card">
+        <div class="card-head"><h3>💰 流動電費 (NT$/度)</h3></div>
+        <table class="data">
+          <tr><td><span class="tag err">尖峰</span></td>
+              <td><input class="inp tariff-price" data-key="P" type="number" step="0.01" value="${tp.prices.P}" style="width:100px"> NT$</td></tr>
+          <tr><td><span class="tag warn">半尖峰</span></td>
+              <td><input class="inp tariff-price" data-key="M" type="number" step="0.01" value="${tp.prices.M}" style="width:100px"> NT$</td></tr>
+          <tr><td><span class="tag ok">離峰</span></td>
+              <td><input class="inp tariff-price" data-key="O" type="number" step="0.01" value="${tp.prices.O}" style="width:100px"> NT$</td></tr>
+        </table>
+        <div class="muted mt-8" style="font-size:11.5px">當前尖離峰價差：NT$ ${(tp.prices.P - tp.prices.O).toFixed(2)}/度（套利空間）</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>📐 基本電費 (契約容量)</h3></div>
+        <table class="data">
+          ${Object.entries(tp.basicCharges).map(([k,b]) => `
+            <tr>
+              <td>${b.label}</td>
+              <td><input class="inp tariff-basic" data-key="${k}" type="number" step="0.1" value="${b.ratePerKW}" style="width:100px"> 元/kW · 月</td>
+            </tr>`).join("")}
+        </table>
+        <div class="muted mt-8" style="font-size:11.5px">超約附加費規則：≤10% × ${tp.overContractPenalty.withinMultiplier} 倍、>10% × ${tp.overContractPenalty.aboveMultiplier} 倍</div>
+      </div>
+    </div>
+
+    <!-- 5. Monthly estimate -->
+    <div class="card">
+      <div class="card-head">
+        <h3>🧮 本月電費試算（依當前策略 ${STRATEGIES[state.strategy].label}）</h3>
+        <span class="tag ${overPct>0?"warn":"ok"}">${overPct>0?`超約 ${overPct.toFixed(1)}%`:"未超約"}</span>
+      </div>
+      <table class="data">
+        <thead><tr><th>項目</th><th class="right">用量</th><th class="right">單價</th><th class="right">小計</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag err">尖峰</span> 流動電費</td>
+              <td class="num right">${fmt(monthlyByPeriod.P)} 度</td>
+              <td class="num right">$${tp.prices.P.toFixed(2)}</td>
+              <td class="num right">${money(monthlyByPeriod.P*tp.prices.P)}</td></tr>
+          <tr><td><span class="tag warn">半尖峰</span> 流動電費</td>
+              <td class="num right">${fmt(monthlyByPeriod.M)} 度</td>
+              <td class="num right">$${tp.prices.M.toFixed(2)}</td>
+              <td class="num right">${money(monthlyByPeriod.M*tp.prices.M)}</td></tr>
+          <tr><td><span class="tag ok">離峰</span> 流動電費</td>
+              <td class="num right">${fmt(monthlyByPeriod.O)} 度</td>
+              <td class="num right">$${tp.prices.O.toFixed(2)}</td>
+              <td class="num right">${money(monthlyByPeriod.O*tp.prices.O)}</td></tr>
+          <tr><td>基本電費 (經常契約)</td>
+              <td class="num right">${fmt(peakDemand)} kW</td>
+              <td class="num right">$${tp.basicCharges.routine.ratePerKW.toFixed(1)}</td>
+              <td class="num right">${money(basicCost)}</td></tr>
+          ${penalty > 0 ? `<tr style="background:rgba(239,68,68,0.05)">
+            <td><span class="tag err">超約罰款</span></td>
+            <td class="num right">${overPct.toFixed(1)}%</td>
+            <td class="num right">${tp.overContractPenalty.withinMultiplier}× 基本</td>
+            <td class="num right" style="color:var(--red)">${money(penalty)}</td>
+          </tr>` : ""}
+          <tr style="background:rgba(0,194,168,0.06)">
+            <td class="strong">本月總電費</td>
+            <td colspan="2" class="num right muted">含基本 ${money(basicCost)} + 流動 ${money(energyCost)} ${penalty>0?`+ 罰款 ${money(penalty)}`:""}</td>
+            <td class="num right strong" style="font-size:18px;color:var(--primary)">${money(totalCost+penalty)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="muted mt-8" style="font-size:11.5px">※ 試算依當前策略 24h 模擬曲線推估，實際以台電帳單為準。</div>
+    </div>
+  `;
+
+  // ── Wire interactions ──
+  let activeTool = 'P';
+  $$(".tariff-tool").forEach(b => {
+    b.addEventListener("click", () => {
+      activeTool = b.dataset.tool;
+      $$(".tariff-tool").forEach(x => x.classList.toggle("active", x === b));
+    });
+  });
+  let dragging = false;
+  const cellHandler = (cell) => {
+    if (!cell || cell.dataset.day === undefined) return;
+    const d = +cell.dataset.day, h = +cell.dataset.hour;
+    if (tp.grid[d][h] === activeTool) return;
+    tp.grid[d][h] = activeTool;
+    cell.style.background = PERIOD_META[activeTool].bg;
+    cell.textContent = PERIOD_META[activeTool].label[0];
+  };
+  const grid = document.querySelector(".tariff-grid-wrap");
+  grid.addEventListener("mousedown", e => {
+    const c = e.target.closest(".tariff-cell"); if (!c) return;
+    e.preventDefault(); dragging = true; cellHandler(c);
+  });
+  grid.addEventListener("mouseover", e => { if (dragging) cellHandler(e.target.closest(".tariff-cell")); });
+  document.addEventListener("mouseup", () => { dragging = false; });
+  // Touch
+  grid.addEventListener("touchstart", e => {
+    const c = e.target.closest(".tariff-cell"); if (!c) return;
+    e.preventDefault(); dragging = true; cellHandler(c);
+  }, { passive: false });
+  grid.addEventListener("touchmove", e => {
+    if (!dragging) return; e.preventDefault();
+    const t = e.touches[0]; const el = document.elementFromPoint(t.clientX, t.clientY);
+    cellHandler(el?.closest(".tariff-cell"));
+  }, { passive: false });
+
+  // Price inputs
+  $$(".tariff-price").forEach(inp => {
+    inp.addEventListener("change", () => {
+      tp.prices[inp.dataset.key] = +inp.value || 0;
+      // Sync to global TARIFF (so schedule/finance views pick up)
+      TARIFF.peak.price    = tp.prices.P;
+      TARIFF.midPeak.price = tp.prices.M;
+      TARIFF.offPeak.price = tp.prices.O;
+      showToast("流動電費已更新（影響排程試算）", "ok", 2000);
+    });
+  });
+  $$(".tariff-basic").forEach(inp => {
+    inp.addEventListener("change", () => {
+      tp.basicCharges[inp.dataset.key].ratePerKW = +inp.value || 0;
+    });
+  });
+
+  $("#tariffReset").addEventListener("click", () => {
+    state.tariffDraft = null;
+    showToast("已恢復預設電價方案", "info");
+    router();
+  });
+  $("#tariffSave").addEventListener("click", () => {
+    showToast("✓ 電價方案已儲存（生效於下個結算週期）", "ok", 4000);
+  });
+}
+
 // ────────── 5. Finance ──────────
 function viewFinance() {
   $("#view").innerHTML = `
@@ -1708,6 +2103,18 @@ function viewAlarms() {
       </div>
     </div>
 
+    <div class="card mb-16" style="border-left:3px solid var(--amber);background:linear-gradient(90deg,rgba(245,158,11,0.06),transparent)">
+      <div class="card-head" style="margin-bottom:8px">
+        <h3>🎬 Demo · 觸發告警停機連動</h3>
+        <span class="muted" style="font-size:11.5px">點下方按鈕模擬即時告警，看 EMS 自動接管的全螢幕流程</span>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="demoAlarmThermal">🌡 模擬電芯過熱（停機）</button>
+        <button class="btn btn-primary" id="demoAlarmFire" style="background:var(--red);border-color:var(--red);color:#fff">🔥 模擬煙感觸發（消防）</button>
+        <button class="btn" id="demoAlarmContract">⚡ 模擬契約超約（降載）</button>
+      </div>
+    </div>
+
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
       <div class="kpi"><div class="kpi-label">未處理</div><div class="kpi-value">3</div><div class="kpi-foot">需關注</div></div>
       <div class="kpi green"><div class="kpi-label">今日已處理</div><div class="kpi-value">12</div><div class="kpi-foot">自動恢復 9 / 手動 3</div></div>
@@ -1786,6 +2193,11 @@ function viewAlarms() {
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right" } } }
   }));
+
+  // Wire demo trigger buttons
+  $("#demoAlarmThermal")?.addEventListener("click", () => demoTriggerAlarm("thermal"));
+  $("#demoAlarmFire")?.addEventListener("click",    () => demoTriggerAlarm("fire"));
+  $("#demoAlarmContract")?.addEventListener("click",() => demoTriggerAlarm("contract"));
 }
 
 // ────────── 7. Settings ──────────

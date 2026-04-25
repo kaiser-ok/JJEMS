@@ -61,6 +61,42 @@ function tariffOf(h) {
   return TARIFF.offPeak;
 }
 
+// Tariff plan (full editable model — used by Tariff editor view)
+// 7×24 grid: each cell = period type code 'P' / 'M' / 'O' (peak/mid/off)
+// Mon-Fri use full 3-stage; Sat has no peak; Sun is all off-peak
+const TARIFF_PLAN = {
+  code: "tw-hv-3stage-summer",
+  name: "高壓三段式時間電價 (夏月)",
+  effectiveFrom: "2024-04-01",
+  prices: { P: 8.05, M: 5.02, O: 2.18 },
+  basicCharges: {
+    routine:   { label: "經常契約 (尖峰)",   ratePerKW: 223.6 },
+    midPeak:   { label: "半尖峰契約",         ratePerKW: 166.9 },
+    satMidPeak:{ label: "週六半尖峰契約",     ratePerKW: 44.7 },
+    offPeak:   { label: "離峰契約",           ratePerKW: 44.7 },
+  },
+  overContractPenalty: { withinPct: 10, withinMultiplier: 2, abovePct: 10, aboveMultiplier: 3 },
+  // grid[day][hour] -> 'P','M','O'  (day: 0=Mon..6=Sun)
+  grid: (() => {
+    const g = [];
+    for (let d = 0; d < 7; d++) {
+      const row = [];
+      for (let h = 0; h < 24; h++) {
+        if (d <= 4) {                        // Mon-Fri
+          if (h >= 16 && h <= 21) row.push('P');
+          else if (h >= 9 && h <= 15 || h >= 22) row.push('M');
+          else row.push('O');
+        } else if (d === 5) {                // Sat
+          if (h >= 9) row.push('M');
+          else row.push('O');
+        } else row.push('O');                // Sun
+      }
+      g.push(row);
+    }
+    return g;
+  })(),
+};
+
 // Today snapshot KPIs
 const KPI = {
   todayCost: 54280,
