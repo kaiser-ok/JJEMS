@@ -567,19 +567,34 @@ function viewSLD() {
 
 // ────────── 3. Device monitoring ──────────
 function viewDevices() {
+  const tab = state.devicesTab || "monitor";
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
         <h1 class="page-title">設備監控</h1>
-        <p class="page-sub">PCS · BMS · 電池模組 · 環控</p>
+        <p class="page-sub">PCS · BMS · 電池模組 · 環控 · 進階電芯分析</p>
       </div>
       <div class="page-actions">
-        <button class="btn">SYS-A</button>
-        <button class="btn btn-ghost">SYS-B</button>
         <button class="btn btn-primary">下載日誌</button>
       </div>
     </div>
 
+    <div class="tabs-strip mb-16">
+      <button class="tab ${tab==='monitor'?'active':''}" data-tab="monitor">📟 即時監控</button>
+      <button class="tab ${tab==='analytics'?'active':''}" data-tab="analytics">🔬 電芯分析 <span class="tab-pro">BMS Pro</span></button>
+    </div>
+
+    <div id="dev-content"></div>
+  `;
+
+  $$(".tabs-strip .tab").forEach(t => t.addEventListener("click", () => {
+    state.devicesTab = t.dataset.tab;
+    router();
+  }));
+
+  if (tab === "analytics") return renderDevicesAnalytics();
+  // Default monitor tab
+  $("#dev-content").innerHTML = `
     <div class="grid g-2e mb-16">
       ${SITE.systems.map(renderSysCard).join("")}
     </div>
@@ -655,6 +670,257 @@ function viewDevices() {
     html += `<div class="heat-cell" style="background:hsl(${h},70%,60%)" title="Cell #${i+1}: ${t.toFixed(1)}°C">${t.toFixed(1)}</div>`;
   }
   heat.innerHTML = html;
+}
+
+// ────────── BMS Pro · Cell Analytics ──────────
+function renderDevicesAnalytics() {
+  // Generate fake cell data deterministically (208 + 176 = 384 cells)
+  const seedRand = (s) => { s = s % 2147483647; if (s <= 0) s += 2147483646; return () => (s = s * 16807 % 2147483647) / 2147483647; };
+  const r = seedRand(42);
+
+  const allCells = [];
+  for (const sys of SITE.systems) {
+    const n = sys.cells;
+    const baseV = 3.388;
+    for (let i = 0; i < n; i++) {
+      // Voltage with normal distribution
+      const u1 = r(), u2 = r();
+      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      let v = baseV + z * 0.012;
+      // A few "weak" cells deliberately offset
+      if (sys.id === "SYS-A" && [3, 47, 92, 156, 199].includes(i)) v -= 0.02 + r()*0.015;
+      if (sys.id === "SYS-B" && [12, 67, 134].includes(i)) v -= 0.025 + r()*0.01;
+      const ir = 0.42 + r() * 0.08 + Math.max(0, baseV - v) * 4;       // mΩ
+      const temp = 28 + r() * 3.5 + (sys.id === "SYS-B" ? 1.5 : 0);
+      allCells.push({ sys: sys.id, idx: i+1, v: +v.toFixed(4), ir: +ir.toFixed(3), temp: +temp.toFixed(1) });
+    }
+  }
+
+  const sysA = allCells.filter(c => c.sys === "SYS-A");
+  const sysB = allCells.filter(c => c.sys === "SYS-B");
+  const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+  const std  = arr => { const m = mean(arr); return Math.sqrt(arr.reduce((s,x)=>s+(x-m)**2,0)/arr.length); };
+  const vMean = mean(allCells.map(c=>c.v));
+  const vStd  = std(allCells.map(c=>c.v));
+  const vMin = Math.min(...allCells.map(c=>c.v));
+  const vMax = Math.max(...allCells.map(c=>c.v));
+  const vRange = (vMax - vMin) * 1000; // mV
+  const sortedWeak = [...allCells].sort((a,b)=> a.v - b.v).slice(0, 10);
+  // Risk score (0-100, lower = better)
+  const riskScore = Math.round(Math.min(100, vRange*0.6 + vStd*1500 + (sortedWeak[0].v < 3.34 ? 8 : 0)));
+
+  $("#dev-content").innerHTML = `
+    <!-- KPI cards -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi green">
+        <div class="kpi-label">平均電芯電壓</div>
+        <div class="kpi-value">${vMean.toFixed(3)}<span class="unit">V</span></div>
+        <div class="kpi-foot">384 cells · LFP 標稱 3.2 V</div>
+      </div>
+      <div class="kpi blue">
+        <div class="kpi-label">電壓標準差 (均衡度)</div>
+        <div class="kpi-value">${(vStd*1000).toFixed(1)}<span class="unit">mV</span></div>
+        <div class="kpi-foot">${vStd*1000<15?'<span style="color:var(--green)">優良</span>':vStd*1000<25?'<span style="color:var(--amber)">尚可</span>':'<span style="color:var(--red)">需均衡</span>'} · 閾值 25 mV</div>
+      </div>
+      <div class="kpi amber">
+        <div class="kpi-label">最大 V 偏差</div>
+        <div class="kpi-value">${vRange.toFixed(0)}<span class="unit">mV</span></div>
+        <div class="kpi-foot">${(vMax).toFixed(3)} − ${(vMin).toFixed(3)} V · 閾值 50 mV</div>
+      </div>
+      <div class="kpi ${riskScore<15?'green':riskScore<35?'amber':'pink'}">
+        <div class="kpi-label">熱失控風險分數 (AI)</div>
+        <div class="kpi-value">${riskScore}<span class="unit">/100</span></div>
+        <div class="kpi-foot">${riskScore<15?'低風險':riskScore<35?'中度關注':'立即檢測'}</div>
+      </div>
+    </div>
+
+    <!-- Voltage histogram + Top 10 weak -->
+    <div class="grid g-2 mb-16">
+      <div class="card">
+        <div class="card-head">
+          <h3>電芯電壓分佈直方圖</h3>
+          <div class="row">
+            <span class="tag info">SYS-A · 208 cells</span>
+            <span class="tag" style="color:var(--ess-teal);background:rgba(20,184,166,0.12)">SYS-B · 176 cells</span>
+          </div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chartHisto"></canvas></div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">理想為窄鐘形分佈;偏移或拖尾代表電芯不一致或衰退</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Top 10 弱電芯排行</h3>
+          <span class="tag warn">需重點關注</span>
+        </div>
+        <table class="data" style="font-size:12px">
+          <thead><tr><th>#</th><th>系統</th><th>編號</th><th class="right">電壓</th><th class="right">內阻</th><th class="right">偏差</th><th></th></tr></thead>
+          <tbody>
+            ${sortedWeak.map((c,i)=>{
+              const dev = (c.v - vMean) * 1000;
+              const sev = Math.abs(dev) > 30 ? "err" : Math.abs(dev) > 20 ? "warn" : "info";
+              return `<tr>
+                <td><strong>${i+1}</strong></td>
+                <td>${c.sys}</td>
+                <td>#${c.idx}</td>
+                <td class="num right">${c.v.toFixed(3)} V</td>
+                <td class="num right">${c.ir.toFixed(2)} mΩ</td>
+                <td class="num right"><span class="tag ${sev}" style="font-size:10.5px">${dev.toFixed(0)} mV</span></td>
+                <td><button class="btn btn-ghost" style="padding:2px 8px;font-size:10.5px">派工</button></td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Thermal runaway prognostics — 6 indicator cards -->
+    <div class="card mb-16">
+      <div class="card-head">
+        <h3>🔥 熱失控早期指標 (Prognostics)</h3>
+        <span class="muted" style="font-size:12px">物理模型 + ML 推論 · 每 5 秒更新</span>
+      </div>
+      <div class="prog-grid">
+        ${prognosticIndicator("溫度上升斜率", 0.12, 0.3, "°C/min", "monotonic")}
+        ${prognosticIndicator("模組間最大溫差", 4.8, 8, "°C", "balanced")}
+        ${prognosticIndicator("V/I 相關性", 0.94, 0.7, "ρ", "rising", true)}
+        ${prognosticIndicator("自放電率", 0.8, 2.0, "%/週", "monotonic")}
+        ${prognosticIndicator("SoC 估算漂移", 1.2, 5, "%", "monotonic")}
+        ${prognosticIndicator("內阻變異係數", 4.2, 10, "%", "monotonic")}
+      </div>
+      <div style="margin-top:14px;padding:10px 14px;background:rgba(16,185,129,0.05);border-left:3px solid var(--green);border-radius:6px;font-size:12.5px">
+        <strong>AI 評估：</strong>所有指標皆在安全區間，未觀察到熱失控前兆訊號。預估到下次例行檢測 (2026-07-15) 之間出現異常的機率為 <strong style="color:var(--green)">2.1%</strong>。
+      </div>
+    </div>
+
+    <!-- 7-day balance trend + IR heat map -->
+    <div class="grid g-2">
+      <div class="card">
+        <div class="card-head"><h3>近 7 日電壓離散度趨勢</h3></div>
+        <div class="chart-wrap"><canvas id="chartSpread"></canvas></div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">每日由主動均衡程序壓低離散度;若持續上升代表均衡電路或弱電芯問題</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>內阻分佈熱力圖 · ${SITE.systems[0].cells} cells</h3>
+          <div class="row" style="gap:4px">
+            <span class="muted" style="font-size:11px">0.40 mΩ</span>
+            <div style="width:120px;height:8px;background:linear-gradient(90deg,#10b981,#facc15,#ef4444);border-radius:4px"></div>
+            <span class="muted" style="font-size:11px">0.65 mΩ</span>
+          </div>
+        </div>
+        <div class="heat" id="irHeat"></div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">內阻偏高的電芯（紅）可能是衰退或接觸不良前兆</div>
+      </div>
+    </div>
+  `;
+
+  // Histogram
+  const bins = 30;
+  const binStart = 3.32, binEnd = 3.45;
+  const binW = (binEnd - binStart) / bins;
+  const histA = Array(bins).fill(0);
+  const histB = Array(bins).fill(0);
+  for (const c of sysA) { const i = Math.min(bins-1, Math.max(0, Math.floor((c.v - binStart)/binW))); histA[i]++; }
+  for (const c of sysB) { const i = Math.min(bins-1, Math.max(0, Math.floor((c.v - binStart)/binW))); histB[i]++; }
+  const labels = Array.from({length:bins}, (_,i) => (binStart + i*binW).toFixed(3));
+
+  addChart(new Chart($("#chartHisto"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "SYS-A", data: histA, backgroundColor: "rgba(59,130,246,0.6)", borderColor: "#3b82f6", borderWidth: 1 },
+        { label: "SYS-B", data: histB, backgroundColor: "rgba(20,184,166,0.6)", borderColor: "#14b8a6", borderWidth: 1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { stacked: false, title: { display: true, text: "電壓 (V)" }, ticks: { maxTicksLimit: 10 }, grid: { display: false } },
+        y: { title: { display: true, text: "電芯數" }, grid: { color: "rgba(139,152,176,0.08)" } }
+      }
+    }
+  }));
+
+  // 7-day spread chart
+  const days = ["6 日前","5 日前","4 日前","3 日前","2 日前","昨日","今日"];
+  const spreadData = [22.4, 18.6, 24.8, 19.2, 21.5, 17.3, +(vRange).toFixed(1)];
+  addChart(new Chart($("#chartSpread"), {
+    type: "line",
+    data: {
+      labels: days,
+      datasets: [
+        { label: "V Spread", data: spreadData, borderColor: "#00c2a8", backgroundColor: "rgba(0,194,168,0.18)", fill: true, tension: 0.35, pointRadius: 4, borderWidth: 2 },
+        { label: "閾值", data: days.map(()=>50), borderColor: "#ef4444", borderWidth: 1, borderDash: [4,3], pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { title: { display: true, text: "mV" }, grid: { color: "rgba(139,152,176,0.08)" } }
+      }
+    }
+  }));
+
+  // Render sparklines for prognostic indicators
+  $$(".prog-spark").forEach(canvas => {
+    const trend = canvas.dataset.trend;
+    const seed = +(canvas.dataset.seed || 1);
+    const sr = seedRand(seed * 7);
+    const pts = [];
+    for (let i = 0; i < 24; i++) {
+      let v;
+      if (trend === "monotonic") v = 0.3 + sr() * 0.15 + i * 0.005;
+      else if (trend === "balanced") v = 0.5 + Math.sin(i/3) * 0.15 + sr()*0.08;
+      else if (trend === "rising") v = 0.6 + i * 0.012 + sr() * 0.06;
+      else v = 0.5 + sr()*0.2;
+      pts.push(v);
+    }
+    addChart(new Chart(canvas, {
+      type: "line",
+      data: { labels: pts.map((_,i)=>i), datasets: [{ data: pts, borderColor: "#00c2a8", backgroundColor: "rgba(0,194,168,0.2)", fill: true, tension: 0.35, pointRadius: 0, borderWidth: 1.5 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false, min: 0 } }
+      }
+    }));
+  });
+
+  // IR heat map (208 cells SYS-A)
+  const ir = $("#irHeat");
+  const irHtml = sysA.map(c => {
+    const v = c.ir;
+    // 0.40 → green hue=140, 0.65 → red hue=0
+    const t = Math.min(1, Math.max(0, (v - 0.40) / 0.25));
+    const hue = 140 - t * 140;
+    return `<div class="heat-cell" style="background:hsl(${hue},75%,60%)" title="Cell #${c.idx}: ${v.toFixed(2)} mΩ">${v.toFixed(2)}</div>`;
+  }).join("");
+  ir.innerHTML = irHtml;
+}
+
+function prognosticIndicator(label, value, threshold, unit, trend, higherIsBetter = false) {
+  const ratio = value / threshold;
+  const ok = higherIsBetter ? ratio >= 1 : ratio <= 0.6;
+  const warn = higherIsBetter ? ratio >= 0.7 && ratio < 1 : ratio > 0.6 && ratio <= 0.85;
+  const status = ok ? "正常" : warn ? "監視" : "警示";
+  const color = ok ? "var(--green)" : warn ? "var(--amber)" : "var(--red)";
+  const seed = label.charCodeAt(0) + label.charCodeAt(1);
+  return `
+    <div class="prog-card">
+      <div class="prog-top">
+        <span class="prog-label">${label}</span>
+        <span class="tag ${ok?'ok':warn?'warn':'err'}" style="font-size:10.5px">${status}</span>
+      </div>
+      <div class="prog-val" style="color:${color}">${value} <span class="prog-unit">${unit}</span></div>
+      <div class="prog-spark-wrap"><canvas class="prog-spark" data-trend="${trend}" data-seed="${seed}"></canvas></div>
+      <div class="prog-foot muted">閾值 ${higherIsBetter ? "≥" : "≤"} ${threshold} ${unit}</div>
+    </div>
+  `;
 }
 
 function renderSysCard(sys) {
@@ -1466,31 +1732,17 @@ function viewSettings() {
 }
 
 // ────────── 8. Battery Passport ──────────
-function fakeQR(seed) {
-  let h = 0x811c9dc5;
-  for (const c of seed) { h ^= c.charCodeAt(0); h = (h * 0x01000193) >>> 0; }
-  const N = 25;
-  const cells = Array.from({length:N}, () => Array(N).fill(false));
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    h = (h * 1103515245 + 12345) >>> 0;
-    cells[y][x] = (h & 1) === 1;
-  }
-  // Three finder corners
-  for (const [fx, fy] of [[0,0],[N-7,0],[0,N-7]]) {
-    for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) {
-      const isOn = (x===0||x===6||y===0||y===6) || (x>=2&&x<=4&&y>=2&&y<=4);
-      cells[fy+y][fx+x] = isOn;
-    }
-    // White separator
-    for (let y = -1; y < 8; y++) for (let x = -1; x < 8; x++) {
-      const yy = fy+y, xx = fx+x;
-      if (yy<0||xx<0||yy>=N||xx>=N) continue;
-      if ((x===-1||x===7||y===-1||y===7) && yy>=0 && xx>=0) cells[yy][xx] = false;
-    }
-  }
-  let svg = `<svg viewBox="0 0 ${N} ${N}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;background:#fff;border-radius:6px;padding:6px;box-sizing:border-box">`;
+// Real QR code generation via qrcode-generator (Reed-Solomon EC, scannable)
+function makeQR(text) {
+  if (typeof qrcode !== "function") return `<div style="font-size:11px;color:#888;padding:20px;text-align:center">QR 載入中...</div>`;
+  const qr = qrcode(0, "M"); // type 0 = auto, error correction Medium
+  qr.addData(text);
+  qr.make();
+  const N = qr.getModuleCount();
+  let svg = `<svg viewBox="0 0 ${N+8} ${N+8}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;background:#fff;border-radius:6px">`;
+  svg += `<rect width="${N+8}" height="${N+8}" fill="#fff"/>`;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++)
-    if (cells[y][x]) svg += `<rect x="${x}" y="${y}" width="1.05" height="1.05" fill="#000"/>`;
+    if (qr.isDark(y, x)) svg += `<rect x="${x+4}" y="${y+4}" width="1.05" height="1.05" fill="#000"/>`;
   svg += `</svg>`;
   return svg;
 }
@@ -1517,8 +1769,8 @@ function viewPassport() {
     <!-- Hero card: QR + identity -->
     <div class="card mb-16" style="display:grid;grid-template-columns:200px 1fr auto;gap:24px;align-items:center">
       <div>
-        <div style="width:160px;height:160px;background:#fff;border-radius:8px">${fakeQR(p.sn)}</div>
-        <div class="muted" style="font-size:11px;text-align:center;margin-top:6px">掃描查看完整履歷</div>
+        <div style="width:160px;height:160px;background:#fff;border-radius:8px">${makeQR(qrUrl)}</div>
+        <div class="muted" style="font-size:11px;text-align:center;margin-top:6px;word-break:break-all">${qrUrl}</div>
       </div>
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">

@@ -299,6 +299,51 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 .chip:hover { color: var(--text); border-color: var(--primary); }
 .chip.active { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
 
+/* Tabs strip (used by Devices) */
+.tabs-strip {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--border-soft);
+  padding: 0 4px;
+}
+.tabs-strip .tab {
+  padding: 10px 16px; background: transparent; color: var(--text-muted);
+  border: none; border-bottom: 2px solid transparent;
+  font-size: 13.5px; font-family: inherit; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: -1px;
+}
+.tabs-strip .tab:hover { color: var(--text); }
+.tabs-strip .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-pro {
+  font-size: 9.5px; padding: 1px 6px; border-radius: 3px;
+  background: linear-gradient(135deg, var(--primary), #3b82f6); color: white;
+  font-weight: 700; letter-spacing: 0.3px;
+}
+
+/* BMS Pro · prognostic indicator cards */
+.prog-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.prog-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-soft); border-radius: 8px;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.prog-top { display: flex; align-items: center; justify-content: space-between; }
+.prog-label { font-size: 12px; color: var(--text-muted); }
+.prog-val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.prog-unit { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.prog-spark-wrap { height: 32px; margin: 2px 0; }
+.prog-foot { font-size: 11px; }
+
+@media (max-width: 768px) {
+  .prog-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .prog-grid { grid-template-columns: 1fr; }
+}
+
 /* Battery Passport — timeline */
 .timeline { position: relative; padding-left: 18px; }
 .timeline::before {
