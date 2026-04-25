@@ -66,13 +66,28 @@ function buildSystemPrompt(ctx, lang) {
 }
 
 export default async function handler(req) {
+  // GET = health check (no upstream call, no auth, no rate-limit)
+  if (req.method === "GET") {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    return json({
+      ok: true,
+      hasKey: !!apiKey,
+      keyPrefix: apiKey ? apiKey.slice(0, 10) + "..." + apiKey.slice(-4) : null,
+      models: MODELS,
+      runtime: "edge",
+      time: new Date().toISOString(),
+    });
+  }
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    return json({ error: "OPENROUTER_API_KEY not configured on server" }, 500);
+    return json({
+      error: "OPENROUTER_API_KEY not configured on server",
+      hint: "Vercel Dashboard → Settings → Environment Variables → 新增 OPENROUTER_API_KEY,然後 Redeploy"
+    }, 500);
   }
 
   let body;
@@ -88,10 +103,11 @@ export default async function handler(req) {
   ];
 
   const isFree = (m) => m.endsWith(":free");
-  let lastErr = null;
+  const attempts = [];
   let lastStatus = 500;
 
   for (const model of MODELS) {
+    let status = 0, detail = "";
     try {
       const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -103,6 +119,7 @@ export default async function handler(req) {
         },
         body: JSON.stringify({ model, messages, max_tokens: 600, temperature: 0.4 }),
       });
+      status = upstream.status;
 
       if (upstream.ok) {
         const data = await upstream.json();
@@ -110,49 +127,52 @@ export default async function handler(req) {
         return json({ reply, model: data?.model || model, usage: data?.usage });
       }
 
-      const detail = (await upstream.text()).slice(0, 500);
-      lastErr = detail;
-      lastStatus = upstream.status;
+      detail = (await upstream.text()).slice(0, 300);
+      lastStatus = status;
+      attempts.push({ model, status, detail });
 
       // 402 = no credits → bail out
-      if (upstream.status === 402) {
+      if (status === 402) {
         return json({
           error: "OpenRouter requires account credits",
-          hint: "OpenRouter 帳戶需要 credits。請至 https://openrouter.ai/credits 加值至少 $5。",
-          detail,
+          hint: "OpenRouter 帳戶需要 credits。請至 https://openrouter.ai/credits 加值至少 $10。",
+          attempts,
         }, 402);
       }
-
       // 401/403 = auth → bail out
-      if (upstream.status === 401 || upstream.status === 403) {
+      if (status === 401 || status === 403) {
         return json({
-          error: `Auth error ${upstream.status}`,
+          error: `Auth error ${status}`,
           hint: "OPENROUTER_API_KEY 無效或已撤銷,請於 Vercel env vars 重新設定。",
-          detail,
-        }, upstream.status);
+          attempts,
+        }, status);
       }
-
-      // 429 on PAID model = account-level limit (low credits) → bail, retrying free won't help
-      if (upstream.status === 429 && !isFree(model)) {
+      // 429 on PAID model = account-level limit → bail
+      if (status === 429 && !isFree(model)) {
         return json({
-          error: "OpenRouter account-level rate limit",
-          hint: "付費模型也被限流,通常是帳戶餘額過低 (<$10) 觸發 free-tier 級別限制 (20 req/min, 50/日)。請至 https://openrouter.ai/credits 加值到 $10 以上。",
-          detail,
+          error: "OpenRouter account-level rate limit (paid model 429)",
+          hint: "付費模型 429 通常代表帳戶餘額過低 (<$10) 觸發全域 free-tier 限制 (20 req/min, 50/日)。請至 https://openrouter.ai/credits 加值到 $10 以上,1 分鐘後再試。",
+          attempts,
         }, 429);
       }
-
-      // 429 on FREE model → try next free model
-      // Other status (5xx) → try next
+      // 4xx other than rate/auth/credit = likely model name issue → bail
+      if (status >= 400 && status < 500 && status !== 429) {
+        return json({
+          error: `Upstream ${status} on model "${model}"`,
+          hint: "可能是模型名稱已變更或不存在,請檢查 OpenRouter model list。",
+          attempts,
+        }, status);
+      }
+      // 429 on FREE / 5xx → try next
     } catch (e) {
-      lastErr = e?.message || String(e);
+      attempts.push({ model, error: e?.message || String(e) });
     }
   }
 
-  // All models exhausted
   return json({
     error: `All models exhausted (last status ${lastStatus})`,
-    hint: "所有模型都被限流。建議稍後再試,或加值 OpenRouter credits 提升上限。",
-    detail: lastErr,
+    hint: "所有模型 (含付費) 都失敗。最常見原因:OpenRouter 帳戶餘額不足。請至 https://openrouter.ai/credits 加值 $10,並至 https://openrouter.ai/activity 確認餘額生效。",
+    attempts,
   }, lastStatus);
 }
 
