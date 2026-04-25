@@ -21,6 +21,7 @@ const state = {
   strategy: "arbitrage",
   scheduleOverride: {},   // hour (0-23) -> { mode, kw, label }
   editTool: "auto",       // "auto" | "charge" | "discharge" | "idle"
+  lang: (() => { try { return localStorage.getItem("ems-lang") || "zh-TW"; } catch { return "zh-TW"; } })(),
 };
 
 // ────────── Toast notifications ──────────
@@ -55,7 +56,7 @@ function setStrategy(id) {
 function renderModePill() {
   const s = STRATEGIES[state.strategy];
   const txt = $("#mode-pill-text");
-  if (txt) txt.textContent = s.label + "模式";
+  if (txt) txt.textContent = t(`strat.${s.id}.label`) + t("topbar.modeSfx");
   const pill = $("#mode-pill");
   if (pill) pill.style.borderColor = s.color + "55";
 }
@@ -67,8 +68,8 @@ function buildModeDropdown() {
     <div class="mode-opt ${state.strategy === s.id ? "active" : ""}" role="menuitemradio" data-strategy="${s.id}">
       <span class="mode-opt-dot" style="background:${s.color}"></span>
       <div class="mode-opt-body">
-        <div class="mode-opt-label">${s.full}</div>
-        <div class="mode-opt-desc">${s.desc}</div>
+        <div class="mode-opt-label">${t(`strat.${s.id}.full`)}</div>
+        <div class="mode-opt-desc">${t(`strat.${s.id}.desc`)}</div>
       </div>
       ${state.strategy === s.id ? `<span class="mode-opt-check">✓</span>` : ""}
     </div>
@@ -94,14 +95,14 @@ function renderTopbar() {
   const ess = +(plan.kw + (Math.random() - 0.5) * 6).toFixed(0);
   const grid = load - pv - ess;
   const soc = genSoc(state.strategy)[Math.min(95, hr * 4)];
-  const essLabel = ess > 0 ? "儲能放電" : ess < 0 ? "儲能充電" : "儲能待機";
+  const essLabel = ess > 0 ? t("tstat.essDis") : ess < 0 ? t("tstat.essChg") : t("tstat.essIdle");
   $("#topbar-stats").innerHTML = `
-    <div class="tstat"><span class="tlabel">市電</span><span class="tvalue">${fmt(grid)}</span><span class="tunit">kW</span></div>
+    <div class="tstat"><span class="tlabel">${t("tstat.grid")}</span><span class="tvalue">${fmt(grid)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">PV</span><span class="tvalue" style="color:var(--pv-yellow)">${fmt(pv)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">${essLabel}</span><span class="tvalue" style="color:var(--ess-teal)">${fmt(Math.abs(ess))}</span><span class="tunit">kW</span></div>
-    <div class="tstat"><span class="tlabel">負載</span><span class="tvalue" style="color:var(--load-purple)">${fmt(load)}</span><span class="tunit">kW</span></div>
+    <div class="tstat"><span class="tlabel">${t("tstat.load")}</span><span class="tvalue" style="color:var(--load-purple)">${fmt(load)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">SoC</span><span class="tvalue" style="color:var(--green)">${soc.toFixed(0)}</span><span class="tunit">%</span></div>
-    <div class="tstat"><span class="tlabel">今日預估節費</span><span class="tvalue" style="color:${benefit.net>=0?'var(--green)':'var(--red)'}">${money(benefit.net)}</span></div>
+    <div class="tstat"><span class="tlabel">${t("tstat.savings")}</span><span class="tvalue" style="color:${benefit.net>=0?'var(--green)':'var(--red)'}">${money(benefit.net)}</span></div>
   `;
 }
 
@@ -146,73 +147,73 @@ function viewDashboard() {
   v.innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">首頁總覽</h1>
-        <p class="page-sub">${SITE.name} · 即時監控與效益概要</p>
+        <h1 class="page-title">${t("page.dash.title")}</h1>
+        <p class="page-sub">${t("topbar.site")} · ${t("page.dash.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn">今日</button>
-        <button class="btn btn-ghost">本月</button>
-        <button class="btn btn-ghost">本年</button>
-        <button class="btn btn-primary">匯出報表</button>
+        <button class="btn">${t("btn.today")}</button>
+        <button class="btn btn-ghost">${t("btn.month")}</button>
+        <button class="btn btn-ghost">${t("btn.year")}</button>
+        <button class="btn btn-primary">${t("btn.export")}</button>
       </div>
     </div>
 
     <!-- Active strategy banner -->
     <div class="card mb-16" style="border-left:4px solid ${s.color};padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <div style="flex:0 0 auto">
-        <div class="muted" style="font-size:11.5px">當前運行策略</div>
-        <div style="font-size:16px;font-weight:700;color:${s.color};margin-top:2px">${s.full}</div>
+        <div class="muted" style="font-size:11.5px">${t("card.activeStrategy")}</div>
+        <div style="font-size:16px;font-weight:700;color:${s.color};margin-top:2px">${t(`strat.${s.id}.full`)}</div>
       </div>
       <div style="flex:1;min-width:180px;border-left:1px solid var(--border-soft);padding-left:14px">
-        <div class="muted" style="font-size:11.5px">收益模式</div>
-        <div style="font-size:13px;margin-top:2px">${s.benefit}</div>
+        <div class="muted" style="font-size:11.5px">${t("card.benefitMode")}</div>
+        <div style="font-size:13px;margin-top:2px">${t(`strat.benefit.${s.id}`)}</div>
       </div>
       <div style="flex:1;min-width:180px;border-left:1px solid var(--border-soft);padding-left:14px">
-        <div class="muted" style="font-size:11.5px">約束</div>
-        <div style="font-size:13px;margin-top:2px">${s.constraint}</div>
+        <div class="muted" style="font-size:11.5px">${t("card.constraint")}</div>
+        <div style="font-size:13px;margin-top:2px">${t(`strat.cnst.${s.id}`)}</div>
       </div>
-      <a href="#/schedule" class="btn">調整策略 →</a>
+      <a href="#/schedule" class="btn">${t("btn.adjust")}</a>
     </div>
 
     <!-- KPI Cards -->
     <div class="kpi-grid">
       <div class="kpi">
-        <div class="kpi-label">今日電費</div>
+        <div class="kpi-label">${t("kpi.todayCost")}</div>
         <div class="kpi-value">${money(bal.gridImport * 5.0)}</div>
-        <div class="kpi-foot">市電 ${fmt(bal.gridImport)} kWh × 加權均價</div>
+        <div class="kpi-foot">${fmt(bal.gridImport)} kWh × avg</div>
       </div>
       <div class="kpi green">
-        <div class="kpi-label">今日預估節費</div>
+        <div class="kpi-label">${t("kpi.todaySavings")}</div>
         <div class="kpi-value" style="color:${benefit.net>=0?'var(--green)':'var(--red)'}">${money(benefit.net)}</div>
-        <div class="kpi-foot">${s.label} · ${cycles} 循環</div>
+        <div class="kpi-foot">${t(`strat.${s.id}.label`)} · ${cycles}</div>
       </div>
       <div class="kpi blue">
-        <div class="kpi-label">本月累計節費</div>
+        <div class="kpi-label">${t("kpi.monthSavings")}</div>
         <div class="kpi-value">${money(monthSavings)}</div>
-        <div class="kpi-foot">達成率 <span class="strong">${Math.min(100, Math.round(monthSavings/156000*100))}%</span> / ${money(156000)}</div>
+        <div class="kpi-foot"><span class="strong">${Math.min(100, Math.round(monthSavings/156000*100))}%</span> / ${money(156000)}</div>
       </div>
       <div class="kpi amber">
-        <div class="kpi-label">儲能平均 SoC</div>
+        <div class="kpi-label">${t("kpi.avgSoc")}</div>
         <div class="kpi-value">${avgSoc}<span class="unit">%</span></div>
-        <div class="kpi-foot">效率 <span class="strong">${KPI.cycleEff}%</span> · ${cycles} 循環/日</div>
+        <div class="kpi-foot"><span class="strong">${KPI.cycleEff}%</span> · ${cycles}</div>
       </div>
       <div class="kpi purple">
-        <div class="kpi-label">最大放電功率</div>
+        <div class="kpi-label">${t("kpi.maxDis")}</div>
         <div class="kpi-value">${peakShaved}<span class="unit">kW</span></div>
-        <div class="kpi-foot">${state.strategy==='peakShave'?'削峰填谷':state.strategy==='afc'?'AFC 雙向':state.strategy==='manual'?'手動指令':'依策略放電'}</div>
+        <div class="kpi-foot">${t(`strat.${s.id}.label`)}</div>
       </div>
       <div class="kpi pink">
-        <div class="kpi-label">最高電芯溫度</div>
+        <div class="kpi-label">${t("kpi.maxTemp")}</div>
         <div class="kpi-value">${KPI.maxCellTemp}<span class="unit">°C</span></div>
-        <div class="kpi-foot">SYS-B 電池櫃 · 正常範圍</div>
+        <div class="kpi-foot">SYS-B</div>
       </div>
     </div>
 
     <!-- Power flow mini map -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>即時能源流向</h3>
-        <span class="tag info">每 5 秒更新</span>
+        <h3>${t("card.flowMini")}</h3>
+        <span class="tag info">5s</span>
       </div>
       <div class="flow-mini" id="flowmini"></div>
     </div>
@@ -221,20 +222,20 @@ function viewDashboard() {
     <div class="grid g-2 mb-16">
       <div class="card">
         <div class="card-head">
-          <h3>24 小時功率趨勢</h3>
+          <h3>${t("card.chart24h")}</h3>
           <div class="row">
-            <span class="tag mute">◼ 市電</span>
-            <span class="tag" style="color:var(--pv-yellow);background:rgba(250,204,21,0.1)">◼ 太陽能</span>
-            <span class="tag" style="color:var(--ess-teal);background:rgba(20,184,166,0.1)">◼ 儲能</span>
-            <span class="tag" style="color:var(--load-purple);background:rgba(167,139,250,0.1)">◼ 負載</span>
+            <span class="tag mute">◼ ${t("tstat.grid")}</span>
+            <span class="tag" style="color:var(--pv-yellow);background:rgba(250,204,21,0.1)">◼ PV</span>
+            <span class="tag" style="color:var(--ess-teal);background:rgba(20,184,166,0.1)">◼ ESS</span>
+            <span class="tag" style="color:var(--load-purple);background:rgba(167,139,250,0.1)">◼ ${t("tstat.load")}</span>
           </div>
         </div>
         <div class="chart-wrap tall"><canvas id="chart24h"></canvas></div>
       </div>
       <div class="card">
         <div class="card-head">
-          <h3>儲能 SoC 曲線</h3>
-          <span class="tag ok">健康</span>
+          <h3>${t("card.socCurve")}</h3>
+          <span class="tag ok">${t("tag.normal")}</span>
         </div>
         <div class="chart-wrap tall"><canvas id="chartSoc"></canvas></div>
       </div>
@@ -242,26 +243,26 @@ function viewDashboard() {
 
     <div class="grid g-3">
       <div class="card">
-        <div class="card-head"><h3>今日能量平衡</h3><span class="tag" style="background:${s.color}1a;color:${s.color}">${s.label}</span></div>
+        <div class="card-head"><h3>${t("card.balance")}</h3><span class="tag" style="background:${s.color}1a;color:${s.color}">${t(`strat.${s.id}.label`)}</span></div>
         <table class="data" style="margin:-4px 0">
           <tbody>
-            <tr><td>市電購入</td><td class="num">${fmt(bal.gridImport)} kWh</td></tr>
-            <tr><td>太陽能發電</td><td class="num">${fmt(bal.pv)} kWh</td></tr>
-            <tr><td>儲能放電</td><td class="num">${fmt(bal.discharge)} kWh</td></tr>
-            <tr><td>儲能充電</td><td class="num">${fmt(bal.charge)} kWh</td></tr>
-            <tr><td>總負載</td><td class="num strong">${fmt(bal.load)} kWh</td></tr>
+            <tr><td>${t("balance.gridImport")}</td><td class="num">${fmt(bal.gridImport)} kWh</td></tr>
+            <tr><td>${t("balance.pv")}</td><td class="num">${fmt(bal.pv)} kWh</td></tr>
+            <tr><td>${t("balance.essDis")}</td><td class="num">${fmt(bal.discharge)} kWh</td></tr>
+            <tr><td>${t("balance.essChg")}</td><td class="num">${fmt(bal.charge)} kWh</td></tr>
+            <tr><td>${t("balance.totalLoad")}</td><td class="num strong">${fmt(bal.load)} kWh</td></tr>
           </tbody>
         </table>
       </div>
       <div class="card">
-        <div class="card-head"><h3>台電即時訊息</h3></div>
-        <div class="row mb-12"><span class="dot dot-ok"></span><span>正常供電</span><span class="muted" style="margin-left:auto">0 事件</span></div>
-        <div class="row mb-12"><span class="dot dot-idle"></span><span>備轉通知</span><span class="muted" style="margin-left:auto">未接收</span></div>
-        <div class="row mb-12"><span class="dot dot-idle"></span><span>需量反應</span><span class="muted" style="margin-left:auto">7 日內無</span></div>
-        <div class="muted mt-16" style="font-size:12px">資料來源：台電公司 openAPI</div>
+        <div class="card-head"><h3>${t("card.tpcMsg")}</h3></div>
+        <div class="row mb-12"><span class="dot dot-ok"></span><span>${t("tpc.normal")}</span><span class="muted" style="margin-left:auto">${t("tpc.events")}</span></div>
+        <div class="row mb-12"><span class="dot dot-idle"></span><span>${t("tpc.spinning")}</span><span class="muted" style="margin-left:auto">${t("tpc.notRecv")}</span></div>
+        <div class="row mb-12"><span class="dot dot-idle"></span><span>${t("tpc.dr")}</span><span class="muted" style="margin-left:auto">${t("tpc.none")}</span></div>
+        <div class="muted mt-16" style="font-size:12px">${t("tpc.source")}</div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>近期告警</h3><a href="#/alarms" class="muted" style="font-size:12px">全部 →</a></div>
+        <div class="card-head"><h3>${t("card.recentAlarm")}</h3><a href="#/alarms" class="muted" style="font-size:12px">${t("alarm.viewAll")}</a></div>
         ${ALARMS.slice(0,4).map(a => `
           <div class="alarm-row" style="padding:8px 0">
             <span class="alarm-ts">${a.ts}</span>
@@ -371,13 +372,13 @@ function viewSLD() {
   v.innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">案場單線圖</h1>
-        <p class="page-sub">設備級配線與即時電力流向</p>
+        <h1 class="page-title">${t("page.sld.title")}</h1>
+        <p class="page-sub">${t("page.sld.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn">單線圖</button>
-        <button class="btn btn-ghost">電氣保護</button>
-        <button class="btn btn-ghost">通訊狀態</button>
+        <button class="btn">${t("sld.diagram")}</button>
+        <button class="btn btn-ghost">${t("sld.protection")}</button>
+        <button class="btn btn-ghost">${t("sld.comm")}</button>
       </div>
     </div>
 
@@ -653,17 +654,17 @@ function viewDevices() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">設備監控</h1>
-        <p class="page-sub">PCS · BMS · 電池模組 · 環控 · 進階電芯分析</p>
+        <h1 class="page-title">${t("page.dev.title")}</h1>
+        <p class="page-sub">${t("page.dev.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-primary">下載日誌</button>
+        <button class="btn btn-primary">${t("btn.downloadLog")}</button>
       </div>
     </div>
 
     <div class="tabs-strip mb-16">
-      <button class="tab ${tab==='monitor'?'active':''}" data-tab="monitor">📟 即時監控</button>
-      <button class="tab ${tab==='analytics'?'active':''}" data-tab="analytics">🔬 電芯分析 <span class="tab-pro">BMS Pro</span></button>
+      <button class="tab ${tab==='monitor'?'active':''}" data-tab="monitor">${t("tab.monitor")}</button>
+      <button class="tab ${tab==='analytics'?'active':''}" data-tab="analytics">${t("tab.analytics")} <span class="tab-pro">BMS Pro</span></button>
     </div>
 
     <div id="dev-content"></div>
@@ -1048,13 +1049,13 @@ function viewSchedule() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">排程與策略</h1>
-        <p class="page-sub">當前策略：<strong style="color:${s.color}">${s.full}</strong> · ${s.desc}</p>
+        <h1 class="page-title">${t("page.sch.title")}</h1>
+        <p class="page-sub">${t("card.activeStrategy")}: <strong style="color:${s.color}">${t(`strat.${s.id}.full`)}</strong> · ${t(`strat.${s.id}.desc`)}</p>
       </div>
       <div class="page-actions">
-        <button class="btn">今日</button>
-        <button class="btn btn-ghost">明日</button>
-        <button class="btn btn-primary">啟用排程</button>
+        <button class="btn">${t("btn.today")}</button>
+        <button class="btn btn-ghost">${t("btn.tomorrow")}</button>
+        <button class="btn btn-primary">${t("btn.activate")}</button>
       </div>
     </div>
 
@@ -1483,13 +1484,13 @@ function viewFinance() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">財務效益分析</h1>
-        <p class="page-sub">月度節費組成、IRR 與投報試算</p>
+        <h1 class="page-title">${t("page.fin.title")}</h1>
+        <p class="page-sub">${t("page.fin.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-ghost">月報</button>
-        <button class="btn">年報</button>
-        <button class="btn btn-primary">匯出 Excel</button>
+        <button class="btn btn-ghost">${t("btn.month")}</button>
+        <button class="btn">${t("btn.year")}</button>
+        <button class="btn btn-primary">${t("btn.exportExcel")}</button>
       </div>
     </div>
 
@@ -1853,14 +1854,14 @@ function viewPassport() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">電池數位護照</h1>
-        <p class="page-sub">符合 EU 2023/1542 電池法規 · 完整生命週期履歷</p>
+        <h1 class="page-title">${t("page.pp.title")}</h1>
+        <p class="page-sub">${t("page.pp.sub")}</p>
       </div>
       <div class="page-actions">
         <button class="btn ${sysId==='SYS-A'?'btn-primary':'btn-ghost'}" data-pp="SYS-A">SYS-A · 261 kWh</button>
         <button class="btn ${sysId==='SYS-B'?'btn-primary':'btn-ghost'}" data-pp="SYS-B">SYS-B · 215 kWh</button>
-        <button class="btn">列印</button>
-        <button class="btn btn-primary">下載 PDF</button>
+        <button class="btn">${t("btn.print")}</button>
+        <button class="btn btn-primary">${t("btn.exportPDF")}</button>
       </div>
     </div>
 
@@ -2105,6 +2106,43 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDropdown(); });
 
+  // Language pill dropdown
+  const langPill = $("#lang-pill"), langDD = $("#lang-dropdown");
+  if (langPill && langDD) {
+    const fillLangDD = () => {
+      langDD.innerHTML = Object.entries(LANGS).map(([id, l]) => `
+        <div class="lang-opt ${state.lang===id?'active':''}" data-lang="${id}">
+          <span class="lang-opt-code">${l.code}</span>
+          <span class="lang-opt-name">${l.name}</span>
+          ${state.lang===id?'<span class="lang-opt-check">✓</span>':''}
+        </div>
+      `).join("");
+      langDD.querySelectorAll(".lang-opt").forEach(el => {
+        el.addEventListener("click", () => {
+          setLang(el.dataset.lang);
+          langDD.classList.remove("open");
+          langPill.setAttribute("aria-expanded", "false");
+        });
+      });
+    };
+    langPill.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = langDD.classList.toggle("open");
+      langPill.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) fillLangDD();
+    });
+    document.addEventListener("click", (e) => {
+      if (langDD.classList.contains("open") && !langDD.contains(e.target)) {
+        langDD.classList.remove("open");
+        langPill.setAttribute("aria-expanded", "false");
+      }
+    });
+    // Initial code
+    $("#lang-code").textContent = LANGS[state.lang].code;
+    document.documentElement.lang = state.lang === "zh-TW" ? "zh-Hant" : state.lang;
+  }
+
+  applyI18nDom();
   renderModePill();
   renderTopbar();
   setInterval(renderTopbar, 5000);

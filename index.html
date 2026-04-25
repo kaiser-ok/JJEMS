@@ -17,43 +17,43 @@
         <div class="brand-mark">J&amp;J</div>
         <div class="brand-text">
           <div class="brand-name">J&amp;J Power EMS</div>
-          <div class="brand-sub">儲能能源管理系統</div>
+          <div class="brand-sub" data-i18n="brand.sub">儲能能源管理系統</div>
         </div>
       </div>
       <nav class="nav">
         <a class="nav-item" href="#/dashboard" data-route="dashboard">
-          <span class="ic">▦</span><span>首頁總覽</span>
+          <span class="ic">▦</span><span data-i18n="nav.dashboard">首頁總覽</span>
         </a>
         <a class="nav-item" href="#/sld" data-route="sld">
-          <span class="ic">⎔</span><span>案場單線圖</span>
+          <span class="ic">⎔</span><span data-i18n="nav.sld">案場單線圖</span>
         </a>
         <a class="nav-item" href="#/devices" data-route="devices">
-          <span class="ic">▢</span><span>設備監控</span>
+          <span class="ic">▢</span><span data-i18n="nav.devices">設備監控</span>
         </a>
         <a class="nav-item" href="#/passport" data-route="passport">
-          <span class="ic">⌘</span><span>電池護照</span>
+          <span class="ic">⌘</span><span data-i18n="nav.passport">電池護照</span>
         </a>
         <a class="nav-item" href="#/schedule" data-route="schedule">
-          <span class="ic">◷</span><span>排程與策略</span>
+          <span class="ic">◷</span><span data-i18n="nav.schedule">排程與策略</span>
         </a>
         <a class="nav-item" href="#/finance" data-route="finance">
-          <span class="ic">$</span><span>財務效益</span>
+          <span class="ic">$</span><span data-i18n="nav.finance">財務效益</span>
         </a>
         <a class="nav-item" href="#/alarms" data-route="alarms">
-          <span class="ic">!</span><span>告警與事件</span>
+          <span class="ic">!</span><span data-i18n="nav.alarms">告警與事件</span>
           <span class="badge" id="alarm-badge">3</span>
         </a>
         <a class="nav-item" href="#/settings" data-route="settings">
-          <span class="ic">⚙</span><span>系統設定</span>
+          <span class="ic">⚙</span><span data-i18n="nav.settings">系統設定</span>
         </a>
       </nav>
       <div class="side-footer">
         <div class="conn-status">
-          <div class="conn-row"><span class="dot dot-ok"></span><span>Modbus TCP</span><span class="conn-rate">98%</span></div>
-          <div class="conn-row"><span class="dot dot-ok"></span><span>MQTT (TLS)</span><span class="conn-rate">99%</span></div>
-          <div class="conn-row"><span class="dot dot-ok"></span><span>台電 OpenAPI</span><span class="conn-rate">100%</span></div>
-          <div class="conn-row"><span class="dot dot-warn"></span><span>BMS CAN Bridge</span><span class="conn-rate">94%</span></div>
-          <div class="conn-row"><span class="dot dot-ok"></span><span>雲端 (TimescaleDB)</span><span class="conn-rate">99%</span></div>
+          <div class="conn-row"><span class="dot dot-ok"></span><span data-i18n="conn.modbus">Modbus TCP</span><span class="conn-rate">98%</span></div>
+          <div class="conn-row"><span class="dot dot-ok"></span><span data-i18n="conn.mqtt">MQTT (TLS)</span><span class="conn-rate">99%</span></div>
+          <div class="conn-row"><span class="dot dot-ok"></span><span data-i18n="conn.tpc">台電 OpenAPI</span><span class="conn-rate">100%</span></div>
+          <div class="conn-row"><span class="dot dot-warn"></span><span data-i18n="conn.bms">BMS CAN Bridge</span><span class="conn-rate">94%</span></div>
+          <div class="conn-row"><span class="dot dot-ok"></span><span data-i18n="conn.cloud">雲端 (TimescaleDB)</span><span class="conn-rate">99%</span></div>
         </div>
         <div class="side-meta">v0.1 · 雛形 Demo</div>
         <div class="side-meta">© 2026 J&amp;J Power</div>
@@ -65,7 +65,7 @@
       <div class="topbar-left">
         <div class="site-pill">
           <span class="dot dot-ok"></span>
-          <span class="site-name">高雄路竹廠 · 225kW / 476kWh</span>
+          <span class="site-name" data-i18n="topbar.site">高雄路竹廠 · 225kW / 476kWh</span>
         </div>
       </div>
       <div class="topbar-stats" id="topbar-stats">
@@ -79,13 +79,20 @@
           </button>
           <div class="mode-dropdown" id="mode-dropdown" role="menu"></div>
         </div>
+        <div class="lang-wrapper">
+          <button class="lang-pill" id="lang-pill" type="button" aria-haspopup="menu" aria-expanded="false" title="Language / 語言 / Sprache / 言語">
+            <span style="font-size:14px">🌐</span>
+            <span id="lang-code">繁中</span>
+          </button>
+          <div class="lang-dropdown" id="lang-dropdown" role="menu"></div>
+        </div>
         <a class="icon-btn" href="#/alarms" title="告警">🔔<span class="dot dot-warn"></span></a>
         <a class="icon-btn mobile-only" href="#/settings" title="設定">⚙</a>
         <div class="user">
           <div class="avatar">王</div>
           <div class="user-meta">
-            <div class="user-name">王工程師</div>
-            <div class="user-role">維運管理員</div>
+            <div class="user-name" data-i18n="topbar.userName">王工程師</div>
+            <div class="user-role" data-i18n="topbar.user">維運管理員</div>
           </div>
         </div>
       </div>
@@ -97,24 +104,24 @@
     </main>
 
     <!-- Mobile bottom navigation -->
-    <nav class="bottom-nav" aria-label="行動底部導覽">
+    <nav class="bottom-nav" aria-label="bottom-nav">
       <a class="bnav-item" href="#/dashboard" data-route="dashboard">
-        <span class="ic">▦</span><span class="lbl">總覽</span>
+        <span class="ic">▦</span><span class="lbl" data-i18n="bnav.dashboard">總覽</span>
       </a>
       <a class="bnav-item" href="#/sld" data-route="sld">
-        <span class="ic">⎔</span><span class="lbl">單線圖</span>
+        <span class="ic">⎔</span><span class="lbl" data-i18n="bnav.sld">單線圖</span>
       </a>
       <a class="bnav-item" href="#/devices" data-route="devices">
-        <span class="ic">▢</span><span class="lbl">設備</span>
+        <span class="ic">▢</span><span class="lbl" data-i18n="bnav.devices">設備</span>
       </a>
       <a class="bnav-item" href="#/passport" data-route="passport">
-        <span class="ic">⌘</span><span class="lbl">護照</span>
+        <span class="ic">⌘</span><span class="lbl" data-i18n="bnav.passport">護照</span>
       </a>
       <a class="bnav-item" href="#/schedule" data-route="schedule">
-        <span class="ic">◷</span><span class="lbl">排程</span>
+        <span class="ic">◷</span><span class="lbl" data-i18n="bnav.schedule">排程</span>
       </a>
       <a class="bnav-item" href="#/finance" data-route="finance">
-        <span class="ic">$</span><span class="lbl">財務</span>
+        <span class="ic">$</span><span class="lbl" data-i18n="bnav.finance">財務</span>
       </a>
     </nav>
   </div>
@@ -146,6 +153,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="data.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
   <script src="chat.js"></script>
 </body>

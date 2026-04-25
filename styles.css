@@ -585,11 +585,11 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
   .toast { min-width: 0; max-width: none; }
 }
 
-/* Heatmap for cell temperatures */
+/* Heatmap for cell temperatures (compact) */
 .heat {
-  display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px;
+  display: grid; grid-template-columns: repeat(26, 1fr); gap: 2px;
 }
-.heat-cell { aspect-ratio: 1; border-radius: 3px; font-size: 9px; display: grid; place-items: center; color: rgba(0,0,0,0.55); font-weight: 500; }
+.heat-cell { aspect-ratio: 1.6; border-radius: 2px; font-size: 8px; display: grid; place-items: center; color: rgba(0,0,0,0.6); font-weight: 600; line-height: 1; }
 
 /* Misc helpers */
 .row { display: flex; align-items: center; gap: 10px; }
@@ -710,9 +710,9 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
   .sched-cell .lbl { font-size: 9px; }
   .hour-axis span { font-size: 8.5px; }
 
-  /* Heat map — 13 cols */
-  .heat { grid-template-columns: repeat(13, 1fr); gap: 2px; }
-  .heat-cell { font-size: 7.5px; }
+  /* Heat map — narrower & flatter on mobile */
+  .heat { grid-template-columns: repeat(16, 1fr); gap: 2px; }
+  .heat-cell { font-size: 7px; aspect-ratio: 1.4; }
 
   /* Bottom nav fixed at bottom */
   .bottom-nav {
