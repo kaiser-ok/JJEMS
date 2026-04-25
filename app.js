@@ -832,7 +832,7 @@ function viewSchedule() {
     }
   });
 
-  // Render schedule cells with edit handler
+  // Render schedule cells (event delegation handles clicks/drag)
   const renderCells = () => {
     const cells = Array.from({length:24}, (_,h) => ({ h, ...planFor(state.strategy, h) }));
     $("#sched").innerHTML = cells.map(p => {
@@ -843,13 +843,6 @@ function viewSchedule() {
         ${edited ? '<span class="edit-mark"></span>' : ''}
       </div>`;
     }).join("");
-    // Attach click handlers
-    $$("#sched .sched-cell").forEach(cell => {
-      cell.addEventListener("click", () => {
-        const h = +cell.dataset.h;
-        applyTool(h);
-      });
-    });
   };
 
   function applyTool(h) {
@@ -899,6 +892,60 @@ function viewSchedule() {
   }
 
   renderCells();
+
+  // ── Drag-select on schedule grid (mouse + touch) ──
+  const grid = $("#sched");
+  let dragging = false;
+  let lastH = null;
+  let dragStarted = false;
+
+  const applyToCell = (cell) => {
+    if (!cell || cell.dataset.h === undefined) return;
+    const h = +cell.dataset.h;
+    if (h === lastH) return;        // dedupe consecutive same-cell hits
+    lastH = h;
+    dragStarted = true;
+    applyTool(h);
+  };
+
+  grid.addEventListener("mousedown", (e) => {
+    const cell = e.target.closest(".sched-cell");
+    if (!cell) return;
+    e.preventDefault();
+    dragging = true; lastH = null; dragStarted = false;
+    applyToCell(cell);
+  });
+  grid.addEventListener("mouseover", (e) => {
+    if (!dragging) return;
+    applyToCell(e.target.closest(".sched-cell"));
+  });
+  document.addEventListener("mouseup", () => {
+    if (dragStarted && state.editTool !== "auto") {
+      const n = Object.keys(state.scheduleOverride).length;
+      const tip = state.editTool === "charge" ? "充電" : state.editTool === "discharge" ? "放電" : "待機";
+      showToast(`已套用 ${tip} (共 ${n} 格自訂)`, "info", 1800);
+    }
+    dragging = false; lastH = null; dragStarted = false;
+  });
+
+  // Touch drag (mobile)
+  grid.addEventListener("touchstart", (e) => {
+    const cell = e.target.closest(".sched-cell");
+    if (!cell) return;
+    e.preventDefault();
+    dragging = true; lastH = null; dragStarted = false;
+    applyToCell(cell);
+  }, { passive: false });
+  grid.addEventListener("touchmove", (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    applyToCell(el?.closest(".sched-cell"));
+  }, { passive: false });
+  document.addEventListener("touchend", () => {
+    dragging = false; lastH = null; dragStarted = false;
+  });
 
   // schedule chart
   const labels = Array.from({length:24}, (_,i)=>`${String(i).padStart(2,"0")}:00`);
