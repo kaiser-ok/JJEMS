@@ -413,14 +413,79 @@
     `);
   }
 
+  // Track whether /api/chat is reachable (decided on first call)
+  let liveAI = null;  // null = unknown, true = working, false = offline
+
+  function setBadge(state) {
+    const sub = document.querySelector(".chat-sub");
+    if (!sub) return;
+    if (state === "live")    sub.innerHTML = `J&J EMS AI · <span style="color:var(--green)">● Live (LLM)</span>`;
+    else if (state === "off") sub.innerHTML = `J&J EMS AI · <span style="color:var(--amber)">● Offline (Mock)</span>`;
+    else                      sub.innerHTML = `J&J EMS AI · <span style="color:var(--green)">● 線上</span>`;
+  }
+
+  // Render markdown-ish text from LLM (bold, code, breaks, lists)
+  function md(text) {
+    const escape = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    let h = escape(text || "");
+    h = h.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    h = h.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Bullets / numbered
+    h = h.replace(/^(?:\s*)[-•]\s+(.+)$/gm, "<li>$1</li>");
+    h = h.replace(/^(?:\s*)\d+\.\s+(.+)$/gm, "<li>$1</li>");
+    h = h.replace(/(<li>.*?<\/li>(?:\s*<li>.*?<\/li>)*)/gs, "<ul style='margin:6px 0;padding-left:20px'>$1</ul>");
+    h = h.replace(/\n{2,}/g, "</p><p>");
+    h = h.replace(/\n/g, "<br>");
+    return `<p>${h}</p>`;
+  }
+
+  function gatherContext() {
+    return {
+      strategy: state.strategy,
+      soc: Math.round((genSoc(state.strategy).reduce((a,b)=>a+b,0) / 96)),
+      savings: estimateBenefit(state.strategy).net,
+      alarms: KPI.alarmsOpen,
+      maxTemp: KPI.maxCellTemp,
+    };
+  }
+
   // ────────── Input handling ──────────
-  function handleInput(text) {
+  async function handleInput(text) {
     const q = text.trim();
     if (!q) return;
     addUser(q);
     input.value = "";
     showTyping();
-    const delay = 500 + Math.random() * 500;
+
+    // Try real LLM via /api/chat first (unless we know it's offline)
+    if (liveAI !== false) {
+      try {
+        const resp = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q, context: gatherContext(), lang: state.lang }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (liveAI !== true) { liveAI = true; setBadge("live"); }
+          hideTyping();
+          addBot(md(data.reply));
+          return;
+        } else {
+          // Mark offline only on 404/500 (env not set, function missing); 429 keep trying
+          if (resp.status === 404 || resp.status === 500) {
+            liveAI = false; setBadge("off");
+          }
+          // Otherwise fall through to mock
+        }
+      } catch {
+        // Network error → mark offline
+        liveAI = false; setBadge("off");
+      }
+    }
+
+    // Fallback: local intent matching
+    const delay = 200 + Math.random() * 300;
     setTimeout(() => {
       hideTyping();
       addBot(matchIntent(q));

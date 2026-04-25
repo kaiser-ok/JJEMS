@@ -873,6 +873,13 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 .chat-msg.bot .bubble p { margin: 0 0 6px; }
 .chat-msg.bot .bubble p:last-child { margin-bottom: 0; }
+.chat-msg.bot .bubble code {
+  background: rgba(255,255,255,0.06); padding: 1px 5px;
+  border-radius: 3px; font-size: 12px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.chat-msg.bot .bubble ul { margin: 6px 0; padding-left: 20px; }
+.chat-msg.bot .bubble ul li { margin: 2px 0; }
 .bot-avatar {
   flex-shrink: 0;
   width: 28px; height: 28px; border-radius: 50%;

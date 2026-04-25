@@ -80,6 +80,19 @@ GitHub 連動方式（推薦）：
 
 每次 push 到 `main` 自動部署，PR 自動產生 preview URL。
 
+### 啟用 Live AI Chat（OpenRouter LLM）
+
+預設聊天使用本地規則匹配（mock）。要改用真實 LLM：
+
+1. 到 https://openrouter.ai/settings/keys 建立 API key
+2. Vercel Dashboard → 你的專案 → **Settings** → **Environment Variables**
+3. 新增 `OPENROUTER_API_KEY` = 你的 key（**不要寫進程式碼**）
+4. Redeploy
+
+預設模型 `meta-llama/llama-3.3-70b-instruct:free`（OpenRouter 免費 tier，要在 chat.js 換可改 `api/chat.js` 裡的 `MODEL` 常數）。
+
+LLM 在線時 Chat 視窗副標題會顯示「● Live (LLM)」綠燈。失敗會自動 fallback 到本地 mock 回覆。
+
 ---
 
 ## Roadmap
