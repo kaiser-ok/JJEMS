@@ -16,6 +16,47 @@ const charts = [];
 function addChart(c) { charts.push(c); return c; }
 function killCharts() { while (charts.length) { try { charts.pop().destroy(); } catch {} } }
 
+// Global app state — strategy is shared across views
+const state = { strategy: "arbitrage" };
+
+function setStrategy(id) {
+  if (!STRATEGIES[id] || state.strategy === id) return;
+  state.strategy = id;
+  renderModePill();
+  router(); // re-render current view to reflect new strategy
+}
+
+function renderModePill() {
+  const s = STRATEGIES[state.strategy];
+  const txt = $("#mode-pill-text");
+  if (txt) txt.textContent = s.label + "模式";
+  const pill = $("#mode-pill");
+  if (pill) pill.style.borderColor = s.color + "55";
+}
+
+function buildModeDropdown() {
+  const dd = $("#mode-dropdown");
+  if (!dd) return;
+  dd.innerHTML = Object.values(STRATEGIES).map(s => `
+    <div class="mode-opt ${state.strategy === s.id ? "active" : ""}" role="menuitemradio" data-strategy="${s.id}">
+      <span class="mode-opt-dot" style="background:${s.color}"></span>
+      <div class="mode-opt-body">
+        <div class="mode-opt-label">${s.full}</div>
+        <div class="mode-opt-desc">${s.desc}</div>
+      </div>
+      ${state.strategy === s.id ? `<span class="mode-opt-check">✓</span>` : ""}
+    </div>
+  `).join("");
+  dd.querySelectorAll(".mode-opt").forEach(el => {
+    el.addEventListener("click", () => {
+      setStrategy(el.dataset.strategy);
+      closeDropdown();
+    });
+  });
+}
+function openDropdown()  { $("#mode-dropdown").classList.add("open");  $("#mode-pill").setAttribute("aria-expanded","true");  buildModeDropdown(); }
+function closeDropdown() { $("#mode-dropdown").classList.remove("open"); $("#mode-pill").setAttribute("aria-expanded","false"); }
+
 // ────────── Topbar ticker ──────────
 function renderTopbar() {
   const totKW = SITE.systems.reduce((s,x)=>s+x.pcsKW,0);
@@ -579,20 +620,15 @@ function renderSysCard(sys) {
 
 // ────────── 4. Schedule ──────────
 function viewSchedule() {
-  // default 24h schedule
-  const defaultPlan = [];
-  for (let h = 0; h < 24; h++) {
-    if (h >= 1 && h <= 5) defaultPlan.push({ h, mode: "charge",    kw: -180, label: "充" });
-    else if (h >= 10 && h <= 14) defaultPlan.push({ h, mode: "charge",  kw: -60,  label: "充" });
-    else if (h >= 16 && h <= 21) defaultPlan.push({ h, mode: "discharge", kw: 215, label: "放" });
-    else defaultPlan.push({ h, mode: "idle", kw: 0, label: "" });
-  }
+  const s = STRATEGIES[state.strategy];
+  const plan = Array.from({length:24}, (_,h) => ({ h, ...planFor(state.strategy, h) }));
+  const benefit = estimateBenefit(state.strategy);
 
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
         <h1 class="page-title">排程與策略</h1>
-        <p class="page-sub">選擇運行策略並排定 24 小時充放電計畫</p>
+        <p class="page-sub">當前策略：<strong style="color:${s.color}">${s.full}</strong> · ${s.desc}</p>
       </div>
       <div class="page-actions">
         <button class="btn">今日</button>
@@ -602,14 +638,18 @@ function viewSchedule() {
     </div>
 
     <div class="card mb-16">
-      <div class="card-head"><h3>運行策略</h3></div>
-      <div class="chip-row mb-12">
-        <div class="chip active">尖離峰時間套利</div>
-        <div class="chip">削峰填谷 / 契約控制</div>
-        <div class="chip">需量反應 (sReg)</div>
-        <div class="chip">調頻輔助 (AFC/dReg)</div>
-        <div class="chip">光儲自用</div>
-        <div class="chip">手動</div>
+      <div class="card-head">
+        <h3>運行策略</h3>
+        <span class="muted" style="font-size:12px">點選即時切換</span>
+      </div>
+      <div class="chip-row mb-12" id="chipRow">
+        ${Object.values(STRATEGIES).map(x => `
+          <div class="chip ${state.strategy === x.id ? "active" : ""}" data-strategy="${x.id}" style="${state.strategy===x.id?`border-color:${x.color};color:${x.color};background:${x.color}1a`:""}">${x.full}</div>
+        `).join("")}
+      </div>
+      <div class="strategy-info" style="background:${s.color}10;border-left:3px solid ${s.color};padding:10px 14px;border-radius:6px;margin-top:12px;font-size:12.5px">
+        <span class="muted">收益模式：</span><strong>${s.benefit}</strong>
+        <span class="muted">　約束條件：</span>${s.constraint}
       </div>
       <div class="grid g-3 mt-16">
         <div class="form-row">
@@ -641,7 +681,7 @@ function viewSchedule() {
 
     <div class="card mb-16">
       <div class="card-head">
-        <h3>24 小時排程 (2026-04-25)</h3>
+        <h3>24 小時排程 (2026-04-25 · ${s.label})</h3>
         <div class="row">
           <span class="tag ok">◼ 充電</span>
           <span class="tag err">◼ 放電</span>
@@ -667,19 +707,25 @@ function viewSchedule() {
         </table>
       </div>
       <div class="card">
-        <div class="card-head"><h3>今日套利預估</h3></div>
+        <div class="card-head"><h3>${s.label}今日效益試算</h3></div>
         <table class="data">
-          <tr><td>充電電量 (離峰)</td><td class="num right">458 kWh × 2.18</td><td class="num right">= ${money(458*2.18)}</td></tr>
-          <tr><td>放電電量 (尖峰)</td><td class="num right">420 kWh × 8.05</td><td class="num right">= ${money(420*8.05)}</td></tr>
-          <tr><td>系統效率</td><td class="num right">91.8%</td><td class="num right">-</td></tr>
-          <tr><td><strong>套利淨益</strong></td><td colspan="2" class="num right"><strong style="color:var(--green)">${money(420*8.05 - 458*2.18)}</strong></td></tr>
+          <tr><td>充電電量</td><td class="num right">${fmt(benefit.chargeKWh)} kWh</td><td class="num right">支出 ${money(benefit.chargeCost)}</td></tr>
+          <tr><td>放電電量 (含 91.8% 效率)</td><td class="num right">${fmt(benefit.dischargeKWh)} kWh</td><td class="num right">收益 ${money(benefit.dischargeRev)}</td></tr>
+          <tr><td>循環次數</td><td class="num right">${(benefit.dischargeKWh/476).toFixed(2)} 次</td><td class="num right">-</td></tr>
+          <tr><td><strong>淨益</strong></td><td colspan="2" class="num right"><strong style="color:${benefit.net>=0?"var(--green)":"var(--red)"};font-size:16px">${money(benefit.net)}</strong></td></tr>
         </table>
+        <div class="muted mt-8" style="font-size:11.5px">※ 模擬試算，未含輔助服務 / 容量費收入</div>
       </div>
     </div>
   `;
 
+  // Wire chip click
+  $("#chipRow").querySelectorAll(".chip").forEach(el => {
+    el.addEventListener("click", () => setStrategy(el.dataset.strategy));
+  });
+
   // Render schedule cells
-  $("#sched").innerHTML = defaultPlan.map(p => {
+  $("#sched").innerHTML = plan.map(p => {
     const price = tariffOf(p.h).price;
     return `<div class="sched-cell ${p.mode}" title="${p.h}:00 · ${p.mode} · ${p.kw} kW · 電價 NT$${price}">
       <span class="lbl">${p.label || ""}</span>
@@ -693,9 +739,9 @@ function viewSchedule() {
     data: {
       labels,
       datasets: [
-        { label: "排程功率 (kW)", data: defaultPlan.map(p=>p.kw),
-          backgroundColor: defaultPlan.map(p => p.mode==="charge" ? "rgba(16,185,129,0.5)" : p.mode==="discharge" ? "rgba(239,68,68,0.55)" : "rgba(139,152,176,0.2)"),
-          borderColor: defaultPlan.map(p => p.mode==="charge" ? "#10b981" : p.mode==="discharge" ? "#ef4444" : "#8b98b0"),
+        { label: "排程功率 (kW)", data: plan.map(p=>p.kw),
+          backgroundColor: plan.map(p => p.mode==="charge" ? "rgba(16,185,129,0.5)" : p.mode==="discharge" ? "rgba(239,68,68,0.55)" : "rgba(139,152,176,0.2)"),
+          borderColor: plan.map(p => p.mode==="charge" ? "#10b981" : p.mode==="discharge" ? "#ef4444" : "#8b98b0"),
           borderWidth: 1
         },
         { label: "電價 (NT$/度)", data: labels.map((_,h)=>tariffOf(h).price),
@@ -1051,6 +1097,20 @@ function viewSettings() {
 
 // ────────── Boot ──────────
 document.addEventListener("DOMContentLoaded", () => {
+  // Mode pill dropdown
+  $("#mode-pill").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const dd = $("#mode-dropdown");
+    if (dd.classList.contains("open")) closeDropdown();
+    else openDropdown();
+  });
+  document.addEventListener("click", (e) => {
+    const dd = $("#mode-dropdown");
+    if (dd.classList.contains("open") && !dd.contains(e.target)) closeDropdown();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDropdown(); });
+
+  renderModePill();
   renderTopbar();
   setInterval(renderTopbar, 5000);
   router();

@@ -62,7 +62,13 @@
         <!-- filled by app.js -->
       </div>
       <div class="topbar-right">
-        <div class="mode-pill" id="mode-pill">時間套利模式</div>
+        <div class="mode-wrapper">
+          <button class="mode-pill" id="mode-pill" type="button" aria-haspopup="menu" aria-expanded="false">
+            <span id="mode-pill-text">時間套利模式</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="mode-dropdown" id="mode-dropdown" role="menu"></div>
+        </div>
         <a class="icon-btn" href="#/alarms" title="告警">🔔<span class="dot dot-warn"></span></a>
         <a class="icon-btn mobile-only" href="#/settings" title="設定">⚙</a>
         <div class="user">

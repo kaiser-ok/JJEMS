@@ -104,6 +104,104 @@ const ALARMS = [
   { ts: "昨 16:00", sev: "ok",   sys: "Site", msg: "進入尖峰放電策略", detail: "目標削峰 200 kW，執行套利" },
 ];
 
+// ────────── Strategies ──────────
+const STRATEGIES = {
+  arbitrage: {
+    id: "arbitrage", label: "時間套利",        full: "尖離峰時間套利",
+    color: "#00c2a8",
+    desc: "依時間電價自動充放電，賺取尖離峰價差",
+    benefit: "套利收益最大化",
+    constraint: "SoC 15–90%、每日 1 循環",
+  },
+  peakShave: {
+    id: "peakShave", label: "削峰填谷",        full: "削峰填谷 / 契約控制",
+    color: "#3b82f6",
+    desc: "當需量超過設定上限時放電，壓低契約最大需量",
+    benefit: "降基本電費 + 避免超約罰款",
+    constraint: "目標 ≤ 2,300 kW，超過即放電",
+  },
+  sReg: {
+    id: "sReg", label: "需量反應",            full: "需量反應 (sReg)",
+    color: "#f59e0b",
+    desc: "參與台電即時備轉輔助服務，接收 OpenADR 派遣訊號",
+    benefit: "容量費 + 電能費收入",
+    constraint: "1 秒內響應、執行率 ≥ 95%",
+  },
+  afc: {
+    id: "afc", label: "調頻輔助",              full: "調頻輔助 (AFC / dReg)",
+    color: "#8b5cf6",
+    desc: "依電網頻率即時雙向調整功率，毫秒級響應",
+    benefit: "輔助服務市場高單價收益",
+    constraint: "60.00 ± 0.5 Hz 線性響應",
+  },
+  pvSelf: {
+    id: "pvSelf", label: "光儲自用",          full: "光儲自用 (Self-Consumption)",
+    color: "#facc15",
+    desc: "白天儲存太陽能餘電，夜間放出供廠區使用",
+    benefit: "提高綠電自用率、降低市電購入",
+    constraint: "PV 餘電 > 50 kW 才啟動充電",
+  },
+  manual: {
+    id: "manual", label: "手動",              full: "手動模式",
+    color: "#8b98b0",
+    desc: "操作員手動下達 P/Q setpoint，系統不自動排程",
+    benefit: "工程測試 / 特殊調度",
+    constraint: "人工指令、無自動約束",
+  },
+};
+
+function planFor(strategyId, hour) {
+  switch (strategyId) {
+    case "arbitrage":
+      if (hour >= 1 && hour <= 5)   return { mode: "charge",    kw: -180, label: "充" };
+      if (hour >= 10 && hour <= 14) return { mode: "charge",    kw: -60,  label: "緩充" };
+      if (hour >= 16 && hour <= 21) return { mode: "discharge", kw: 215,  label: "放" };
+      return { mode: "idle", kw: 0, label: "" };
+    case "peakShave":
+      if (hour >= 9 && hour <= 11)  return { mode: "discharge", kw: 150, label: "削峰" };
+      if (hour >= 14 && hour <= 17) return { mode: "discharge", kw: 180, label: "削峰" };
+      if (hour >= 18 && hour <= 21) return { mode: "discharge", kw: 200, label: "削峰" };
+      if (hour >= 1 && hour <= 5)   return { mode: "charge",    kw: -150, label: "充" };
+      if (hour === 0 || hour >= 22) return { mode: "charge",    kw: -100, label: "充" };
+      return { mode: "idle", kw: 0, label: "" };
+    case "sReg":
+      if (hour >= 0 && hour <= 6)   return { mode: "charge",    kw: -120, label: "預充" };
+      if (hour === 14 || hour === 19) return { mode: "discharge", kw: 200, label: "派遣" };
+      return { mode: "idle", kw: 0, label: "備轉" };
+    case "afc":
+      // 頻率回應：每小時模擬不同方向小幅充放
+      return hour % 2 === 0
+        ? { mode: "discharge", kw: 50,  label: "AFC↑" }
+        : { mode: "charge",    kw: -50, label: "AFC↓" };
+    case "pvSelf":
+      if (hour >= 10 && hour <= 14) return { mode: "charge",    kw: -150, label: "PV充" };
+      if (hour >= 17 && hour <= 22) return { mode: "discharge", kw: 180,  label: "自用" };
+      return { mode: "idle", kw: 0, label: "" };
+    case "manual":
+    default:
+      return { mode: "idle", kw: 0, label: "" };
+  }
+}
+
+// 估算今日套利淨益 (簡化：以充/放電 kWh 與該小時電價計算)
+function estimateBenefit(strategyId) {
+  let chargeCost = 0, dischargeRev = 0, chargeKWh = 0, dischargeKWh = 0;
+  for (let h = 0; h < 24; h++) {
+    const p = planFor(strategyId, h);
+    const price = tariffOf(h).price;
+    if (p.mode === "charge")    { chargeCost   += -p.kw * price; chargeKWh    += -p.kw; }
+    if (p.mode === "discharge") { dischargeRev +=  p.kw * price; dischargeKWh +=  p.kw; }
+  }
+  // 系統效率 91.8% 已內含於放電量損失
+  return {
+    chargeKWh: Math.round(chargeKWh),
+    dischargeKWh: Math.round(dischargeKWh * 0.918),
+    chargeCost: Math.round(chargeCost),
+    dischargeRev: Math.round(dischargeRev * 0.918),
+    net: Math.round(dischargeRev * 0.918 - chargeCost),
+  };
+}
+
 // Monthly savings breakdown
 const MONTHLY = [
   { mo: "11月", base: 89500, penalty: 6200,  arbitrage: 32400, total: 128100 },
