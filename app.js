@@ -768,6 +768,7 @@ function viewSchedule() {
         <button class="tool-btn ${state.editTool==='charge'?'active':''}" data-tool="charge" style="--c:#10b981"><span class="dot" style="background:#10b981"></span>充電</button>
         <button class="tool-btn ${state.editTool==='discharge'?'active':''}" data-tool="discharge" style="--c:#ef4444"><span class="dot" style="background:#ef4444"></span>放電</button>
         <button class="tool-btn ${state.editTool==='idle'?'active':''}" data-tool="idle"><span class="dot dot-idle"></span>待機</button>
+        <span class="muted" style="font-size:11.5px;margin-left:8px">點擊套用 · 拖曳多格 · <strong>雙擊</strong>編輯精細 kW</span>
         <button class="btn btn-ghost" id="resetEdits" style="margin-left:auto;font-size:12px;padding:5px 12px" ${Object.keys(state.scheduleOverride).length===0?"disabled":""}>重置編輯</button>
       </div>
 
@@ -858,6 +859,150 @@ function viewSchedule() {
     refreshScheduleView();
   }
 
+  // Per-cell precision editor (double-click to open)
+  function openCellEditor(h) {
+    const current = planFor(state.strategy, h);
+    const tar = tariffOf(h);
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">編輯 ${String(h).padStart(2,"0")}:00 – ${String(h+1).padStart(2,"0")}:00 排程</div>
+            <div class="modal-sub">電價 <strong>NT$${tar.price.toFixed(2)}/度</strong> · ${tar.label}</div>
+          </div>
+          <button class="modal-close" id="cellClose" aria-label="關閉">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row mb-16">
+            <label>運行模式</label>
+            <div class="chip-row" id="cellModeRow">
+              <div class="chip" data-mode="charge"><span class="dot" style="background:#10b981;margin-right:6px"></span>充電</div>
+              <div class="chip" data-mode="discharge"><span class="dot" style="background:#ef4444;margin-right:6px"></span>放電</div>
+              <div class="chip" data-mode="idle"><span class="dot dot-idle" style="margin-right:6px"></span>待機</div>
+            </div>
+          </div>
+          <div class="form-row mb-16" id="cellKwGroup">
+            <label>功率大小 <span class="muted" id="cellKwLabel">kW</span></label>
+            <input type="range" class="kw-range" min="0" max="225" step="5" id="cellKwRange">
+            <div class="kw-row">
+              <input class="inp num" type="number" id="cellKwInput" min="0" max="225" step="5" style="width:100px">
+              <span class="muted">kW</span>
+              <span class="muted" style="margin-left:auto;font-size:11.5px">最大 225 kW (PCS 合計)</span>
+            </div>
+            <div class="kw-presets">
+              <button class="btn-mini" data-kw="50">50</button>
+              <button class="btn-mini" data-kw="100">100</button>
+              <button class="btn-mini" data-kw="150">150</button>
+              <button class="btn-mini" data-kw="180">180</button>
+              <button class="btn-mini" data-kw="215">215</button>
+              <button class="btn-mini" data-kw="225">225 (滿)</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>標籤 (選填，最多 6 字)</label>
+            <input class="inp" id="cellLabel" placeholder="例：充, 放, sReg" maxlength="6">
+          </div>
+          <div class="modal-hint">
+            預估該小時${current.mode==="discharge"?"收益":current.mode==="charge"?"成本":"影響"} <strong id="cellEst">—</strong>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" id="cellRevert">還原為策略預設</button>
+          <div style="flex:1"></div>
+          <button class="btn" id="cellCancel">取消</button>
+          <button class="btn btn-primary" id="cellSave">儲存</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    let editMode = current.mode;
+    const range = overlay.querySelector("#cellKwRange");
+    const input = overlay.querySelector("#cellKwInput");
+    const labelI = overlay.querySelector("#cellLabel");
+    const kwGrp = overlay.querySelector("#cellKwGroup");
+    const kwLbl = overlay.querySelector("#cellKwLabel");
+    const estEl = overlay.querySelector("#cellEst");
+
+    const setMode = (m) => {
+      editMode = m;
+      overlay.querySelectorAll("#cellModeRow .chip").forEach(c => {
+        const a = c.dataset.mode === m;
+        c.classList.toggle("active", a);
+        c.style.borderColor = a && m==="charge" ? "#10b981" : a && m==="discharge" ? "#ef4444" : "";
+        c.style.color       = a && m==="charge" ? "#10b981" : a && m==="discharge" ? "#ef4444" : "";
+        c.style.background  = a && m==="charge" ? "rgba(16,185,129,0.1)" : a && m==="discharge" ? "rgba(239,68,68,0.1)" : "";
+      });
+      kwGrp.style.opacity = m === "idle" ? "0.4" : "1";
+      kwGrp.style.pointerEvents = m === "idle" ? "none" : "auto";
+      kwLbl.textContent = m === "charge" ? "(離峰充電 - 從電網吸收)" : m === "discharge" ? "(放電輸出 - 供應負載)" : "kW";
+      updateEst();
+    };
+    const updateEst = () => {
+      const kw = +input.value || 0;
+      if (editMode === "idle" || kw === 0) { estEl.textContent = "—"; estEl.style.color = ""; return; }
+      const v = kw * tar.price;
+      if (editMode === "discharge") {
+        estEl.textContent = `+${money(v * 0.918)} (含 91.8% 效率)`;
+        estEl.style.color = "var(--green)";
+      } else {
+        estEl.textContent = `-${money(v)} (充電成本)`;
+        estEl.style.color = "var(--red)";
+      }
+    };
+
+    // Init values
+    setMode(current.mode);
+    const initKw = Math.abs(current.kw);
+    range.value = initKw; input.value = initKw;
+    labelI.value = current.label || "";
+
+    // Bindings
+    range.addEventListener("input", () => { input.value = range.value; updateEst(); });
+    input.addEventListener("input", () => { range.value = Math.min(225, Math.max(0, +input.value || 0)); updateEst(); });
+    overlay.querySelectorAll("#cellModeRow .chip").forEach(c => {
+      c.addEventListener("click", () => setMode(c.dataset.mode));
+    });
+    overlay.querySelectorAll(".btn-mini").forEach(b => {
+      b.addEventListener("click", () => { input.value = b.dataset.kw; range.value = b.dataset.kw; updateEst(); });
+    });
+
+    // Close
+    const close = () => { overlay.remove(); document.removeEventListener("keydown", escHandler); };
+    function escHandler(e) { if (e.key === "Escape") close(); }
+    document.addEventListener("keydown", escHandler);
+    overlay.querySelector("#cellClose").addEventListener("click", close);
+    overlay.querySelector("#cellCancel").addEventListener("click", close);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+    // Save
+    overlay.querySelector("#cellSave").addEventListener("click", () => {
+      const kw = Math.min(225, Math.max(0, +input.value || 0));
+      const lbl = labelI.value.trim();
+      if (editMode === "idle" || kw === 0) {
+        state.scheduleOverride[h] = { mode: "idle", kw: 0, label: lbl || "" };
+      } else if (editMode === "charge") {
+        state.scheduleOverride[h] = { mode: "charge", kw: -kw, label: lbl || "充" };
+      } else {
+        state.scheduleOverride[h] = { mode: "discharge", kw: kw, label: lbl || "放" };
+      }
+      refreshScheduleView();
+      const summary = editMode === "idle" ? "待機" : `${editMode === "charge" ? "充" : "放"} ${kw} kW`;
+      showToast(`${String(h).padStart(2,"0")}:00 已更新：${summary}`, "ok");
+      close();
+    });
+
+    // Revert
+    overlay.querySelector("#cellRevert").addEventListener("click", () => {
+      delete state.scheduleOverride[h];
+      refreshScheduleView();
+      showToast(`${String(h).padStart(2,"0")}:00 已還原為策略預設`, "info");
+      close();
+    });
+  }
+
   function refreshScheduleView() {
     renderCells();
     // refresh chart data
@@ -918,6 +1063,14 @@ function viewSchedule() {
   grid.addEventListener("mouseover", (e) => {
     if (!dragging) return;
     applyToCell(e.target.closest(".sched-cell"));
+  });
+
+  // Double-click → open precision editor
+  grid.addEventListener("dblclick", (e) => {
+    const cell = e.target.closest(".sched-cell");
+    if (!cell) return;
+    e.preventDefault();
+    openCellEditor(+cell.dataset.h);
   });
   document.addEventListener("mouseup", () => {
     if (dragStarted && state.editTool !== "auto") {
