@@ -592,6 +592,16 @@ function viewSLD() {
           <marker id="arrYellow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
             <path d="M0 0 L10 5 L0 10 z" fill="#facc15"/>
           </marker>
+          <!-- Battery water-fill gradients -->
+          <linearGradient id="batGradGood" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#0fa776"/>
+            <stop offset="50%"  stop-color="#10b981"/>
+            <stop offset="100%" stop-color="#0d8a64"/>
+          </linearGradient>
+          <linearGradient id="batGradLow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#b8741b"/>
+          </linearGradient>
         </defs>
 
         <!-- Equipment ownership zones (subtle background bands) -->
@@ -661,10 +671,48 @@ function viewSLD() {
           <text x="360" y="298" text-anchor="middle" fill="#14b8a6" font-size="12" font-weight="700">PCS-A</text>
           <text x="360" y="316" text-anchor="middle" fill="#e6edf5" font-size="11">125 kW · 480V</text>
           <line x1="360" y1="326" x2="360" y2="352" stroke="#14b8a6" stroke-width="2"/>
-          <rect x="300" y="352" width="120" height="66" rx="6" fill="#0a2320" stroke="#14b8a6" stroke-width="1.5"/>
-          <text x="360" y="372" text-anchor="middle" fill="#14b8a6" font-size="12" font-weight="700">SYS-A 電池櫃</text>
-          <text x="360" y="390" text-anchor="middle" fill="#e6edf5" font-size="13" font-weight="700">261 kWh</text>
-          <text x="360" y="408" text-anchor="middle" fill="#10b981" font-size="11">SoC 65% · 29.4°C</text>
+          <!-- 電池槽（水位視覺）SoC 65% — 容器 80px 高，水位 = 80 × 0.65 = 52px → y=348 起填 -->
+          <g>
+            <!-- 電池正極帽 -->
+            <rect x="346" y="346" width="28" height="6" rx="1.5" fill="#14b8a6"/>
+            <!-- 容器外框 (y=352, h=80) -->
+            <rect x="300" y="352" width="120" height="80" rx="6" fill="#031a17" stroke="#14b8a6" stroke-width="2"/>
+            <!-- 水位填充 (clip 到容器內) -->
+            <clipPath id="batTankA"><rect x="300" y="352" width="120" height="80" rx="6"/></clipPath>
+            <g clip-path="url(#batTankA)">
+              <!-- 主水位區塊 (高度 = SoC × 容器高 = 0.65 × 80 = 52) -->
+              <rect x="300" y="380" width="120" height="52" fill="url(#batGradGood)"/>
+              <!-- 波浪表面 (animate translateX) -->
+              <path d="M 280 380 Q 300 376 320 380 T 360 380 T 400 380 T 440 380 L 440 432 L 280 432 Z"
+                    fill="rgba(16,185,129,0.45)">
+                <animateTransform attributeName="transform" type="translate"
+                                   from="0 0" to="-40 0" dur="3s" repeatCount="indefinite"/>
+              </path>
+              <!-- 氣泡 -->
+              <circle cx="320" cy="420" r="2" fill="rgba(255,255,255,0.4)">
+                <animate attributeName="cy" from="430" to="385" dur="2.4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" from="0.6" to="0" dur="2.4s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="400" cy="425" r="1.5" fill="rgba(255,255,255,0.4)">
+                <animate attributeName="cy" from="430" to="385" dur="3s" begin="0.8s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" from="0.6" to="0" dur="3s" begin="0.8s" repeatCount="indefinite"/>
+              </circle>
+            </g>
+            <!-- SoC 刻度線 -->
+            <line x1="300" y1="372" x2="306" y2="372" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <line x1="414" y1="372" x2="420" y2="372" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <text x="424" y="375" fill="#14b8a6" font-size="7" opacity="0.6">90</text>
+            <line x1="300" y1="392" x2="306" y2="392" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <line x1="414" y1="392" x2="420" y2="392" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <text x="424" y="395" fill="#14b8a6" font-size="7" opacity="0.6">65</text>
+            <line x1="300" y1="412" x2="306" y2="412" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <text x="424" y="415" fill="#14b8a6" font-size="7" opacity="0.6">40</text>
+
+            <!-- 標籤文字 -->
+            <text x="360" y="367" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">SYS-A · 261 kWh</text>
+            <text x="360" y="402" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" style="text-shadow:0 1px 2px rgba(0,0,0,0.5)">65%</text>
+            <text x="360" y="424" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">29.4°C</text>
+          </g>
           <text x="360" y="265" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 118 kW</text>
         </g>
 
@@ -677,10 +725,39 @@ function viewSLD() {
           <text x="540" y="298" text-anchor="middle" fill="#14b8a6" font-size="12" font-weight="700">PCS-B</text>
           <text x="540" y="316" text-anchor="middle" fill="#e6edf5" font-size="11">100 kW · 480V</text>
           <line x1="540" y1="326" x2="540" y2="352" stroke="#14b8a6" stroke-width="2"/>
-          <rect x="480" y="352" width="120" height="66" rx="6" fill="#0a2320" stroke="#14b8a6" stroke-width="1.5"/>
-          <text x="540" y="372" text-anchor="middle" fill="#14b8a6" font-size="12" font-weight="700">SYS-B 電池櫃</text>
-          <text x="540" y="390" text-anchor="middle" fill="#e6edf5" font-size="13" font-weight="700">215 kWh</text>
-          <text x="540" y="408" text-anchor="middle" fill="#10b981" font-size="11">SoC 72% · 31.1°C</text>
+          <!-- 電池槽（水位視覺）SoC 72% — 容器 80px 高，水位 = 80 × 0.72 = 57.6px → y=374.4 起填 -->
+          <g>
+            <rect x="526" y="346" width="28" height="6" rx="1.5" fill="#14b8a6"/>
+            <rect x="480" y="352" width="120" height="80" rx="6" fill="#031a17" stroke="#14b8a6" stroke-width="2"/>
+            <clipPath id="batTankB"><rect x="480" y="352" width="120" height="80" rx="6"/></clipPath>
+            <g clip-path="url(#batTankB)">
+              <rect x="480" y="374.4" width="120" height="57.6" fill="url(#batGradGood)"/>
+              <path d="M 460 374 Q 480 370 500 374 T 540 374 T 580 374 T 620 374 L 620 432 L 460 432 Z"
+                    fill="rgba(16,185,129,0.45)">
+                <animateTransform attributeName="transform" type="translate"
+                                   from="0 0" to="-40 0" dur="3.2s" repeatCount="indefinite"/>
+              </path>
+              <circle cx="500" cy="420" r="2" fill="rgba(255,255,255,0.4)">
+                <animate attributeName="cy" from="430" to="380" dur="2.6s" begin="0.4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" from="0.6" to="0" dur="2.6s" begin="0.4s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="580" cy="425" r="1.5" fill="rgba(255,255,255,0.4)">
+                <animate attributeName="cy" from="430" to="380" dur="3.4s" begin="1.2s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" from="0.6" to="0" dur="3.4s" begin="1.2s" repeatCount="indefinite"/>
+              </circle>
+            </g>
+            <line x1="480" y1="372" x2="486" y2="372" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <line x1="594" y1="372" x2="600" y2="372" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <text x="604" y="375" fill="#14b8a6" font-size="7" opacity="0.6">90</text>
+            <line x1="594" y1="389" x2="600" y2="389" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <text x="604" y="392" fill="#14b8a6" font-size="7" opacity="0.6">72</text>
+            <line x1="480" y1="412" x2="486" y2="412" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+            <text x="604" y="415" fill="#14b8a6" font-size="7" opacity="0.6">40</text>
+
+            <text x="540" y="367" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">SYS-B · 261 kWh</text>
+            <text x="540" y="402" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" style="text-shadow:0 1px 2px rgba(0,0,0,0.5)">72%</text>
+            <text x="540" y="424" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">31.1°C</text>
+          </g>
           <text x="540" y="265" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 97 kW</text>
         </g>
 
@@ -835,33 +912,46 @@ function viewSLD() {
   $("#sld-mode-content").innerHTML = `
     <div class="grid g-3 mt-16">
       <div class="card">
-        <div class="card-head"><h3>主變壓器</h3><span class="tag ok">正常</span></div>
-        <table class="data">
-          <tr><td>油溫</td><td class="num">52 °C</td></tr>
-          <tr><td>繞組溫度</td><td class="num">68 °C</td></tr>
-          <tr><td>有載分接頭</td><td class="num">Tap 3 / 5</td></tr>
-          <tr><td>當前負載率</td><td class="num">70.4%</td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>電壓品質</h3><span class="tag ok">合格</span></div>
+        <div class="card-head"><h3>📊 電力品質</h3><span class="tag ok">關口表即時</span></div>
         <table class="data">
           <tr><td>R 相</td><td class="num">489.2 V</td></tr>
           <tr><td>S 相</td><td class="num">487.8 V</td></tr>
           <tr><td>T 相</td><td class="num">488.4 V</td></tr>
           <tr><td>頻率</td><td class="num">60.02 Hz</td></tr>
           <tr><td>功率因數</td><td class="num">0.96</td></tr>
+          <tr><td>THD-V</td><td class="num">2.1%</td></tr>
         </table>
+        <div class="muted mt-8" style="font-size:11px">資料源：DLT645 / Modbus RTU 關口表</div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>保護電驛</h3><span class="tag ok">全部正常</span></div>
-        <table class="data">
-          <tr><td>50/51 過流</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>27/59 欠過壓</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>81 頻率</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>87T 差動</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>Buchholz</td><td><span class="tag ok">正常</span></td></tr>
+        <div class="card-head">
+          <h3>🌡 主變壓器監測</h3>
+          <span class="tag mute">選配</span>
+        </div>
+        <table class="data" style="opacity:0.7">
+          <tr><td>油溫</td><td class="num">— °C</td></tr>
+          <tr><td>繞組溫度</td><td class="num">— °C</td></tr>
+          <tr><td>有載分接頭</td><td class="num">— / 5</td></tr>
+          <tr><td>當前負載率</td><td class="num">— %</td></tr>
+          <tr><td>瓦斯繼電器</td><td class="num">—</td></tr>
         </table>
+        <div class="row mt-8" style="padding:8px 10px;background:rgba(245,158,11,0.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11.5px;line-height:1.5">
+          <span><strong>需 IED 整合</strong>：主變壓器屬<u>客戶廠區設備</u>，此區欄位需另配溫控變送器、有載分接頭控制器或智慧電驛 (SIPROTEC/MICOM/SEL) 經 Modbus / IEC 61850 上送 EMS。</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>🛡 保護電驛</h3>
+          <span class="tag mute">選配 IED</span>
+        </div>
+        <table class="data" style="opacity:0.7">
+          <tr><td>50/51 過流</td><td><span class="tag mute">需 IED</span></td></tr>
+          <tr><td>27/59 欠過壓</td><td><span class="tag mute">需 IED</span></td></tr>
+          <tr><td>81 頻率</td><td><span class="tag mute">需 IED</span></td></tr>
+          <tr><td>87T 差動</td><td><span class="tag mute">需 IED</span></td></tr>
+          <tr><td>Buchholz</td><td><span class="tag mute">需 IED</span></td></tr>
+        </table>
+        <a href="#/protection" class="btn btn-ghost mt-8" style="font-size:12px;width:100%;text-align:center;padding:6px">→ 查看完整電氣保護頁</a>
       </div>
     </div>`;
 }
