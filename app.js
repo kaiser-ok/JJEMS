@@ -1212,6 +1212,104 @@ function renderCommContent(host) {
     const warnN = links.filter(l => l.status === "warn").length;
 
     host.innerHTML = `
+      <!-- Data path: EMS → SCU → BCU → BMS/PCS -->
+      <div class="card mt-16">
+        <div class="card-head">
+          <h3>🔀 資料路徑 · EMS 透過站控分層取得電池資料</h3>
+          <span class="muted" style="font-size:11.5px">EMS 不直連 PCS / BMS，所有電池資料經由站控收斂上送</span>
+        </div>
+        <svg viewBox="0 0 1080 270" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+          <defs>
+            <marker id="arrDP" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
+            </marker>
+          </defs>
+
+          <!-- Tier 1: J&J EMS -->
+          <g>
+            <rect x="380" y="10" width="320" height="48" rx="8" fill="#0a2924" stroke="#00c2a8" stroke-width="1.5"/>
+            <text x="540" y="32" text-anchor="middle" fill="#00c2a8" font-size="13" font-weight="700">J&amp;J Power EMS</text>
+            <text x="540" y="48" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Web UI · 策略 · TimescaleDB · AI Copilot</text>
+          </g>
+
+          <!-- Arrow EMS → SCU -->
+          <line x1="540" y1="58" x2="540" y2="92" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
+          <text x="556" y="74" fill="#3b82f6" font-size="10.5" font-weight="600">MQTT / TLS</text>
+          <text x="556" y="86" fill="#8b98b0" font-size="9.5">↑ $ESS/{dev}/data 1-5s · ↓ $ESC/{gw}/rpcreq</text>
+
+          <!-- Tier 2: SCU -->
+          <g>
+            <rect x="320" y="92" width="440" height="48" rx="8" fill="#101a2e" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="540" y="114" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="700">站控 SCU (Station Control Unit)</text>
+            <text x="540" y="130" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Modbus master · MQTT client · 多櫃聚合 · 周邊整合 · 本地策略執行</text>
+          </g>
+
+          <!-- 3 branches from SCU -->
+          <!-- Branch 1: SCU → BCU -->
+          <line x1="430" y1="140" x2="200" y2="178" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
+          <text x="240" y="158" fill="#14b8a6" font-size="10.5" font-weight="600">Modbus TCP @ 1s</text>
+          <text x="240" y="170" fill="#8b98b0" font-size="9.5">poll cabinet state (107 欄)</text>
+
+          <!-- Branch 2: SCU → meters -->
+          <line x1="540" y1="140" x2="540" y2="178" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
+          <text x="552" y="158" fill="#fbbf24" font-size="10.5" font-weight="600">Modbus RTU @ 5s</text>
+          <text x="552" y="170" fill="#8b98b0" font-size="9.5">DLT645 · RS485</text>
+
+          <!-- Branch 3: SCU → HVAC/DI -->
+          <line x1="650" y1="140" x2="880" y2="178" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
+          <text x="780" y="158" fill="#a78bfa" font-size="10.5" font-weight="600">BACnet/IP · DI/O</text>
+          <text x="780" y="170" fill="#8b98b0" font-size="9.5">HVAC / 消防 / 門禁</text>
+
+          <!-- Tier 3a: BCU -->
+          <g>
+            <rect x="60" y="180" width="280" height="44" rx="8" fill="#0a2320" stroke="#14b8a6" stroke-width="1.5"/>
+            <text x="200" y="201" text-anchor="middle" fill="#14b8a6" font-size="12.5" font-weight="700">櫃控 BCU × N</text>
+            <text x="200" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">單櫃整合 · alarm 聚合 · 接 BMS + PCS</text>
+          </g>
+
+          <!-- Tier 3b: Meters -->
+          <g>
+            <rect x="430" y="180" width="220" height="44" rx="8" fill="#1a1505" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="540" y="201" text-anchor="middle" fill="#fbbf24" font-size="12.5" font-weight="700">關口表 / 儲能表</text>
+            <text x="540" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">kWh · kW · V · I · 功率因數</text>
+          </g>
+
+          <!-- Tier 3c: Peripheral -->
+          <g>
+            <rect x="740" y="180" width="280" height="44" rx="8" fill="#170e2a" stroke="#a78bfa" stroke-width="1.5"/>
+            <text x="880" y="201" text-anchor="middle" fill="#a78bfa" font-size="12.5" font-weight="700">HVAC · 消防 · 門禁</text>
+            <text x="880" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">空調溫度 · 煙感 · UPS · 接觸器</text>
+          </g>
+
+          <!-- BCU breakdown branches -->
+          <line x1="130" y1="224" x2="105" y2="246" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrDP)"/>
+          <line x1="270" y1="224" x2="295" y2="246" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrDP)"/>
+
+          <!-- Tier 4: BMS / PCS (under BCU) -->
+          <g>
+            <rect x="20" y="246" width="170" height="20" rx="4" fill="rgba(16,185,129,0.08)" stroke="#10b981" stroke-width="1"/>
+            <text x="105" y="260" text-anchor="middle" fill="#10b981" font-size="10.5" font-weight="700">BMS (BAU+BMU+CMU)</text>
+          </g>
+          <g>
+            <rect x="210" y="246" width="170" height="20" rx="4" fill="rgba(20,184,166,0.08)" stroke="#14b8a6" stroke-width="1"/>
+            <text x="295" y="260" text-anchor="middle" fill="#14b8a6" font-size="10.5" font-weight="700">PCS (功率轉換)</text>
+          </g>
+          <text x="105" y="240" text-anchor="middle" fill="#8b98b0" font-size="9">CAN @ 100ms · cell V/T · SOC/SOH</text>
+          <text x="295" y="240" text-anchor="middle" fill="#8b98b0" font-size="9">CAN @ 50ms · P/Q/狀態</text>
+        </svg>
+        <div class="grid g-3 mt-12" style="font-size:11.5px;line-height:1.6">
+          <div style="padding:8px 12px;background:rgba(0,194,168,0.06);border-left:3px solid var(--primary);border-radius:6px">
+            <strong>EMS 端拿到</strong>：107 欄位即時、SOC/SOH、模組 max/min/avg V·T、PCS P/Q、告警旗標
+          </div>
+          <div style="padding:8px 12px;background:rgba(59,130,246,0.06);border-left:3px solid var(--blue);border-radius:6px">
+            <strong>RPC 按需查</strong>：per-cell V (260)、平衡狀態、單模組詳細統計、歷史快照
+          </div>
+          <div style="padding:8px 12px;background:rgba(245,158,11,0.06);border-left:3px solid var(--amber);border-radius:6px">
+            <strong>EMS 端衍生</strong>：SOH 預測、RUL、ΔV heatmap、效率推算、異常分數（AI 模型）
+          </div>
+        </div>
+      </div>
+
       <!-- KPI summary -->
       <div class="kpi-grid mt-16" style="grid-template-columns:repeat(4,1fr)">
         <div class="kpi green">
@@ -1332,14 +1430,14 @@ function viewDevices() {
 
     <div class="card mb-16">
       <div class="card-head">
-        <h3>SYS-A 電芯溫度熱力圖 · 208 cells <span class="muted" style="font-size:11px;font-weight:400">Modbus reg [Cell Temp 1‥512]</span></h3>
-        <div class="row" style="gap:4px">
-          <span class="muted" style="font-size:11px">28°C</span>
-          <div style="width:120px;height:8px;background:linear-gradient(90deg,#3b82f6,#10b981,#f59e0b,#ef4444);border-radius:4px"></div>
-          <span class="muted" style="font-size:11px">42°C</span>
+        <h3>SYS-A 模組溫度分佈 · 13 模組 <span class="muted" style="font-size:11px;font-weight:400">BMS 即時上送 max / min / avg</span></h3>
+        <div class="row" style="gap:6px;font-size:11px;color:var(--muted)">
+          <span><span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:50%;vertical-align:-1px"></span> &lt; 33°C</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#f59e0b;border-radius:50%;vertical-align:-1px"></span> 33-35°C</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:50%;vertical-align:-1px"></span> ≥ 35°C</span>
         </div>
       </div>
-      <div class="heat" id="heat"></div>
+      <div id="mod-temp"></div>
     </div>
 
     <div class="grid g-3 mb-16">
@@ -1428,34 +1526,67 @@ function viewDevices() {
     </div>
   `;
 
-  // Render heatmap — physically plausible LFP thermal pattern
-  // Layout: 26 cols × 8 rows = 208 cells
-  // Real-world factors:
-  //  · Vertical gradient: top of cabinet warmer (heat rises, +1.2°C)
-  //  · Bus-bar proximity: center cols 12-14 slightly warmer (+0.8°C)
-  //  · Pack-level baseline: each 16-cell pack shares ±0.2°C
-  //  · Tiny per-cell noise (deterministic): ±0.15°C
-  //  · A few real hotspots (marginal cooling at specific cells)
-  const heat = $("#heat");
-  const COLS = 26, ROWS = 8;
-  const baseT = 29.6;
-  const packBias = (p) => Math.sin(p * 1.7) * 0.18;          // per-pack baseline
-  const hotspots = { 89: 1.6, 142: 2.4, 143: 2.0 };          // intentional outliers
-  let html = "";
-  for (let i = 0; i < 208; i++) {
-    const row = Math.floor(i / COLS);
-    const col = i % COLS;
-    const pack = Math.floor(i / 16);
-    const vGrad   = 1.2 - (row / (ROWS - 1)) * 1.5;          // top→bottom
-    const colGrad = Math.max(0, 0.8 - Math.abs(col - 13) * 0.13);
-    const noise   = (Math.sin(i * 0.7) + Math.cos(i * 1.3)) * 0.12;
-    const hot     = hotspots[i] || 0;
-    const t = baseT + vGrad + colGrad + packBias(pack) + noise + hot;
-    // Hue: 28°C→220 (blue) → 35°C→0 (red)
-    const hue = Math.max(0, Math.min(220, 220 - (t - 28) * 32));
-    html += `<div class="heat-cell" style="background:hsl(${hue},65%,55%)" title="Pack #${pack+1} Cell #${(i%16)+1} · ${t.toFixed(1)} °C">${t.toFixed(1)}</div>`;
+  // Render module-level temperature bars — honest representation of BMS data
+  // HiThium V1.4 BMS only exposes per-module max/min/avg, NOT per-cell temperature.
+  // 13 modules × (min, avg, max) → 39 real data points, not 208 fake ones.
+  const modHost = $("#mod-temp");
+  const N_MOD = 13;
+  const modules = [];
+  for (let m = 0; m < N_MOD; m++) {
+    const baseT = 29.4 + Math.sin(m * 0.7 + 0.4) * 0.4;
+    const spread = 0.9 + Math.abs(Math.cos(m * 1.3)) * 0.5;
+    modules.push({
+      id: m + 1,
+      min: +(baseT - spread / 2 + Math.sin(m * 2.1) * 0.1).toFixed(1),
+      avg: +(baseT + Math.sin(m * 2.1) * 0.08).toFixed(1),
+      max: +(baseT + spread / 2 + Math.cos(m * 1.7) * 0.2).toFixed(1),
+    });
   }
-  heat.innerHTML = html;
+  // 一個發熱模組（液冷流道輕微堵塞示範）
+  modules[10] = { id: 11, min: 30.4, avg: 32.6, max: 35.4 };
+
+  const allMin = Math.min(...modules.map(m => m.min));
+  const allMax = Math.max(...modules.map(m => m.max));
+  const range = allMax - allMin;
+  const colorOf = (t) => t >= 35 ? "#ef4444" : t >= 33 ? "#f59e0b" : "#10b981";
+
+  let modHtml = '<div style="display:grid;gap:5px">';
+  for (const m of modules) {
+    const minPct = ((m.min - allMin) / range) * 100;
+    const maxPct = ((m.max - allMin) / range) * 100;
+    const avgPct = ((m.avg - allMin) / range) * 100;
+    const col = colorOf(m.max);
+    modHtml += `
+      <div style="display:grid;grid-template-columns:90px 1fr 200px;gap:14px;align-items:center;font-size:12.5px">
+        <div style="color:var(--text-muted);font-family:ui-monospace,monospace">Module #${String(m.id).padStart(2,'0')}</div>
+        <div style="position:relative;height:20px;background:rgba(139,152,176,0.06);border-radius:3px">
+          <div style="position:absolute;left:${minPct}%;width:${maxPct-minPct}%;top:8px;height:4px;background:${col};opacity:0.35;border-radius:2px"></div>
+          <div style="position:absolute;left:${minPct}%;top:3px;width:2px;height:14px;background:${col};opacity:0.85"></div>
+          <div style="position:absolute;left:${maxPct}%;top:3px;width:2px;height:14px;background:${col};opacity:0.85"></div>
+          <div style="position:absolute;left:${avgPct}%;top:5px;width:10px;height:10px;background:${col};border-radius:50%;transform:translateX(-50%);box-shadow:0 0 0 2px #0f1729" title="平均 ${m.avg}°C"></div>
+        </div>
+        <div style="font-family:ui-monospace,monospace;font-size:11.5px;text-align:right">
+          <span style="color:var(--text-muted)">${m.min.toFixed(1)}</span>
+          <span style="opacity:0.4;margin:0 4px">─</span>
+          <span style="color:${col};font-weight:700">${m.avg.toFixed(1)}</span>
+          <span style="opacity:0.4;margin:0 4px">─</span>
+          <span style="color:var(--text-muted)">${m.max.toFixed(1)}</span>
+          <span style="color:var(--text-muted);margin-left:4px">°C</span>
+        </div>
+      </div>`;
+  }
+  modHtml += '</div>';
+  modHtml += `
+    <div style="display:grid;grid-template-columns:90px 1fr 200px;gap:14px;font-size:10.5px;color:var(--text-muted);margin-top:8px">
+      <div></div>
+      <div style="display:flex;justify-content:space-between"><span>${allMin.toFixed(1)}°C</span><span>${((allMin+allMax)/2).toFixed(1)}°C</span><span>${allMax.toFixed(1)}°C</span></div>
+      <div style="text-align:right;font-size:10.5px">min ─ avg ─ max</div>
+    </div>
+    <div class="row mt-12" style="padding:8px 12px;background:rgba(59,130,246,0.06);border-left:3px solid var(--blue);border-radius:6px;font-size:11.5px;line-height:1.6">
+      <span><strong>📡 資料來源</strong>：BMS 即時上送（Modbus reg <code style="font-size:10.5px">Module N Max/Min/Avg Cell Temperature</code>，1s 週期）。海辰 V1.4 規格揭露至模組級；per-cell 溫度需透過 RPC 查詢（回應 ~2s · 一次 16 顆）。</span>
+    </div>
+  `;
+  modHost.innerHTML = modHtml;
 }
 
 // ────────── BMS Pro · Cell Analytics ──────────
