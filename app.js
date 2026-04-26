@@ -965,14 +965,32 @@ function viewDevices() {
     </div>
   `;
 
-  // Render heatmap
+  // Render heatmap — physically plausible LFP thermal pattern
+  // Layout: 26 cols × 8 rows = 208 cells
+  // Real-world factors:
+  //  · Vertical gradient: top of cabinet warmer (heat rises, +1.2°C)
+  //  · Bus-bar proximity: center cols 12-14 slightly warmer (+0.8°C)
+  //  · Pack-level baseline: each 16-cell pack shares ±0.2°C
+  //  · Tiny per-cell noise (deterministic): ±0.15°C
+  //  · A few real hotspots (marginal cooling at specific cells)
   const heat = $("#heat");
+  const COLS = 26, ROWS = 8;
+  const baseT = 29.6;
+  const packBias = (p) => Math.sin(p * 1.7) * 0.18;          // per-pack baseline
+  const hotspots = { 89: 1.6, 142: 2.4, 143: 2.0 };          // intentional outliers
   let html = "";
   for (let i = 0; i < 208; i++) {
-    const t = 28 + Math.random() * 4 + (i % 16 < 3 ? 1.2 : 0) + (i > 180 ? 1.5 : 0);
-    const hue = 220 - (t - 28) * 40; // 28°→220(blue), 42°→-340(red)
-    const h = Math.max(0, hue);
-    html += `<div class="heat-cell" style="background:hsl(${h},70%,60%)" title="Cell #${i+1}: ${t.toFixed(1)}°C">${t.toFixed(1)}</div>`;
+    const row = Math.floor(i / COLS);
+    const col = i % COLS;
+    const pack = Math.floor(i / 16);
+    const vGrad   = 1.2 - (row / (ROWS - 1)) * 1.5;          // top→bottom
+    const colGrad = Math.max(0, 0.8 - Math.abs(col - 13) * 0.13);
+    const noise   = (Math.sin(i * 0.7) + Math.cos(i * 1.3)) * 0.12;
+    const hot     = hotspots[i] || 0;
+    const t = baseT + vGrad + colGrad + packBias(pack) + noise + hot;
+    // Hue: 28°C→220 (blue) → 35°C→0 (red)
+    const hue = Math.max(0, Math.min(220, 220 - (t - 28) * 32));
+    html += `<div class="heat-cell" style="background:hsl(${hue},65%,55%)" title="Pack #${pack+1} Cell #${(i%16)+1} · ${t.toFixed(1)} °C">${t.toFixed(1)}</div>`;
   }
   heat.innerHTML = html;
 }
@@ -988,13 +1006,13 @@ function renderDevicesAnalytics() {
     const n = sys.cells;
     const baseV = 3.388;
     for (let i = 0; i < n; i++) {
-      // Voltage with normal distribution
+      // Voltage: tight Gaussian (健康 LFP at rest σ ≈ 5 mV)
       const u1 = r(), u2 = r();
       const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-      let v = baseV + z * 0.012;
-      // A few "weak" cells deliberately offset
-      if (sys.id === "SYS-A" && [3, 47, 92, 156, 199].includes(i)) v -= 0.02 + r()*0.015;
-      if (sys.id === "SYS-B" && [12, 67, 134].includes(i)) v -= 0.025 + r()*0.01;
+      let v = baseV + z * 0.005;                                        // σ = 5 mV
+      // A few "weak" cells deliberately offset (12-18 mV below — typical early衰退)
+      if (sys.id === "SYS-A" && [3, 47, 92, 156, 199].includes(i)) v -= 0.012 + r()*0.006;
+      if (sys.id === "SYS-B" && [12, 67, 134].includes(i)) v -= 0.014 + r()*0.005;
       const ir = 0.42 + r() * 0.08 + Math.max(0, baseV - v) * 4;       // mΩ
       const temp = 28 + r() * 3.5 + (sys.id === "SYS-B" ? 1.5 : 0);
       allCells.push({ sys: sys.id, idx: i+1, v: +v.toFixed(4), ir: +ir.toFixed(3), temp: +temp.toFixed(1) });
@@ -1059,7 +1077,7 @@ function renderDevicesAnalytics() {
           <span class="tag warn">需重點關注</span>
         </div>
         <table class="data" style="font-size:12px">
-          <thead><tr><th>#</th><th>系統</th><th>編號</th><th class="right">電壓</th><th class="right">內阻</th><th class="right">偏差</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>系統</th><th>編號</th><th class="right">電壓</th><th class="right">溫度</th><th class="right">偏差</th><th></th></tr></thead>
           <tbody>
             ${sortedWeak.map((c,i)=>{
               const dev = (c.v - vMean) * 1000;
@@ -1069,7 +1087,7 @@ function renderDevicesAnalytics() {
                 <td>${c.sys}</td>
                 <td>#${c.idx}</td>
                 <td class="num right">${c.v.toFixed(3)} V</td>
-                <td class="num right">${c.ir.toFixed(2)} mΩ</td>
+                <td class="num right">${c.temp.toFixed(1)} °C</td>
                 <td class="num right"><span class="tag ${sev}" style="font-size:10.5px">${dev.toFixed(0)} mV</span></td>
                 <td><button class="btn btn-ghost" style="padding:2px 8px;font-size:10.5px">派工</button></td>
               </tr>`;
@@ -1091,7 +1109,7 @@ function renderDevicesAnalytics() {
         ${prognosticIndicator("V/I 相關性", 0.94, 0.7, "ρ", "rising", true)}
         ${prognosticIndicator("自放電率", 0.8, 2.0, "%/週", "monotonic")}
         ${prognosticIndicator("SoC 估算漂移", 1.2, 5, "%", "monotonic")}
-        ${prognosticIndicator("內阻變異係數", 4.2, 10, "%", "monotonic")}
+        ${prognosticIndicator("電壓變異係數", 4.2, 10, "%", "monotonic")}
       </div>
       <div style="margin-top:14px;padding:10px 14px;background:rgba(16,185,129,0.05);border-left:3px solid var(--green);border-radius:6px;font-size:12.5px">
         <strong>AI 評估：</strong>所有指標皆在安全區間，未觀察到熱失控前兆訊號。預估到下次例行檢測 (2026-07-15) 之間出現異常的機率為 <strong style="color:var(--green)">2.1%</strong>。
@@ -1108,22 +1126,22 @@ function renderDevicesAnalytics() {
 
       <div class="card">
         <div class="card-head">
-          <h3>內阻分佈熱力圖 · ${SITE.systems[0].cells} cells</h3>
+          <h3>電芯電壓偏差熱力圖 · ${SITE.systems[0].cells} cells <span class="muted" style="font-size:11px;font-weight:400">ΔV = Cell V − Avg</span></h3>
           <div class="row" style="gap:4px">
-            <span class="muted" style="font-size:11px">0.40 mΩ</span>
-            <div style="width:120px;height:8px;background:linear-gradient(90deg,#10b981,#facc15,#ef4444);border-radius:4px"></div>
-            <span class="muted" style="font-size:11px">0.65 mΩ</span>
+            <span class="muted" style="font-size:11px">−25 mV</span>
+            <div style="width:160px;height:8px;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981,#f59e0b,#ef4444);border-radius:4px"></div>
+            <span class="muted" style="font-size:11px">+25 mV</span>
           </div>
         </div>
-        <div class="heat" id="irHeat"></div>
-        <div class="muted" style="font-size:11.5px;margin-top:6px">內阻偏高的電芯（紅）可能是衰退或接觸不良前兆</div>
+        <div class="heat" id="dvHeat"></div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">綠色 = 與平均值接近（健康）；黃/紅色 = 偏離 ±15 mV 以上的弱電芯。資料源：BMS Modbus reg [Cell Voltage 1‥512] 減 [Rack Avg Voltage]</div>
       </div>
     </div>
   `;
 
-  // Histogram
+  // Histogram — tight range to highlight bell-curve shape (健康 LFP)
   const bins = 30;
-  const binStart = 3.32, binEnd = 3.45;
+  const binStart = 3.36, binEnd = 3.42;
   const binW = (binEnd - binStart) / bins;
   const histA = Array(bins).fill(0);
   const histB = Array(bins).fill(0);
@@ -1196,16 +1214,22 @@ function renderDevicesAnalytics() {
     }));
   });
 
-  // IR heat map (208 cells SYS-A)
-  const ir = $("#irHeat");
-  const irHtml = sysA.map(c => {
-    const v = c.ir;
-    // 0.40 → green hue=140, 0.65 → red hue=0
-    const t = Math.min(1, Math.max(0, (v - 0.40) / 0.25));
-    const hue = 140 - t * 140;
-    return `<div class="heat-cell" style="background:hsl(${hue},75%,60%)" title="Cell #${c.idx}: ${v.toFixed(2)} mΩ">${v.toFixed(2)}</div>`;
+  // ΔV heat map (208 cells SYS-A) — real BMS-derivable: Cell V minus Rack Avg V
+  const dv = $("#dvHeat");
+  const sysAMean = mean(sysA.map(c => c.v));
+  const dvHtml = sysA.map(c => {
+    const deltaMV = (c.v - sysAMean) * 1000;     // signed mV deviation
+    const abs = Math.abs(deltaMV);
+    // Color: 0 mV = green (140), 15 mV = amber (40), 25+ mV = red (0)
+    let hue;
+    if (abs < 5)       hue = 140;                // healthy
+    else if (abs < 15) hue = 140 - (abs - 5) * 10;  // 140 → 40 (amber)
+    else               hue = Math.max(0, 40 - (abs - 15) * 4);  // 40 → 0 (red)
+    const sign = deltaMV >= 0 ? "+" : "";
+    return `<div class="heat-cell" style="background:hsl(${hue},70%,55%)"
+              title="Cell #${c.idx} · V=${c.v.toFixed(3)}V · ΔV=${sign}${deltaMV.toFixed(1)} mV">${sign}${deltaMV.toFixed(0)}</div>`;
   }).join("");
-  ir.innerHTML = irHtml;
+  dv.innerHTML = dvHtml;
 }
 
 function prognosticIndicator(label, value, threshold, unit, trend, higherIsBetter = false) {
