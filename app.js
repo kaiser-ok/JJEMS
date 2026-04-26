@@ -3407,7 +3407,13 @@ function viewPassport() {
 
     <!-- Service event timeline -->
     <div class="card">
-      <div class="card-head"><h3>🕒 維運事件時間軸</h3><span class="muted" style="font-size:11.5px">區塊鏈不可篡改紀錄</span></div>
+      <div class="card-head">
+        <h3>🕒 維運事件時間軸</h3>
+        <span class="muted" style="font-size:11.5px;display:flex;align-items:center;gap:6px" title="目前以 PostgreSQL + 數位簽章 + TÜV 第三方稽核達成「不可篡改」要求（與 CATL 路線一致）；公鏈錨定 (Polygon hash + IPFS) 規劃 2027 上線">
+          <span style="background:rgba(16,185,129,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:10.5px;font-weight:600">🔒 不可篡改</span>
+          <span style="font-size:11px">DB + 簽章 + 第三方稽核 · 公鏈錨定 2027</span>
+        </span>
+      </div>
       <div class="timeline">
         ${p.events.map((e,i)=>`
           <div class="tl-row">
