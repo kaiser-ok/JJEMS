@@ -164,6 +164,73 @@ function genSoc(strategyId = "arbitrage") {
   return out;
 }
 
+// ──────────  AI Layer 3 mock data  ──────────
+// Tomorrow's load + PV forecasts with confidence intervals
+function genTomorrowForecast() {
+  const points = [];
+  for (let h = 0; h < 24; h++) {
+    // Load: industrial pattern with a 19:00 spike (per the user's example)
+    let load = 800
+      + 900 * Math.max(0, Math.sin((h - 5) / 18 * Math.PI))
+      + 220 * Math.sin(h / 1.7);
+    if (h >= 8 && h <= 19) load += 450;
+    if (h >= 18 && h <= 21) load += 280;       // 19:00 surge
+    load = Math.max(620, load);
+    // Confidence interval: tighter near present, wider further out
+    const ci = 80 + h * 12;
+    // PV: low solar (cloudy day per the example)
+    let pv = 0;
+    if (h > 6 && h < 18) {
+      pv = 220 * Math.sin(((h - 6) / 12) * Math.PI) ** 1.1;
+      pv *= 0.55;                               // cloudy ~ 55%
+    }
+    const pvCi = pv * 0.35;
+    points.push({
+      h, hourLabel: String(h).padStart(2,"0") + ":00",
+      load: Math.round(load), loadLow: Math.round(load - ci), loadHigh: Math.round(load + ci),
+      pv:   Math.round(pv),   pvLow:   Math.round(Math.max(0, pv - pvCi)), pvHigh: Math.round(pv + pvCi),
+    });
+  }
+  return points;
+}
+
+// SOH projection (6 mo past + 18 mo projected)
+function genSOHProjection(currentSOH = 98.2) {
+  const series = [];
+  // Past: linear-ish degradation 99.5 → currentSOH over 6 months
+  const startSOH = 99.5;
+  for (let m = -6; m <= 0; m++) {
+    const t = (m + 6) / 6;
+    series.push({
+      month: m, label: m === 0 ? "今" : `${m}m`,
+      soh: +(startSOH - (startSOH - currentSOH) * t).toFixed(2),
+      ciLow: null, ciHigh: null, projected: false,
+    });
+  }
+  // Future: 0.22%/month degradation with widening CI
+  let s = currentSOH;
+  for (let m = 1; m <= 18; m++) {
+    s -= 0.22;
+    const ci = 0.05 * Math.sqrt(m);            // sqrt-time CI growth
+    series.push({
+      month: m, label: `+${m}m`,
+      soh: +s.toFixed(2),
+      ciLow:  +(s - ci * 3).toFixed(2),
+      ciHigh: +(s + ci * 3).toFixed(2),
+      projected: true,
+    });
+  }
+  return series;
+}
+
+// Dynamic round-trip efficiency surface (T × C-rate)
+// Realistic LFP: peak ~93.5% at 25°C / 0.3C, drops with temp + C-rate
+function effSurface(tempC, cRate) {
+  const tempPenalty = Math.max(0, Math.abs(tempC - 25) * 0.18);  // 0.18%/°C from optimum
+  const ratePenalty = Math.max(0, (cRate - 0.3) * 4.5);          // 4.5%/C above 0.3C
+  return Math.max(80, 93.5 - tempPenalty - ratePenalty);
+}
+
 // Snapshot of energy balance for a given strategy (kWh totals over 24h)
 function dailyBalance(strategyId) {
   const pts = gen24h(strategyId);

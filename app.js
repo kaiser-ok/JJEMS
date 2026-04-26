@@ -443,6 +443,49 @@ function viewDashboard() {
       </div>
     </div>
 
+    <!-- 🔮 AI 明日預測 (Layer 3 · 建議層) -->
+    <div class="card mt-16" style="border-left:3px solid var(--purple)">
+      <div class="card-head">
+        <h3>🔮 明日預測 (AI · 建議層 · 不自動執行)</h3>
+        <div class="row" style="gap:6px">
+          <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple);font-size:11px">LSTM v2.3</span>
+          <span class="muted" style="font-size:11.5px">最後訓練 4 小時前</span>
+        </div>
+      </div>
+      <div class="grid g-2" style="gap:14px">
+        <div>
+          <div class="muted mb-8" style="font-size:12px">明日負載 + PV 預測 (含 95% 信賴區間)</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartForecast"></canvas></div>
+        </div>
+        <div>
+          <div class="muted mb-8" style="font-size:12px">AI 觀察 + 建議</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="padding:10px 14px;background:rgba(245,158,11,0.08);border-left:3px solid var(--amber);border-radius:6px;font-size:12.5px;line-height:1.6">
+              <strong>⚠ 預測異常 · 19:00 負載突增</strong><br>
+              <span class="muted">預估尖峰需量達 <strong style="color:var(--text)">2,640 kW</strong>，超出契約 5.6%。建議提早充電並備援放電。</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(59,130,246,0.08);border-left:3px solid var(--blue);border-radius:6px;font-size:12.5px;line-height:1.6">
+              <strong>☁ 明日 PV 偏低</strong><br>
+              <span class="muted">雲量 70%，PV 預估 <strong style="color:var(--text)">1,320 kWh</strong>（一般日 2,180）。少 860 kWh 缺口。</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(0,194,168,0.1);border-left:3px solid var(--primary);border-radius:6px;font-size:12.5px;line-height:1.6">
+              <strong>💡 建議排程調整</strong>
+              <ul style="margin:6px 0 0 18px;padding:0;line-height:1.8;color:var(--text-muted)">
+                <li>17:00 提早補充電 +50 kW (避免 19:00 SoC 不足)</li>
+                <li>19:00–20:00 多放電 +50 kW (削峰)</li>
+                <li>00:00–05:00 維持 180 kW 主充 (離峰補足)</li>
+              </ul>
+            </div>
+            <div class="row mt-8" style="gap:8px">
+              <a href="#/schedule" class="btn btn-primary" style="font-size:12.5px;padding:6px 14px">套用建議到排程</a>
+              <button class="btn" style="font-size:12px;padding:6px 12px" id="dismissForecast">忽略</button>
+              <span class="muted" style="font-size:11px;margin-left:auto">⓵ AI 不會自動執行 — 需人工確認</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 🎬 Compact alarm-action demo strip -->
     <div class="demo-strip" id="demoStrip">
       <div class="demo-strip-icon">🎬</div>
@@ -462,8 +505,10 @@ function viewDashboard() {
   drawFlowMini();
   drawChart24h();
   drawChartSoc();
+  drawForecastChart();
 
   $("#dashDemoThermal")?.addEventListener("click", () => demoTriggerAlarm("thermal"));
+  $("#dismissForecast")?.addEventListener("click", () => showToast("AI 預測已忽略，明天重新評估", "info"));
   $("#dashDemoFire")?.addEventListener("click",    () => demoTriggerAlarm("fire"));
   $("#dashDemoContract")?.addEventListener("click",() => demoTriggerAlarm("contract"));
 }
@@ -550,6 +595,46 @@ function drawChartSoc() {
       scales: {
         x: { grid: { display:false }, ticks: { maxTicksLimit: 8 } },
         y: { min: 0, max: 100, grid:{color:"rgba(139,152,176,0.08)"}, ticks: { callback: v => v + "%" } }
+      }
+    }
+  }));
+}
+
+function drawForecastChart() {
+  const ctx = $("#chartForecast"); if (!ctx) return;
+  const f = genTomorrowForecast();
+  addChart(new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: f.map(p => p.hourLabel),
+      datasets: [
+        // Load CI band (high - low as range fill)
+        { label:"負載 CI", data: f.map(p=>p.loadHigh), borderColor:"transparent", backgroundColor:"rgba(167,139,250,0.12)", fill:"+1", pointRadius:0 },
+        { label:"_loadLow", data: f.map(p=>p.loadLow),  borderColor:"transparent", backgroundColor:"transparent", fill:false, pointRadius:0 },
+        // Load forecast line
+        { label:"負載預測", data: f.map(p=>p.load), borderColor:"#a78bfa", borderWidth:2, fill:false, tension:.35, pointRadius:0 },
+        // PV CI band
+        { label:"PV CI", data: f.map(p=>p.pvHigh), borderColor:"transparent", backgroundColor:"rgba(250,204,21,0.18)", fill:"+1", pointRadius:0, yAxisID:"y" },
+        { label:"_pvLow", data: f.map(p=>p.pvLow), borderColor:"transparent", backgroundColor:"transparent", fill:false, pointRadius:0 },
+        { label:"PV 預測", data: f.map(p=>p.pv), borderColor:"#facc15", borderWidth:2, fill:false, tension:.35, pointRadius:0 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:"index", intersect:false },
+      plugins: {
+        legend: {
+          labels: { filter: i => !i.text.startsWith("_"), boxWidth: 12, font:{ size:11 } },
+          position:"top", align:"end",
+        },
+        tooltip: {
+          filter: i => !i.dataset.label.startsWith("_") && !i.dataset.label.endsWith("CI"),
+          callbacks: { label: c => `${c.dataset.label}: ${fmt(c.parsed.y,0)} kW` }
+        }
+      },
+      scales: {
+        x: { grid:{ display:false }, ticks:{ maxTicksLimit: 8 } },
+        y: { grid:{ color:"rgba(139,152,176,0.08)" }, ticks:{ callback: v => v + " kW" } }
       }
     }
   }));
@@ -1766,13 +1851,43 @@ function viewSchedule() {
         </table>
       </div>
       <div class="card">
-        <div class="card-head"><h3>${s.label}今日效益試算</h3></div>
+        <div class="card-head">
+          <h3>${s.label}今日效益試算</h3>
+          <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple);font-size:11px">η AI 動態</span>
+        </div>
         <table class="data">
           <tr><td>充電電量</td><td class="num right">${fmt(benefit.chargeKWh)} kWh</td><td class="num right">支出 ${money(benefit.chargeCost)}</td></tr>
-          <tr><td>放電電量 (含 91.8% 效率)</td><td class="num right">${fmt(benefit.dischargeKWh)} kWh</td><td class="num right">收益 ${money(benefit.dischargeRev)}</td></tr>
+          <tr><td>放電電量 (含 ${effSurface(29.4, 0.42).toFixed(1)}% 動態效率)</td><td class="num right">${fmt(benefit.dischargeKWh)} kWh</td><td class="num right">收益 ${money(benefit.dischargeRev)}</td></tr>
           <tr><td>循環次數</td><td class="num right">${(benefit.dischargeKWh/476).toFixed(2)} 次</td><td class="num right">-</td></tr>
           <tr><td><strong>淨益</strong></td><td colspan="2" class="num right"><strong style="color:${benefit.net>=0?"var(--green)":"var(--red)"};font-size:16px">${money(benefit.net)}</strong></td></tr>
         </table>
+
+        <!-- η AI 動態效率 surface -->
+        <div class="mt-12" style="padding:10px 12px;background:rgba(139,92,246,0.06);border-left:3px solid var(--purple);border-radius:6px">
+          <div class="row between" style="margin-bottom:6px">
+            <strong style="font-size:12.5px">🤖 AI 動態效率模型</strong>
+            <span class="muted" style="font-size:11px">採樣 1,420 次循環</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:11.5px;margin-bottom:8px">
+            <div><span class="muted">電芯溫</span><strong style="color:var(--text);margin-left:4px">29.4°C</strong></div>
+            <div><span class="muted">SoC</span><strong style="color:var(--text);margin-left:4px">${KPI.soc}%</strong></div>
+            <div><span class="muted">C-rate</span><strong style="color:var(--text);margin-left:4px">0.42</strong></div>
+          </div>
+          <!-- mini efficiency surface heatmap (5 cols × 4 rows: temp 20/25/30/35/40 × C-rate 0.2/0.4/0.6/0.8) -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;font-size:8px;color:rgba(0,0,0,0.7);font-weight:600">
+            ${[0.2, 0.4, 0.6, 0.8].flatMap(c => [20,25,30,35,40].map(t => {
+              const e = effSurface(t, c);
+              const isActive = (Math.abs(t - 29.4) < 3) && (Math.abs(c - 0.42) < 0.1);
+              const hue = (e - 80) / 14 * 140;        // 80% → 0(red), 94% → 140(green)
+              return `<div style="background:hsl(${hue},70%,50%);padding:3px 0;text-align:center;${isActive?'outline:2px solid #fff;z-index:2;position:relative;':''}" title="${t}°C @ ${c}C → ${e.toFixed(1)}%">${e.toFixed(0)}</div>`;
+            })).join("")}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;font-size:9px;color:var(--muted);text-align:center;margin-top:2px">
+            <div>20°C</div><div>25°C</div><div>30°C</div><div>35°C</div><div>40°C</div>
+          </div>
+          <div class="muted mt-8" style="font-size:11px">效率隨溫度 + C-rate 非線性變化；綠=高/紅=低；白框=當前工況</div>
+        </div>
+
         <div class="muted mt-8" style="font-size:11.5px">※ 模擬試算，未含輔助服務 / 容量費收入</div>
       </div>
     </div>
@@ -3157,17 +3272,36 @@ function viewPassport() {
       </div>
     </div>
 
-    <!-- SOH trend with prediction -->
+    <!-- SOH trend with prediction + RUL KPIs -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>SOH 時序與 ML 預測 (24 個月)</h3>
-        <div class="row">
-          <span class="tag info">◼ 歷史</span>
-          <span class="tag" style="color:var(--purple);background:rgba(139,92,246,0.12)">◼ AI 預測</span>
-          <span class="tag warn">--- EOL 80% 閾值</span>
+        <h3>📈 SOH 時序與 RUL 預測 (24 個月)</h3>
+        <div class="row" style="gap:6px">
+          <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple);font-size:11px">LSTM v2.3</span>
+          <span class="muted" style="font-size:11.5px">每月重訓 · 信賴區間 95%</span>
+        </div>
+      </div>
+      <div class="grid g-3" style="gap:12px;margin-bottom:14px">
+        <div class="stat blue">
+          <div class="lbl">當前 SOH</div>
+          <div class="val">${p.performance.soh}<span class="u">%</span></div>
+          <div class="sub">月衰退 ${p.performance.sohTrend}%</div>
+        </div>
+        <div class="stat amber">
+          <div class="lbl">預估剩餘壽命 (RUL)</div>
+          <div class="val">14.2<span class="u">±1.8 月</span></div>
+          <div class="sub">至 SOH 80% (EOL)</div>
+        </div>
+        <div class="stat green">
+          <div class="lbl">預估 EOL 日期</div>
+          <div class="val" style="font-size:18px">2027-06</div>
+          <div class="sub">含信賴區間 ±2 月</div>
         </div>
       </div>
       <div class="chart-wrap"><canvas id="chartSoh"></canvas></div>
+      <div class="row mt-12" style="padding:10px 14px;background:rgba(139,92,246,0.06);border-left:3px solid var(--purple);border-radius:6px;font-size:12.5px;line-height:1.6">
+        <span><strong>🤖 AI 觀察</strong>：依過去 6 個月 SOH 曲線斜率、循環次數、平均工作溫度（29.4°C）綜合評估，本電池組退役可能落在 <strong>2027 Q2–Q3</strong>。建議於 EOL 前 6 個月啟動採購流程；若 14:00 環境溫度可降 2°C，預估壽命可延長 ~8%。</span>
+      </div>
     </div>
 
     <!-- Materials & Recycling -->
