@@ -276,6 +276,8 @@ state.passportSys = "SYS-A";
 const routes = {
   dashboard: viewDashboard,
   sld: viewSLD,
+  protection: viewProtection,
+  comm: viewComm,
   devices: viewDevices,
   passport: viewPassport,
   schedule: viewSchedule,
@@ -288,7 +290,9 @@ function router() {
   const hash = (location.hash || "#/dashboard").replace("#/", "");
   const route = routes[hash] ? hash : "dashboard";
   killCharts();
-  $$(".nav-item, .bnav-item").forEach(el => el.classList.toggle("active", el.dataset.route === route));
+  // protection / comm 屬於 sld 群組，sidebar 仍標 sld
+  const navRoute = (route === "protection" || route === "comm") ? "sld" : route;
+  $$(".nav-item, .bnav-item").forEach(el => el.classList.toggle("active", el.dataset.route === navRoute));
   $("#view").innerHTML = "";
   routes[route]();
   window.scrollTo(0,0);
@@ -552,21 +556,26 @@ function drawChartSoc() {
 }
 
 // ────────── 2. Single-line diagram ──────────
+// ── Shared SLD-group tab bar ──
+function sldTabBar(active) {
+  return `
+    <div class="page-tabs">
+      <a class="page-tab ${active==='diagram'?'active':''}" href="#/sld">⎔ 單線圖</a>
+      <a class="page-tab ${active==='protection'?'active':''}" href="#/protection">🛡 電氣保護</a>
+      <a class="page-tab ${active==='comm'?'active':''}" href="#/comm">📡 通訊狀態</a>
+    </div>`;
+}
+
 function viewSLD() {
   const v = $("#view");
-  const mode = state.sldMode || "diagram";
   v.innerHTML = `
     <div class="page-header">
       <div>
         <h1 class="page-title">${t("page.sld.title")}</h1>
         <p class="page-sub">${t("page.sld.sub")}</p>
       </div>
-      <div class="page-actions">
-        <button class="btn ${mode==='diagram'?'':'btn-ghost'}" data-sld="diagram">${t("sld.diagram")}</button>
-        <button class="btn ${mode==='protection'?'':'btn-ghost'}" data-sld="protection">${t("sld.protection")}</button>
-        <button class="btn ${mode==='comm'?'':'btn-ghost'}" data-sld="comm">${t("sld.comm")}</button>
-      </div>
     </div>
+    ${sldTabBar("diagram")}
 
     <div class="card">
       <svg class="sld" viewBox="0 0 1080 560" xmlns="http://www.w3.org/2000/svg">
@@ -584,6 +593,20 @@ function viewSLD() {
             <path d="M0 0 L10 5 L0 10 z" fill="#facc15"/>
           </marker>
         </defs>
+
+        <!-- Equipment ownership zones (subtle background bands) -->
+        <g opacity="0.7">
+          <!-- TPC zone (upper-right) -->
+          <rect x="430" y="6" width="220" height="120" rx="6" fill="rgba(251,191,36,0.04)" stroke="rgba(251,191,36,0.25)" stroke-dasharray="4,3"/>
+          <text x="440" y="20" fill="#fbbf24" font-size="9.5" font-weight="700" letter-spacing="1">⚡ 台電所有</text>
+          <!-- Customer infrastructure zone (transformer + LV BUS area, middle band) -->
+          <rect x="6" y="200" width="1068" height="60" rx="6" fill="rgba(59,130,246,0.04)" stroke="rgba(59,130,246,0.25)" stroke-dasharray="4,3"/>
+          <text x="16" y="215" fill="#3b82f6" font-size="9.5" font-weight="700" letter-spacing="1">🏭 客戶/廠區設備 (主變壓器、配電盤、LV BUS、負載)</text>
+          <!-- J&J product zone (PV + cabinets, bottom + left source) -->
+          <rect x="60" y="6" width="200" height="190" rx="6" fill="rgba(0,194,168,0.04)" stroke="rgba(0,194,168,0.3)" stroke-dasharray="4,3"/>
+          <rect x="280" y="270" width="340" height="170" rx="6" fill="rgba(0,194,168,0.04)" stroke="rgba(0,194,168,0.3)" stroke-dasharray="4,3"/>
+          <text x="290" y="284" fill="#00c2a8" font-size="9.5" font-weight="700" letter-spacing="1">🟢 J&amp;J Power 產品 (Zpower-AC-261L 一體機 × 2)</text>
+        </g>
 
         <!-- TPC Grid -->
         <g>
@@ -613,24 +636,20 @@ function viewSLD() {
         <line x1="540" y1="190" x2="540" y2="232" stroke="#3b82f6" stroke-width="2"/>
         <text x="100" y="222" fill="#3b82f6" font-size="11" font-weight="600">LV BUS 480V</text>
 
-        <!-- PV (上方來源 — 與台電並列為「源」，自 inverter 注入 LV BUS) -->
+        <!-- PV (上方來源) — 直接 DC 接入 SYS-A 寬版光儲一體機內建 MPPT -->
         <g>
           <rect x="80" y="20" width="180" height="58" rx="8" fill="#1a1505" stroke="#facc15" stroke-width="1.5"/>
-          <text x="170" y="42" text-anchor="middle" fill="#facc15" font-size="13" font-weight="700">☀ 太陽能</text>
+          <text x="170" y="42" text-anchor="middle" fill="#facc15" font-size="13" font-weight="700">☀ 太陽能 (DC)</text>
           <text x="170" y="60" text-anchor="middle" fill="#e6edf5" font-size="14" font-weight="700">308 kW</text>
-          <text x="170" y="72" text-anchor="middle" fill="#8b98b0" font-size="10">400 kWp · 發電中</text>
+          <text x="170" y="72" text-anchor="middle" fill="#8b98b0" font-size="10">400 kWp · 直接進 SYS-A MPPT</text>
 
-          <!-- PV inverter dot -->
-          <line x1="170" y1="78" x2="170" y2="115" stroke="#facc15" stroke-width="2"/>
-          <rect x="135" y="115" width="70" height="36" rx="6" fill="#0f1729" stroke="#facc15" stroke-width="1"/>
-          <text x="170" y="130" text-anchor="middle" fill="#facc15" font-size="10" font-weight="700">PV INV</text>
-          <text x="170" y="143" text-anchor="middle" fill="#8b98b0" font-size="9">DC/AC · 480V</text>
-
-          <!-- 注入 LV BUS -->
-          <line x1="170" y1="151" x2="170" y2="232" stroke="#facc15" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrYellow)">
+          <!-- DC line going down to SYS-A 's MPPT input -->
+          <path d="M 170 78 L 170 260 L 360 260 L 360 280" stroke="#facc15" stroke-width="2" fill="none" stroke-dasharray="5,3" marker-end="url(#arrYellow)">
             <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.3s" repeatCount="indefinite"/>
-          </line>
-          <text x="180" y="195" fill="#facc15" font-size="11" font-weight="600">↓ 注入</text>
+          </path>
+          <text x="180" y="180" fill="#facc15" font-size="11" font-weight="600">↓ DC 直連</text>
+          <text x="180" y="194" fill="#8b98b0" font-size="9">650-950V (4 串 × 2)</text>
+          <text x="220" y="252" fill="#facc15" font-size="10">MC4 · 內建 MPPT 60-120kW</text>
         </g>
 
         <!-- PCS-A / BAT-A (125kW / 261kWh) -->
@@ -812,57 +831,57 @@ function viewSLD() {
     </div>
   `;
 
-  // ── Tab switching: render mode-specific content below SVG ──
-  $$(".page-actions [data-sld]").forEach(b => {
-    b.addEventListener("click", () => {
-      state.sldMode = b.dataset.sld;
-      router();
-    });
-  });
-  renderSldModeContent(mode);
+  // diagram-mode body
+  $("#sld-mode-content").innerHTML = `
+    <div class="grid g-3 mt-16">
+      <div class="card">
+        <div class="card-head"><h3>主變壓器</h3><span class="tag ok">正常</span></div>
+        <table class="data">
+          <tr><td>油溫</td><td class="num">52 °C</td></tr>
+          <tr><td>繞組溫度</td><td class="num">68 °C</td></tr>
+          <tr><td>有載分接頭</td><td class="num">Tap 3 / 5</td></tr>
+          <tr><td>當前負載率</td><td class="num">70.4%</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>電壓品質</h3><span class="tag ok">合格</span></div>
+        <table class="data">
+          <tr><td>R 相</td><td class="num">489.2 V</td></tr>
+          <tr><td>S 相</td><td class="num">487.8 V</td></tr>
+          <tr><td>T 相</td><td class="num">488.4 V</td></tr>
+          <tr><td>頻率</td><td class="num">60.02 Hz</td></tr>
+          <tr><td>功率因數</td><td class="num">0.96</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>保護電驛</h3><span class="tag ok">全部正常</span></div>
+        <table class="data">
+          <tr><td>50/51 過流</td><td><span class="tag ok">正常</span></td></tr>
+          <tr><td>27/59 欠過壓</td><td><span class="tag ok">正常</span></td></tr>
+          <tr><td>81 頻率</td><td><span class="tag ok">正常</span></td></tr>
+          <tr><td>87T 差動</td><td><span class="tag ok">正常</span></td></tr>
+          <tr><td>Buchholz</td><td><span class="tag ok">正常</span></td></tr>
+        </table>
+      </div>
+    </div>`;
 }
 
-function renderSldModeContent(mode) {
-  const host = $("#sld-mode-content");
-  if (!host) return;
+// ────────── 2b. Protection (separate route, dedicated page) ──────────
+function viewProtection() {
+  $("#view").innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">電氣保護</h1>
+        <p class="page-sub">保護電驛配置 · 短路電流 · 跳脫紀錄 · 接地監測 · IDMT 配合曲線</p>
+      </div>
+    </div>
+    ${sldTabBar("protection")}
+    <div id="protection-content"></div>`;
+  renderProtectionContent($("#protection-content"));
+}
 
-  if (mode === "diagram") {
-    host.innerHTML = `
-      <div class="grid g-3 mt-16">
-        <div class="card">
-          <div class="card-head"><h3>主變壓器</h3><span class="tag ok">正常</span></div>
-          <table class="data">
-            <tr><td>油溫</td><td class="num">52 °C</td></tr>
-            <tr><td>繞組溫度</td><td class="num">68 °C</td></tr>
-            <tr><td>有載分接頭</td><td class="num">Tap 3 / 5</td></tr>
-            <tr><td>當前負載率</td><td class="num">70.4%</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <div class="card-head"><h3>電壓品質</h3><span class="tag ok">合格</span></div>
-          <table class="data">
-            <tr><td>R 相</td><td class="num">489.2 V</td></tr>
-            <tr><td>S 相</td><td class="num">487.8 V</td></tr>
-            <tr><td>T 相</td><td class="num">488.4 V</td></tr>
-            <tr><td>頻率</td><td class="num">60.02 Hz</td></tr>
-            <tr><td>功率因數</td><td class="num">0.96</td></tr>
-          </table>
-        </div>
-        <div class="card">
-          <div class="card-head"><h3>保護電驛</h3><span class="tag ok">全部正常</span></div>
-          <table class="data">
-            <tr><td>50/51 過流</td><td><span class="tag ok">正常</span></td></tr>
-            <tr><td>27/59 欠過壓</td><td><span class="tag ok">正常</span></td></tr>
-            <tr><td>81 頻率</td><td><span class="tag ok">正常</span></td></tr>
-            <tr><td>87T 差動</td><td><span class="tag ok">正常</span></td></tr>
-            <tr><td>Buchholz</td><td><span class="tag ok">正常</span></td></tr>
-          </table>
-        </div>
-      </div>`;
-    return;
-  }
-
-  if (mode === "protection") {
+function renderProtectionContent(host) {
+  if (true) {
     host.innerHTML = `
       <div class="grid g-3 mt-16">
         <div class="card">
@@ -971,10 +990,25 @@ function renderSldModeContent(mode) {
           <div class="muted mt-8" style="font-size:11px">確保下游故障時下游先動作；上游給予時間餘裕。</div>
         </div>
       </div>`;
-    return;
   }
+}
 
-  if (mode === "comm") {
+// ────────── 2c. Communications (separate route, dedicated page) ──────────
+function viewComm() {
+  $("#view").innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">通訊狀態</h1>
+        <p class="page-sub">設備連線健康度 · 鏈路統計 · 故障歷史 · 多協議監測</p>
+      </div>
+    </div>
+    ${sldTabBar("comm")}
+    <div id="comm-content"></div>`;
+  renderCommContent($("#comm-content"));
+}
+
+function renderCommContent(host) {
+  {
     const links = [
       { dev:"PCS-A",        proto:"Modbus TCP",   addr:"192.168.1.11:502",     latency:"12 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
       { dev:"PCS-B",        proto:"Modbus TCP",   addr:"192.168.1.12:502",     latency:"14 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
@@ -1078,7 +1112,6 @@ function renderSldModeContent(mode) {
           </div>
         </div>
       </div>`;
-    return;
   }
 }
 

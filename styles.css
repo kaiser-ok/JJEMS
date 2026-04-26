@@ -647,6 +647,24 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 .btn-mini:hover { background: rgba(0,194,168,0.1); color: var(--primary); border-color: var(--primary); }
 
+/* Page tabs (used by SLD / Protection / Comm) */
+.page-tabs {
+  display: flex; gap: 4px; padding: 4px;
+  background: var(--bg-card); border: 1px solid var(--border-soft);
+  border-radius: 10px; margin-bottom: 18px;
+  width: fit-content; max-width: 100%; overflow-x: auto;
+}
+.page-tab {
+  padding: 8px 18px; border-radius: 7px;
+  font-size: 13px; color: var(--text-muted); text-decoration: none;
+  white-space: nowrap; transition: all 0.15s;
+}
+.page-tab:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.page-tab.active {
+  background: var(--primary); color: #001b20; font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,194,168,0.25);
+}
+
 /* Compact demo strip on dashboard */
 .demo-strip {
   margin-top: 16px;
