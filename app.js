@@ -751,7 +751,6 @@ function viewSLD() {
           </path>
           <text x="180" y="180" fill="#facc15" font-size="11" font-weight="600">↓ DC 直連</text>
           <text x="180" y="194" fill="#8b98b0" font-size="9">650-950V (4 串 × 2)</text>
-          <text x="178" y="255" fill="#facc15" font-size="10">MC4 · 內建 MPPT</text>
         </g>
 
         <!-- PCS-A / BAT-A (125kW / 261kWh) -->
