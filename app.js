@@ -1004,15 +1004,16 @@ function renderDevicesAnalytics() {
   const allCells = [];
   for (const sys of SITE.systems) {
     const n = sys.cells;
-    const baseV = 3.388;
+    // Different baseline per system → 兩個可區分的鐘形
+    const baseV = sys.id === "SYS-A" ? 3.386 : 3.394;
     for (let i = 0; i < n; i++) {
-      // Voltage: tight Gaussian (健康 LFP at rest σ ≈ 5 mV)
+      // Voltage: tight Gaussian (健康 LFP at rest σ ≈ 4 mV)
       const u1 = r(), u2 = r();
       const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-      let v = baseV + z * 0.005;                                        // σ = 5 mV
-      // A few "weak" cells deliberately offset (12-18 mV below — typical early衰退)
-      if (sys.id === "SYS-A" && [3, 47, 92, 156, 199].includes(i)) v -= 0.012 + r()*0.006;
-      if (sys.id === "SYS-B" && [12, 67, 134].includes(i)) v -= 0.014 + r()*0.005;
+      let v = baseV + z * 0.004;                                        // σ = 4 mV
+      // 少數 "weak" 電芯（早期衰退 -8 至 -12 mV）
+      if (sys.id === "SYS-A" && [3, 47, 199].includes(i)) v -= 0.008 + r()*0.004;
+      if (sys.id === "SYS-B" && [12, 67].includes(i))     v -= 0.009 + r()*0.003;
       const ir = 0.42 + r() * 0.08 + Math.max(0, baseV - v) * 4;       // mΩ
       const temp = 28 + r() * 3.5 + (sys.id === "SYS-B" ? 1.5 : 0);
       allCells.push({ sys: sys.id, idx: i+1, v: +v.toFixed(4), ir: +ir.toFixed(3), temp: +temp.toFixed(1) });
@@ -1140,8 +1141,9 @@ function renderDevicesAnalytics() {
   `;
 
   // Histogram — tight range to highlight bell-curve shape (健康 LFP)
-  const bins = 30;
-  const binStart = 3.36, binEnd = 3.42;
+  // Two systems each with its own peak (3.386V vs 3.394V)
+  const bins = 24;
+  const binStart = 3.37, binEnd = 3.41;
   const binW = (binEnd - binStart) / bins;
   const histA = Array(bins).fill(0);
   const histB = Array(bins).fill(0);
@@ -1150,19 +1152,23 @@ function renderDevicesAnalytics() {
   const labels = Array.from({length:bins}, (_,i) => (binStart + i*binW).toFixed(3));
 
   addChart(new Chart($("#chartHisto"), {
-    type: "bar",
+    type: "line",
     data: {
       labels,
       datasets: [
-        { label: "SYS-A", data: histA, backgroundColor: "rgba(59,130,246,0.6)", borderColor: "#3b82f6", borderWidth: 1 },
-        { label: "SYS-B", data: histB, backgroundColor: "rgba(20,184,166,0.6)", borderColor: "#14b8a6", borderWidth: 1 },
+        { label: "SYS-A", data: histA,
+          borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.35)",
+          fill: true, tension: 0.45, pointRadius: 0, borderWidth: 2 },
+        { label: "SYS-B", data: histB,
+          borderColor: "#14b8a6", backgroundColor: "rgba(20,184,166,0.35)",
+          fill: true, tension: 0.45, pointRadius: 0, borderWidth: 2 },
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { stacked: false, title: { display: true, text: "電壓 (V)" }, ticks: { maxTicksLimit: 10 }, grid: { display: false } },
+        x: { title: { display: true, text: "電壓 (V)" }, ticks: { maxTicksLimit: 8 }, grid: { display: false } },
         y: { title: { display: true, text: "電芯數" }, grid: { color: "rgba(139,152,176,0.08)" } }
       }
     }
@@ -1813,6 +1819,7 @@ function viewTariff() {
           <button class="tariff-tool active" data-tool="P" style="--c:#ef4444"><span class="dot" style="background:#ef4444"></span>尖峰</button>
           <button class="tariff-tool" data-tool="M" style="--c:#f59e0b"><span class="dot" style="background:#f59e0b"></span>半尖峰</button>
           <button class="tariff-tool" data-tool="O" style="--c:#10b981"><span class="dot" style="background:#10b981"></span>離峰</button>
+          <button class="btn btn-ghost" id="tariffUndo" style="margin-left:12px;font-size:12px;padding:5px 12px" disabled>↶ 復原</button>
         </div>
       </div>
       <div class="tariff-grid-wrap">
@@ -1909,32 +1916,69 @@ function viewTariff() {
       $$(".tariff-tool").forEach(x => x.classList.toggle("active", x === b));
     });
   });
+
+  // Undo stack: each entry = { d, h, prev } describing one cell change
+  const undoStack = [];
+  const undoBtn = $("#tariffUndo");
+  const updateUndoBtn = () => {
+    undoBtn.disabled = undoStack.length === 0;
+    undoBtn.textContent = undoStack.length > 0 ? `↶ 復原 (${undoStack.length})` : "↶ 復原";
+  };
+  let dragBatch = null;     // collect during one drag, push as single entry on mouseup
   let dragging = false;
   const cellHandler = (cell) => {
     if (!cell || cell.dataset.day === undefined) return;
     const d = +cell.dataset.day, h = +cell.dataset.hour;
     if (tp.grid[d][h] === activeTool) return;
+    if (dragBatch) dragBatch.push({ d, h, prev: tp.grid[d][h] });
+    else undoStack.push([{ d, h, prev: tp.grid[d][h] }]);
     tp.grid[d][h] = activeTool;
     cell.style.background = PERIOD_META[activeTool].bg;
     cell.textContent = PERIOD_META[activeTool].label[0];
+    updateUndoBtn();
   };
   const grid = document.querySelector(".tariff-grid-wrap");
   grid.addEventListener("mousedown", e => {
     const c = e.target.closest(".tariff-cell"); if (!c) return;
-    e.preventDefault(); dragging = true; cellHandler(c);
+    e.preventDefault(); dragging = true; dragBatch = []; cellHandler(c);
   });
   grid.addEventListener("mouseover", e => { if (dragging) cellHandler(e.target.closest(".tariff-cell")); });
-  document.addEventListener("mouseup", () => { dragging = false; });
+  document.addEventListener("mouseup", () => {
+    if (dragBatch && dragBatch.length > 0) undoStack.push(dragBatch);
+    dragging = false; dragBatch = null;
+    updateUndoBtn();
+  });
+
+  undoBtn.addEventListener("click", () => {
+    const batch = undoStack.pop();
+    if (!batch) return;
+    // Restore each cell in reverse order
+    for (const { d, h, prev } of batch.reverse()) {
+      tp.grid[d][h] = prev;
+      const cell = document.querySelector(`.tariff-cell[data-day="${d}"][data-hour="${h}"]`);
+      if (cell) {
+        cell.style.background = PERIOD_META[prev].bg;
+        cell.textContent = PERIOD_META[prev].label[0];
+      }
+    }
+    updateUndoBtn();
+    showToast(`已復原 ${batch.length} 格`, "info", 1500);
+  });
   // Touch
   grid.addEventListener("touchstart", e => {
     const c = e.target.closest(".tariff-cell"); if (!c) return;
-    e.preventDefault(); dragging = true; cellHandler(c);
+    e.preventDefault(); dragging = true; dragBatch = []; cellHandler(c);
   }, { passive: false });
   grid.addEventListener("touchmove", e => {
     if (!dragging) return; e.preventDefault();
     const t = e.touches[0]; const el = document.elementFromPoint(t.clientX, t.clientY);
     cellHandler(el?.closest(".tariff-cell"));
   }, { passive: false });
+  document.addEventListener("touchend", () => {
+    if (dragBatch && dragBatch.length > 0) undoStack.push(dragBatch);
+    dragging = false; dragBatch = null;
+    updateUndoBtn();
+  });
 
   // Price inputs
   $$(".tariff-price").forEach(inp => {
