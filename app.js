@@ -2431,7 +2431,7 @@ function viewSettings() {
           <rect x="380" y="14" width="440" height="80" rx="14" fill="#0a1d20" stroke="#00c2a8" stroke-width="2"/>
           <text x="600" y="42" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">☁  J&amp;J Power EMS Cloud  ← 即本系統</text>
           <text x="600" y="62" text-anchor="middle" fill="#cbd5e1" font-size="11.5">Web UI · 多租戶 · TimescaleDB · 策略引擎 · AI Copilot · 告警引擎</text>
-          <text x="600" y="80" text-anchor="middle" fill="#94e0d2" font-size="10.5">三拓撲：A 邊緣單站 / B 純 IP 多站 / C 完整三層（取代海辰数能云）</text>
+          <text x="600" y="80" text-anchor="middle" fill="#94e0d2" font-size="10.5">三拓撲：A 邊緣單站 / B 純 IP 多站 / C 雲地架構</text>
         </g>
 
         <!-- TPC trading platform (right of cloud) -->
