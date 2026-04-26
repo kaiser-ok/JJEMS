@@ -606,7 +606,7 @@
       <div class="pageno"><strong>05</strong> / 13</div>
       <div class="title-row">
         <h2>部署彈性 · <span class="accent">三種拓撲、一份程式</span></h2>
-        <p class="subtitle">同一份 codebase + 同一份 schema，依需求切換為邊緣 / 純 IP 多站 / 完整三層</p>
+        <p class="subtitle">同一份 codebase + 同一份 schema，依需求切換為邊緣 / 純 IP 多站 / 雲地架構</p>
       </div>
       <div class="body single">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1200px">
@@ -625,12 +625,7 @@
             <div style="margin-top:14px;font-size:12.5px;line-height:1.7">
               ✓ 大部分 C&amp;I 案場<br>
               ✓ 資料完全自有<br>
-              ✓ WAN 斷線不影響<br>
-              ✗ 不支援多站聚合
-            </div>
-            <div style="margin-top:14px;padding:8px 10px;background:rgba(0,194,168,0.1);border-radius:6px;font-size:11.5px">
-              <strong>BOM</strong>：NT$ 30K (一次性)<br>
-              <strong>月費</strong>：NT$ 0
+              ✓ WAN 斷線不影響
             </div>
           </div>
 
@@ -648,20 +643,14 @@
             <div style="margin-top:14px;font-size:12.5px;line-height:1.7">
               ✓ 多站聚合 + VPP<br>
               ✓ 跨站排程最佳化<br>
-              ✓ 無需站控硬體<br>
-              ✗ 需全 IP 化案場<br>
-              ✗ 無法接 RS485/DI/O
-            </div>
-            <div style="margin-top:14px;padding:8px 10px;background:rgba(59,130,246,0.12);border-radius:6px;font-size:11.5px">
-              <strong>BOM</strong>：NT$ 0 (硬體)<br>
-              <strong>月費</strong>：NT$ 5–30K (雲端)
+              ✓ 無需站控硬體
             </div>
           </div>
 
-          <!-- C. Full -->
+          <!-- C. Cloud + Edge -->
           <div style="padding:20px;background:linear-gradient(180deg,rgba(139,92,246,0.08),rgba(139,92,246,0.02));border:1px solid rgba(139,92,246,0.3);border-radius:12px">
             <div style="font-size:11px;letter-spacing:2px;color:var(--purple);font-weight:700">拓撲 C</div>
-            <div style="font-size:20px;font-weight:800;margin:6px 0 4px">完整三層</div>
+            <div style="font-size:20px;font-weight:800;margin:6px 0 4px">雲地架構</div>
             <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">cloud + edge SCU</div>
             <pre style="background:rgba(0,0,0,0.25);padding:10px;border-radius:6px;font-size:10px;color:var(--text);line-height:1.4;font-family:ui-monospace,monospace;overflow:hidden">┌──────────────┐
 │ J&amp;J EMS Cloud│
@@ -674,18 +663,9 @@
               ✓ 接 RS485 電錶<br>
               ✓ DI/O 消防/門禁<br>
               ✓ 本地策略 + WAN 斷線運轉<br>
-              ✓ ms 級安全閥 (sReg/AFC)<br>
-              ✗ 站控硬體成本最高
-            </div>
-            <div style="margin-top:14px;padding:8px 10px;background:rgba(139,92,246,0.12);border-radius:6px;font-size:11.5px">
-              <strong>BOM</strong>：NT$ 50K+ (站控)<br>
-              <strong>月費</strong>：NT$ 5–30K (雲端)
+              ✓ ms 級安全閥 (sReg/AFC)
             </div>
           </div>
-        </div>
-
-        <div style="margin-top:32px;padding:16px 20px;background:rgba(0,194,168,0.06);border-left:3px solid var(--primary);border-radius:8px;max-width:1200px;font-size:13.5px">
-          <strong>關鍵</strong>：Schema 都一樣（<code style="background:rgba(0,0,0,0.3);padding:1px 6px;border-radius:3px;font-size:12px">sites.deployment_mode</code> 區分），北向 MQTT 都遵循「海辰数能EMS对接数能云 V1.4」協議。客戶可從 A 起步，未來無痛升級到 B 或 C，**歷史資料完整保留**。
         </div>
       </div>
       <div class="footer"><span>J&amp;J Power EMS · 部署拓撲</span><span>2026</span></div>
