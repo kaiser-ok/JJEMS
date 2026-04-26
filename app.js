@@ -3343,7 +3343,7 @@ function viewPassport() {
       </div>
       <div class="chart-wrap"><canvas id="chartSoh"></canvas></div>
       <div class="row mt-12" style="padding:10px 14px;background:rgba(139,92,246,0.06);border-left:3px solid var(--purple);border-radius:6px;font-size:12.5px;line-height:1.6">
-        <span><strong>🤖 AI 觀察</strong>：依過去 6 個月 SOH 曲線斜率、循環次數、平均工作溫度（29.4°C）綜合評估，本電池組退役可能落在 <strong>2027 Q2–Q3</strong>。建議於 EOL 前 6 個月啟動採購流程；若 14:00 環境溫度可降 2°C，預估壽命可延長 ~8%。</span>
+        <span><strong>🤖 AI 觀察</strong>：歷史 6 個月（藍實線）SOH 線性下降約 0.13%/月；模型偵測電芯內阻離散度 (σ) 開始上升 + 平均工作溫度 29.4°C 偏高，預測未來進入「加速衰退期」（紫虛線），約於 <strong>+14 月（2027-06）</strong> 觸及 EOL 80%（橘虛線）。紫色帶狀為 95% 信賴區間，越遠越寬代表不確定性增加。建議：① EOL 前 6 個月啟動 EPC 採購；② 14:00 高溫時段限制 C-rate 至 0.4C，模型估壽命可延長 ~8%。</span>
       </div>
     </div>
 
@@ -3448,44 +3448,68 @@ function viewPassport() {
     }
   }));
 
-  // SOH timeline + prediction
+  // SOH timeline + prediction (6m history + 18m projection)
+  // History: gentle linear decline (~0.13%/m typical LFP early life)
+  // Prediction: accelerated late-life model — AI detects thermal stress / IR drift
+  //   SOH(t) = base - 0.62t - 0.045t² → crosses 80% at t≈+14m (matches RUL KPI)
   const months = [];
   const histSoh = [];
   const predSoh = [];
-  // 16 months history (start at 100%, decline by ~0.18%/month)
-  for (let m = -16; m <= 0; m++) {
-    months.push(m === 0 ? "今" : `${m}m`);
-    histSoh.push(+(100 + m * Math.abs(p.performance.sohTrend) + (Math.random()-0.5)*0.15).toFixed(2));
+  const ciHigh = [];
+  const ciLow = [];
+  const det = (i) => ((Math.sin(i * 7919.3) + 1) * 0.5 - 0.5) * 0.16; // deterministic noise ±0.08
+
+  const baseSoh = p.performance.soh; // 98.2
+
+  for (let m = -6; m <= 0; m++) {
+    months.push(m === 0 ? "今日" : `${m}m`);
+    histSoh.push(+(baseSoh + (-m) * 0.13 + det(m + 10)).toFixed(2));
     predSoh.push(null);
+    ciHigh.push(null);
+    ciLow.push(null);
   }
-  // 8 months prediction
-  for (let m = 1; m <= 8; m++) {
+  for (let m = 1; m <= 18; m++) {
     months.push(`+${m}m`);
     histSoh.push(null);
-    const last = predSoh[predSoh.length-1] ?? histSoh[16];
-    predSoh.push(+(p.performance.soh - m * Math.abs(p.performance.sohTrend)).toFixed(2));
+    const pred = +(baseSoh - 0.62 * m - 0.045 * m * m).toFixed(2);
+    predSoh.push(pred);
+    const sigma = 0.45 * Math.sqrt(m); // CI 隨時間擴大
+    ciHigh.push(+(pred + sigma * 1.96).toFixed(2));
+    ciLow.push(+(pred - sigma * 1.96).toFixed(2));
   }
-  // Connect last hist to first pred
-  predSoh[16] = histSoh[16];
+  // 縫合：歷史終點 = 預測起點 = CI 起點
+  predSoh[6] = histSoh[6];
+  ciHigh[6] = histSoh[6];
+  ciLow[6] = histSoh[6];
 
   addChart(new Chart($("#chartSoh"), {
     type: "line",
     data: {
       labels: months,
       datasets: [
-        { label: "歷史 SOH", data: histSoh, borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.15)", fill:true, tension:.3, pointRadius:0, borderWidth:2, spanGaps:false },
-        { label: "AI 預測", data: predSoh, borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,0.1)", fill:true, tension:.3, pointRadius:0, borderWidth:2, borderDash:[5,4], spanGaps:false },
-        { label: "EOL 80%", data: months.map(()=>80), borderColor: "#f59e0b", borderWidth: 1.5, borderDash:[3,3], pointRadius:0, fill:false }
+        // CI 帶（先畫於底層）：上界用 fill:'+1' 朝下界填色
+        { label: "信賴區間 95%", data: ciHigh, borderColor: "transparent", backgroundColor: "rgba(139,92,246,0.14)", fill: "+1", pointRadius: 0, spanGaps: false, tension: .3 },
+        { label: "_ciLow", data: ciLow, borderColor: "transparent", fill: false, pointRadius: 0, spanGaps: false, tension: .3 },
+        // 歷史
+        { label: "歷史 SOH (實測)", data: histSoh, borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.16)", fill: true, tension: .3, pointRadius: 0, borderWidth: 2.5, spanGaps: false },
+        // AI 預測中位線
+        { label: "AI 預測 (中位)", data: predSoh, borderColor: "#8b5cf6", backgroundColor: "transparent", fill: false, tension: .3, pointRadius: 0, borderWidth: 2.5, borderDash: [6, 4], spanGaps: false },
+        // EOL 閾值
+        { label: "EOL 80%", data: months.map(() => 80), borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, fill: false }
       ]
     },
     options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: { legend: { display: false },
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true, position: "top",
+          labels: { boxWidth: 10, font: { size: 11 }, color: "#cbd5e1", filter: (it) => !it.text.startsWith("_") }
+        },
         tooltip: { callbacks: { label: c => c.parsed.y == null ? "" : `${c.dataset.label}: ${c.parsed.y}%` } }
       },
       scales: {
-        x: { grid: { color: "rgba(139,152,176,0.06)" } },
-        y: { min: 75, max: 102, grid: { color: "rgba(139,152,176,0.08)" }, ticks: { callback: v => v + "%" } }
+        x: { grid: { color: "rgba(139,152,176,0.06)" }, ticks: { color: "#94a3b8", maxRotation: 0, autoSkip: true, maxTicksLimit: 13 } },
+        y: { min: 72, max: 102, grid: { color: "rgba(139,152,176,0.08)" }, ticks: { color: "#94a3b8", callback: v => v + "%" } }
       }
     }
   }));
