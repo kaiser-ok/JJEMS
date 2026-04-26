@@ -703,11 +703,11 @@ function viewSLD() {
           <text x="440" y="20" fill="#fbbf24" font-size="9.5" font-weight="700" letter-spacing="1">⚡ 台電所有</text>
           <!-- Customer infrastructure zone (transformer + LV BUS area, middle band) -->
           <rect x="6" y="200" width="1068" height="60" rx="6" fill="rgba(59,130,246,0.04)" stroke="rgba(59,130,246,0.25)" stroke-dasharray="4,3"/>
-          <text x="16" y="215" fill="#3b82f6" font-size="9.5" font-weight="700" letter-spacing="1">🏭 客戶/廠區設備 (主變壓器、配電盤、LV BUS、負載)</text>
+          <text x="1064" y="215" text-anchor="end" fill="#3b82f6" font-size="9.5" font-weight="700" letter-spacing="1">🏭 客戶 / 廠區設備</text>
           <!-- J&J product zone (PV + cabinets, bottom + left source) -->
           <rect x="60" y="6" width="200" height="190" rx="6" fill="rgba(0,194,168,0.04)" stroke="rgba(0,194,168,0.3)" stroke-dasharray="4,3"/>
-          <rect x="280" y="270" width="340" height="170" rx="6" fill="rgba(0,194,168,0.04)" stroke="rgba(0,194,168,0.3)" stroke-dasharray="4,3"/>
-          <text x="290" y="284" fill="#00c2a8" font-size="9.5" font-weight="700" letter-spacing="1">🟢 J&amp;J Power 產品 (Zpower-AC-261L 一體機 × 2)</text>
+          <rect x="280" y="270" width="340" height="180" rx="6" fill="rgba(0,194,168,0.04)" stroke="rgba(0,194,168,0.3)" stroke-dasharray="4,3"/>
+          <text x="612" y="445" text-anchor="end" fill="#00c2a8" font-size="9.5" font-weight="700" letter-spacing="1">🟢 J&amp;J Power · Zpower-AC-261L × 2</text>
         </g>
 
         <!-- TPC Grid -->
@@ -736,7 +736,7 @@ function viewSLD() {
         <!-- LV bus -->
         <line x1="100" y1="232" x2="980" y2="232" stroke="#3b82f6" stroke-width="3"/>
         <line x1="540" y1="190" x2="540" y2="232" stroke="#3b82f6" stroke-width="2"/>
-        <text x="100" y="222" fill="#3b82f6" font-size="11" font-weight="600">LV BUS 480V</text>
+        <text x="100" y="248" fill="#3b82f6" font-size="11" font-weight="600">LV BUS 480V</text>
 
         <!-- PV (上方來源) — 直接 DC 接入 SYS-A 寬版光儲一體機內建 MPPT -->
         <g>
@@ -751,7 +751,7 @@ function viewSLD() {
           </path>
           <text x="180" y="180" fill="#facc15" font-size="11" font-weight="600">↓ DC 直連</text>
           <text x="180" y="194" fill="#8b98b0" font-size="9">650-950V (4 串 × 2)</text>
-          <text x="220" y="252" fill="#facc15" font-size="10">MC4 · 內建 MPPT 60-120kW</text>
+          <text x="178" y="255" fill="#facc15" font-size="10">MC4 · 內建 MPPT</text>
         </g>
 
         <!-- PCS-A / BAT-A (125kW / 261kWh) -->
@@ -805,7 +805,7 @@ function viewSLD() {
             <text x="360" y="402" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" style="text-shadow:0 1px 2px rgba(0,0,0,0.5)">65%</text>
             <text x="360" y="424" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">29.4°C</text>
           </g>
-          <text x="360" y="265" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 118 kW</text>
+          <text x="360" y="263" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 118 kW</text>
         </g>
 
         <!-- PCS-B / BAT-B (100kW / 215kWh) -->
@@ -850,7 +850,7 @@ function viewSLD() {
             <text x="540" y="402" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" style="text-shadow:0 1px 2px rgba(0,0,0,0.5)">72%</text>
             <text x="540" y="424" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">31.1°C</text>
           </g>
-          <text x="540" y="265" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 97 kW</text>
+          <text x="540" y="263" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 97 kW</text>
         </g>
 
         <!-- Load feeders -->
