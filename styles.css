@@ -575,6 +575,21 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
   background: var(--amber); box-shadow: 0 0 4px var(--amber);
 }
 
+/* AI-changed cell mark (only when state.strategy === aiAdvisory) */
+.sched-cell.ai-changed {
+  box-shadow: inset 0 0 0 2px rgba(139,92,246,0.85);
+  animation: aiPulse 2s ease-in-out infinite;
+}
+.sched-cell .ai-mark {
+  position: absolute; top: 1px; left: 2px;
+  font-size: 10px; line-height: 1; pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+@keyframes aiPulse {
+  0%,100% { box-shadow: inset 0 0 0 2px rgba(139,92,246,0.85), 0 0 0 0 rgba(139,92,246,0); }
+  50%     { box-shadow: inset 0 0 0 2px rgba(139,92,246,0.85), 0 0 8px 1px rgba(139,92,246,0.5); }
+}
+
 /* Modal overlay (cell editor) */
 .modal-overlay {
   position: fixed; inset: 0;

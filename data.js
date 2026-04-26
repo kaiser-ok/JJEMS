@@ -382,6 +382,13 @@ const STRATEGIES = {
     benefit: "工程測試 / 特殊調度",
     constraint: "人工指令、無自動約束",
   },
+  aiAdvisory: {
+    id: "aiAdvisory", label: "AI 動態建議",   full: "🤖 AI 動態建議 (Layer 3)",
+    color: "#8b5cf6",
+    desc: "依負載/PV 預測自動調整時段，與基線（時間套利）的差異會高亮顯示",
+    benefit: "比固定策略多 3-8% 收益",
+    constraint: "預測誤差 ±10% · 仍受 Layer 1 安全規則限制",
+  },
 };
 
 // Public plan function — checks state.scheduleOverride first (user edits),
@@ -419,6 +426,16 @@ function _planForStrategy(strategyId, hour) {
     case "pvSelf":
       if (hour >= 10 && hour <= 14) return { mode: "charge",    kw: -150, label: "PV充" };
       if (hour >= 17 && hour <= 22) return { mode: "discharge", kw: 180,  label: "自用" };
+      return { mode: "idle", kw: 0, label: "" };
+    case "aiAdvisory":
+      // Baseline ≈ arbitrage, with 3 AI-tweaked hours per the forecast banner:
+      //  · 17:00 提早預充（避免 19:00 SoC 不足）
+      //  · 19:00–20:00 加碼放電（削峰）
+      if (hour >= 1 && hour <= 5)   return { mode: "charge",    kw: -180, label: "充" };
+      if (hour >= 10 && hour <= 14) return { mode: "charge",    kw: -60,  label: "緩充" };
+      if (hour === 17)              return { mode: "charge",    kw: -50,  label: "🤖 預充" };  // AI 動作
+      if (hour === 19 || hour === 20) return { mode: "discharge", kw: 225, label: "🤖 削峰" };  // AI 加碼
+      if (hour === 16 || hour === 18 || hour === 21) return { mode: "discharge", kw: 215, label: "放" };
       return { mode: "idle", kw: 0, label: "" };
     case "manual":
     default:

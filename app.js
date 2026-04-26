@@ -477,7 +477,7 @@ function viewDashboard() {
               </ul>
             </div>
             <div class="row mt-8" style="gap:8px">
-              <a href="#/schedule" class="btn btn-primary" style="font-size:12.5px;padding:6px 14px">套用建議到排程</a>
+              <button class="btn btn-primary" style="font-size:12.5px;padding:6px 14px" id="applyAiAdvice">套用建議到排程</button>
               <button class="btn" style="font-size:12px;padding:6px 12px" id="dismissForecast">忽略</button>
               <span class="muted" style="font-size:11px;margin-left:auto">⓵ AI 不會自動執行 — 需人工確認</span>
             </div>
@@ -509,6 +509,13 @@ function viewDashboard() {
 
   $("#dashDemoThermal")?.addEventListener("click", () => demoTriggerAlarm("thermal"));
   $("#dismissForecast")?.addEventListener("click", () => showToast("AI 預測已忽略，明天重新評估", "info"));
+  $("#applyAiAdvice")?.addEventListener("click", () => {
+    state.strategy = "aiAdvisory";
+    state.scheduleOverride = {};        // clear manual edits so the AI baseline is clean
+    renderModePill();
+    showToast("已套用 AI 動態建議，請至排程頁檢視差異", "ok", 3500);
+    location.hash = "#/schedule";
+  });
   $("#dashDemoFire")?.addEventListener("click",    () => demoTriggerAlarm("fire"));
   $("#dashDemoContract")?.addEventListener("click",() => demoTriggerAlarm("contract"));
 }
@@ -1768,6 +1775,23 @@ function viewSchedule() {
       </div>
     </div>
 
+    ${state.strategy === "aiAdvisory" ? `
+    <div class="card mb-16" style="border:1px solid rgba(139,92,246,0.4);background:linear-gradient(90deg,rgba(139,92,246,0.08),rgba(139,92,246,0.02))">
+      <div class="row" style="gap:14px;flex-wrap:wrap">
+        <div style="font-size:28px">🤖</div>
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:14px;font-weight:700">AI 動態建議模式 · 已套用 3 處變更（高亮 🤖 標記）</div>
+          <div class="muted" style="font-size:12px;margin-top:4px;line-height:1.6">
+            與時間套利基線相比：
+            <strong style="color:var(--purple)">17:00 預充 −50 kW</strong>（避免 19:00 SoC 不足）·
+            <strong style="color:var(--purple)">19:00–20:00 加碼放電 +10 kW</strong>（削峰）<br>
+            預估比基線多賺 <strong style="color:var(--green)">~$1,150 / 日</strong>。可逐格檢視、編輯、或回退到基線策略。
+          </div>
+        </div>
+        <button class="btn" id="rollbackToBaseline">↩ 回退到時間套利基線</button>
+      </div>
+    </div>` : ''}
+
     <div class="card mb-16">
       <div class="card-head">
         <h3>運行策略</h3>
@@ -1893,6 +1917,11 @@ function viewSchedule() {
     </div>
   `;
 
+  // Rollback button (only present in AI advisory mode)
+  $("#rollbackToBaseline")?.addEventListener("click", () => {
+    setStrategy("arbitrage");
+  });
+
   // Wire chip click
   $("#chipRow").querySelectorAll(".chip").forEach(el => {
     el.addEventListener("click", () => setStrategy(el.dataset.strategy));
@@ -1924,14 +1953,28 @@ function viewSchedule() {
   });
 
   // Render schedule cells (event delegation handles clicks/drag)
+  // When showing aiAdvisory, also compare each cell with arbitrage baseline
+  // and add a 🤖 marker on cells that AI changed.
   const renderCells = () => {
     const cells = Array.from({length:24}, (_,h) => ({ h, ...planFor(state.strategy, h) }));
+    const isAi = state.strategy === "aiAdvisory";
     $("#sched").innerHTML = cells.map(p => {
       const price = tariffOf(p.h).price;
       const edited = state.scheduleOverride[p.h] !== undefined;
-      return `<div class="sched-cell ${p.mode} ${edited?'edited':''}" data-h="${p.h}" title="${p.h}:00 · ${p.mode} · ${p.kw} kW · 電價 NT$${price}${edited?' · 已修改':''}">
+      // AI diff: compare with arbitrage baseline (the "default" reference)
+      let aiDiff = false, baseLabel = "";
+      if (isAi) {
+        const base = _planForStrategy("arbitrage", p.h);
+        if (base.mode !== p.mode || base.kw !== p.kw) {
+          aiDiff = true;
+          baseLabel = ` · 基線: ${base.mode === "idle" ? "待機" : base.kw + " kW"}`;
+        }
+      }
+      return `<div class="sched-cell ${p.mode} ${edited?'edited':''} ${aiDiff?'ai-changed':''}" data-h="${p.h}"
+                   title="${p.h}:00 · ${p.mode} · ${p.kw} kW · 電價 NT$${price}${edited?' · 已修改':''}${baseLabel}">
         <span class="lbl">${p.label || ""}</span>
         ${edited ? '<span class="edit-mark"></span>' : ''}
+        ${aiDiff ? '<span class="ai-mark">🤖</span>' : ''}
       </div>`;
     }).join("");
   };
