@@ -554,6 +554,7 @@ function drawChartSoc() {
 // ────────── 2. Single-line diagram ──────────
 function viewSLD() {
   const v = $("#view");
+  const mode = state.sldMode || "diagram";
   v.innerHTML = `
     <div class="page-header">
       <div>
@@ -561,9 +562,9 @@ function viewSLD() {
         <p class="page-sub">${t("page.sld.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn">${t("sld.diagram")}</button>
-        <button class="btn btn-ghost">${t("sld.protection")}</button>
-        <button class="btn btn-ghost">${t("sld.comm")}</button>
+        <button class="btn ${mode==='diagram'?'':'btn-ghost'}" data-sld="diagram">${t("sld.diagram")}</button>
+        <button class="btn ${mode==='protection'?'':'btn-ghost'}" data-sld="protection">${t("sld.protection")}</button>
+        <button class="btn ${mode==='comm'?'':'btn-ghost'}" data-sld="comm">${t("sld.comm")}</button>
       </div>
     </div>
 
@@ -612,15 +613,24 @@ function viewSLD() {
         <line x1="540" y1="190" x2="540" y2="232" stroke="#3b82f6" stroke-width="2"/>
         <text x="100" y="222" fill="#3b82f6" font-size="11" font-weight="600">LV BUS 480V</text>
 
-        <!-- PV -->
+        <!-- PV (上方來源 — 與台電並列為「源」，自 inverter 注入 LV BUS) -->
         <g>
-          <line x1="180" y1="232" x2="180" y2="300" stroke="#facc15" stroke-width="2" marker-end="url(#arrYellow)">
+          <rect x="80" y="20" width="180" height="58" rx="8" fill="#1a1505" stroke="#facc15" stroke-width="1.5"/>
+          <text x="170" y="42" text-anchor="middle" fill="#facc15" font-size="13" font-weight="700">☀ 太陽能</text>
+          <text x="170" y="60" text-anchor="middle" fill="#e6edf5" font-size="14" font-weight="700">308 kW</text>
+          <text x="170" y="72" text-anchor="middle" fill="#8b98b0" font-size="10">400 kWp · 發電中</text>
+
+          <!-- PV inverter dot -->
+          <line x1="170" y1="78" x2="170" y2="115" stroke="#facc15" stroke-width="2"/>
+          <rect x="135" y="115" width="70" height="36" rx="6" fill="#0f1729" stroke="#facc15" stroke-width="1"/>
+          <text x="170" y="130" text-anchor="middle" fill="#facc15" font-size="10" font-weight="700">PV INV</text>
+          <text x="170" y="143" text-anchor="middle" fill="#8b98b0" font-size="9">DC/AC · 480V</text>
+
+          <!-- 注入 LV BUS -->
+          <line x1="170" y1="151" x2="170" y2="232" stroke="#facc15" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrYellow)">
             <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.3s" repeatCount="indefinite"/>
           </line>
-          <rect x="120" y="300" width="120" height="78" rx="8" fill="#1a1505" stroke="#facc15" stroke-width="1.5"/>
-          <text x="180" y="324" text-anchor="middle" fill="#facc15" font-size="13" font-weight="700">☀ 太陽能</text>
-          <text x="180" y="345" text-anchor="middle" fill="#e6edf5" font-size="16" font-weight="700">308 kW</text>
-          <text x="180" y="365" text-anchor="middle" fill="#8b98b0" font-size="10">400 kWp · 發電中</text>
+          <text x="180" y="195" fill="#facc15" font-size="11" font-weight="600">↓ 注入</text>
         </g>
 
         <!-- PCS-A / BAT-A (125kW / 261kWh) -->
@@ -717,37 +727,7 @@ function viewSLD() {
       </svg>
     </div>
 
-    <div class="grid g-3 mt-16">
-      <div class="card">
-        <div class="card-head"><h3>主變壓器</h3><span class="tag ok">正常</span></div>
-        <table class="data">
-          <tr><td>油溫</td><td class="num">52 °C</td></tr>
-          <tr><td>繞組溫度</td><td class="num">68 °C</td></tr>
-          <tr><td>有載分接頭</td><td class="num">Tap 3 / 5</td></tr>
-          <tr><td>當前負載率</td><td class="num">70.4%</td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>電壓品質</h3><span class="tag ok">合格</span></div>
-        <table class="data">
-          <tr><td>R 相</td><td class="num">489.2 V</td></tr>
-          <tr><td>S 相</td><td class="num">487.8 V</td></tr>
-          <tr><td>T 相</td><td class="num">488.4 V</td></tr>
-          <tr><td>頻率</td><td class="num">60.02 Hz</td></tr>
-          <tr><td>功率因數</td><td class="num">0.96</td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>保護電驛</h3><span class="tag ok">全部正常</span></div>
-        <table class="data">
-          <tr><td>50/51 過流</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>27/59 欠過壓</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>81 頻率</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>87T 差動</td><td><span class="tag ok">正常</span></td></tr>
-          <tr><td>Buchholz</td><td><span class="tag ok">正常</span></td></tr>
-        </table>
-      </div>
-    </div>
+    <div id="sld-mode-content"></div>
 
     <!-- 接觸器 / DIO 控制面板 -->
     <div class="grid g-2 mt-16">
@@ -831,6 +811,275 @@ function viewSLD() {
       </div>
     </div>
   `;
+
+  // ── Tab switching: render mode-specific content below SVG ──
+  $$(".page-actions [data-sld]").forEach(b => {
+    b.addEventListener("click", () => {
+      state.sldMode = b.dataset.sld;
+      router();
+    });
+  });
+  renderSldModeContent(mode);
+}
+
+function renderSldModeContent(mode) {
+  const host = $("#sld-mode-content");
+  if (!host) return;
+
+  if (mode === "diagram") {
+    host.innerHTML = `
+      <div class="grid g-3 mt-16">
+        <div class="card">
+          <div class="card-head"><h3>主變壓器</h3><span class="tag ok">正常</span></div>
+          <table class="data">
+            <tr><td>油溫</td><td class="num">52 °C</td></tr>
+            <tr><td>繞組溫度</td><td class="num">68 °C</td></tr>
+            <tr><td>有載分接頭</td><td class="num">Tap 3 / 5</td></tr>
+            <tr><td>當前負載率</td><td class="num">70.4%</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>電壓品質</h3><span class="tag ok">合格</span></div>
+          <table class="data">
+            <tr><td>R 相</td><td class="num">489.2 V</td></tr>
+            <tr><td>S 相</td><td class="num">487.8 V</td></tr>
+            <tr><td>T 相</td><td class="num">488.4 V</td></tr>
+            <tr><td>頻率</td><td class="num">60.02 Hz</td></tr>
+            <tr><td>功率因數</td><td class="num">0.96</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>保護電驛</h3><span class="tag ok">全部正常</span></div>
+          <table class="data">
+            <tr><td>50/51 過流</td><td><span class="tag ok">正常</span></td></tr>
+            <tr><td>27/59 欠過壓</td><td><span class="tag ok">正常</span></td></tr>
+            <tr><td>81 頻率</td><td><span class="tag ok">正常</span></td></tr>
+            <tr><td>87T 差動</td><td><span class="tag ok">正常</span></td></tr>
+            <tr><td>Buchholz</td><td><span class="tag ok">正常</span></td></tr>
+          </table>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (mode === "protection") {
+    host.innerHTML = `
+      <div class="grid g-3 mt-16">
+        <div class="card">
+          <div class="card-head"><h3>🛡 保護電驛配置</h3><span class="tag ok">8/8 正常</span></div>
+          <table class="data" style="font-size:12.5px">
+            <thead><tr><th>ANSI</th><th>名稱</th><th class="right">設定值</th><th>狀態</th></tr></thead>
+            <tbody>
+              <tr><td><code>50/51</code></td><td>過流 / 瞬時過流</td><td class="num right">450A · 0.3s</td><td><span class="tag ok">正常</span></td></tr>
+              <tr><td><code>50G/51G</code></td><td>接地過流</td><td class="num right">80A inst · 0.5In td=1s</td><td><span class="tag ok">正常</span></td></tr>
+              <tr><td><code>27/59</code></td><td>欠/過壓</td><td class="num right">±10/15% × Vn</td><td><span class="tag ok">正常</span></td></tr>
+              <tr><td><code>81U/81O</code></td><td>低/高頻率</td><td class="num right">59.5 / 60.5 Hz</td><td><span class="tag ok">正常</span></td></tr>
+              <tr><td><code>87T</code></td><td>變壓器差動</td><td class="num right">0.3In · slope 30%</td><td><span class="tag ok">正常</span></td></tr>
+              <tr><td><code>25</code></td><td>同步檢查</td><td class="num right">±10° / ±0.2 Hz</td><td><span class="tag ok">啟用</span></td></tr>
+              <tr><td><code>49</code></td><td>熱模擬</td><td class="num right">τ = 30 min</td><td><span class="tag ok">正常</span></td></tr>
+              <tr><td><code>Buchholz</code></td><td>瓦斯/油流</td><td class="num right">第一段警/第二段跳</td><td><span class="tag ok">正常</span></td></tr>
+            </tbody>
+          </table>
+          <div class="muted mt-8" style="font-size:11px">符合 IEC 60255 · CT 600/5A · VT 22.8kV/110V</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>⚡ 短路電流容量</h3><span class="tag ok">設計餘裕充足</span></div>
+          <table class="data">
+            <tr><td>22.8kV 高壓側 Isc</td><td class="num right">12.4 kA</td></tr>
+            <tr><td>480V 低壓側 Isc</td><td class="num right">32.5 kA</td></tr>
+            <tr><td>主 ACB 切斷容量 (Icu)</td><td class="num right">≥ 50 kA</td><td><span class="tag ok">充裕</span></td></tr>
+            <tr><td>PCS DC 側熔斷器</td><td class="num right">200A · 1000VDC</td></tr>
+            <tr><td>變壓器阻抗</td><td class="num right">6.0%</td></tr>
+            <tr><td>系統接地方式</td><td class="num right">高阻接地 (NGR 50Ω)</td></tr>
+          </table>
+          <div class="muted mt-8" style="font-size:11px">依 IEEE 141 / 242 計算 · 上次校核 2025-12-08</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>📜 最近 30 日跳脫紀錄</h3><span class="tag warn">2 次</span></div>
+          <table class="data" style="font-size:12.5px">
+            <thead><tr><th>時間</th><th>裝置</th><th>動作</th><th>原因</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="num muted">04/11 14:23</td>
+                <td>VCB-SYS-A</td>
+                <td><span class="tag warn">51 過流</span></td>
+                <td class="muted">PCS 啟動湧流，自動重合閘成功</td>
+              </tr>
+              <tr>
+                <td class="num muted">04/03 09:08</td>
+                <td>主 ACB</td>
+                <td><span class="tag info">25 同步</span></td>
+                <td class="muted">並網切換，正常動作</td>
+              </tr>
+              <tr>
+                <td class="num muted">03/17 02:55</td>
+                <td>VCB-SYS-B</td>
+                <td><span class="tag warn">81U 低頻</span></td>
+                <td class="muted">59.45 Hz 約 0.6s，符合 LVRT 規範</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="row mt-12" style="padding:8px 12px;background:rgba(0,194,168,0.06);border-left:3px solid var(--primary);border-radius:6px;font-size:12px">
+            <span><strong>選擇性協調</strong>：上下游時間級差 ≥ 0.3s · IDMT 配合曲線已校核</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g-2 mt-16">
+        <div class="card">
+          <div class="card-head"><h3>🌍 接地與絕緣監測 (即時)</h3><span class="tag ok">健康</span></div>
+          <table class="data">
+            <tr><td>系統對地絕緣</td><td class="num right" style="color:var(--green)">1,650 kΩ</td></tr>
+            <tr><td>正極對地</td><td class="num right">3,420 kΩ</td></tr>
+            <tr><td>負極對地</td><td class="num right">3,180 kΩ</td></tr>
+            <tr><td>絕緣告警閾值</td><td class="num right">≥ 500 kΩ</td></tr>
+            <tr><td>漏電流 (CBCT)</td><td class="num right">2.4 mA</td></tr>
+            <tr><td>NGR 接地電阻</td><td class="num right">50 Ω · 健康</td></tr>
+          </table>
+          <div class="muted mt-8" style="font-size:11px">採集週期：每 5 秒 · 來源 BMS Modbus reg [Insulation/Pos/Neg]</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>📈 過流時間配合曲線 (示意)</h3><span class="tag info">IEC 標準</span></div>
+          <svg viewBox="0 0 360 180" style="width:100%;height:180px">
+            <line x1="40" y1="20" x2="40" y2="160" stroke="#8b98b0" stroke-width="1"/>
+            <line x1="40" y1="160" x2="340" y2="160" stroke="#8b98b0" stroke-width="1"/>
+            <text x="20" y="25" fill="#8b98b0" font-size="9">t (s)</text>
+            <text x="320" y="175" fill="#8b98b0" font-size="9">I/In</text>
+            <text x="35" y="55" fill="#8b98b0" font-size="8" text-anchor="end">10</text>
+            <text x="35" y="100" fill="#8b98b0" font-size="8" text-anchor="end">1.0</text>
+            <text x="35" y="145" fill="#8b98b0" font-size="8" text-anchor="end">0.1</text>
+            <text x="80" y="172" fill="#8b98b0" font-size="8" text-anchor="middle">2</text>
+            <text x="160" y="172" fill="#8b98b0" font-size="8" text-anchor="middle">5</text>
+            <text x="240" y="172" fill="#8b98b0" font-size="8" text-anchor="middle">10</text>
+            <text x="320" y="172" fill="#8b98b0" font-size="8" text-anchor="middle">20</text>
+
+            <!-- Upstream curve (slower) -->
+            <path d="M 60 30 Q 100 60, 160 90 T 320 145" stroke="#3b82f6" stroke-width="2" fill="none"/>
+            <text x="200" y="78" fill="#3b82f6" font-size="10" font-weight="600">主 ACB (上游)</text>
+
+            <!-- Downstream curve (faster) -->
+            <path d="M 60 60 Q 100 90, 160 115 T 320 158" stroke="#facc15" stroke-width="2" fill="none"/>
+            <text x="200" y="135" fill="#facc15" font-size="10" font-weight="600">VCB (下游)</text>
+
+            <!-- Coordination margin band -->
+            <path d="M 100 70 L 100 92 M 200 92 L 200 122 M 300 137 L 300 155" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2"/>
+            <text x="240" y="50" fill="#10b981" font-size="9">↕ 協調級差 ≥ 0.3s</text>
+          </svg>
+          <div class="muted mt-8" style="font-size:11px">確保下游故障時下游先動作；上游給予時間餘裕。</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (mode === "comm") {
+    const links = [
+      { dev:"PCS-A",        proto:"Modbus TCP",   addr:"192.168.1.11:502",     latency:"12 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"PCS-B",        proto:"Modbus TCP",   addr:"192.168.1.12:502",     latency:"14 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"BCU-A",        proto:"Modbus TCP",   addr:"192.168.1.21:502",     latency:"9 ms",   loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"BCU-B",        proto:"Modbus TCP",   addr:"192.168.1.22:502",     latency:"11 ms",  loss:"0.1%", lastSeen:"剛才", status:"ok" },
+      { dev:"BMU 1-13 (A)", proto:"CAN bus",      addr:"125 kbps",             latency:"2 ms",   loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"BMU 1-11 (B)", proto:"CAN bus",      addr:"125 kbps",             latency:"2 ms",   loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"關口表 (主)",  proto:"DLT645/RS485", addr:"COM1, addr=01",         latency:"82 ms",  loss:"0.3%", lastSeen:"3 秒前", status:"ok" },
+      { dev:"儲能表",       proto:"Modbus RTU",   addr:"COM2, addr=02",         latency:"75 ms",  loss:"0.2%", lastSeen:"3 秒前", status:"ok" },
+      { dev:"PV Inverter",  proto:"Modbus TCP",   addr:"192.168.1.31:502",     latency:"18 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"HVAC AC-1",    proto:"BACnet/IP",    addr:"192.168.1.41:47808",   latency:"28 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"HVAC AC-2",    proto:"BACnet/IP",    addr:"192.168.1.42:47808",   latency:"31 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
+      { dev:"HVAC AC-3",    proto:"BACnet/IP",    addr:"192.168.1.43:47808",   latency:"245 ms", loss:"4.2%", lastSeen:"12 秒前", status:"warn" },
+      { dev:"消防 VESDA",   proto:"DI/Relay",     addr:"DI 4",                  latency:"-",      loss:"-",    lastSeen:"剛才", status:"ok" },
+      { dev:"門禁",         proto:"DI/Relay",     addr:"DI 2-3",                latency:"-",      loss:"-",    lastSeen:"剛才", status:"ok" },
+      { dev:"台電 OpenADR", proto:"IEC 61850",    addr:"adr.taipower.com.tw",   latency:"180 ms", loss:"0.5%", lastSeen:"30 秒前", status:"ok" },
+      { dev:"雲端 MQTT",    proto:"MQTT/TLS",     addr:"$ESS/site/data:8883",   latency:"145 ms", loss:"0.2%", lastSeen:"剛才", status:"ok" },
+    ];
+    const okN = links.filter(l => l.status === "ok").length;
+    const warnN = links.filter(l => l.status === "warn").length;
+
+    host.innerHTML = `
+      <!-- KPI summary -->
+      <div class="kpi-grid mt-16" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi green">
+          <div class="kpi-label">線上設備</div>
+          <div class="kpi-value">${okN}<span class="unit">/${links.length}</span></div>
+          <div class="kpi-foot">99.4% 整體可用率</div>
+        </div>
+        <div class="kpi blue">
+          <div class="kpi-label">平均延遲</div>
+          <div class="kpi-value">42<span class="unit">ms</span></div>
+          <div class="kpi-foot">本地 LAN ~12ms · 雲 ~145ms</div>
+        </div>
+        <div class="kpi amber">
+          <div class="kpi-label">需關注</div>
+          <div class="kpi-value">${warnN}</div>
+          <div class="kpi-foot">HVAC AC-3 BACnet 抖動</div>
+        </div>
+        <div class="kpi purple">
+          <div class="kpi-label">24h 自動重連</div>
+          <div class="kpi-value">3<span class="unit">次</span></div>
+          <div class="kpi-foot">100% 復原成功</div>
+        </div>
+      </div>
+
+      <div class="card mt-16">
+        <div class="card-head">
+          <h3>📡 裝置連線一覽 (${links.length} 設備)</h3>
+          <span class="muted" style="font-size:11.5px">每 5 秒輪詢</span>
+        </div>
+        <table class="data" style="font-size:12.5px">
+          <thead><tr><th>設備</th><th>協議</th><th>位址</th><th class="right">延遲</th><th class="right">封包遺失</th><th class="right">最後通訊</th><th>狀態</th></tr></thead>
+          <tbody>
+            ${links.map(l => `
+              <tr ${l.status==='warn'?'style="background:rgba(245,158,11,0.04)"':''}>
+                <td><strong>${l.dev}</strong></td>
+                <td><span class="tag info" style="font-size:11px">${l.proto}</span></td>
+                <td class="muted" style="font-family:ui-monospace,monospace;font-size:11px">${l.addr}</td>
+                <td class="num right">${l.latency}</td>
+                <td class="num right">${l.loss}</td>
+                <td class="num right muted">${l.lastSeen}</td>
+                <td><span class="tag ${l.status}">${l.status==='ok'?'● 線上':'▲ 異常'}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g-2 mt-16">
+        <div class="card">
+          <div class="card-head"><h3>📶 通訊鏈路健康度 (24h)</h3></div>
+          <table class="data">
+            <thead><tr><th>鏈路</th><th class="right">可用率</th><th class="right">avg 延遲</th><th class="right">重送</th></tr></thead>
+            <tbody>
+              <tr><td>Modbus TCP (PCS/BCU)</td><td class="num right" style="color:var(--green)">99.98%</td><td class="num right">12 ms</td><td class="num right">2</td></tr>
+              <tr><td>CAN bus (BMU)</td><td class="num right" style="color:var(--green)">100.00%</td><td class="num right">2 ms</td><td class="num right">0</td></tr>
+              <tr><td>Modbus RTU (Meter)</td><td class="num right" style="color:var(--green)">99.7%</td><td class="num right">80 ms</td><td class="num right">7</td></tr>
+              <tr><td>BACnet/IP (HVAC)</td><td class="num right" style="color:var(--amber)">95.8%</td><td class="num right">102 ms</td><td class="num right">38</td></tr>
+              <tr><td>MQTT/TLS (Cloud)</td><td class="num right" style="color:var(--green)">99.2%</td><td class="num right">145 ms</td><td class="num right">5</td></tr>
+              <tr><td>OpenADR (TPC)</td><td class="num right" style="color:var(--green)">99.5%</td><td class="num right">180 ms</td><td class="num right">3</td></tr>
+            </tbody>
+          </table>
+          <div class="muted mt-8" style="font-size:11px">所有鏈路均符合 SLA · BACnet 異常已開維運單 #2026-018</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>📜 通訊故障歷史 (近 7 日)</h3></div>
+          <table class="data" style="font-size:12.5px">
+            <thead><tr><th>時間</th><th>設備</th><th>事件</th><th>恢復</th></tr></thead>
+            <tbody>
+              <tr><td class="num muted">今 03:15</td><td>HVAC AC-3</td><td><span class="tag warn">BACnet 超時</span></td><td><span class="tag ok">12 秒</span></td></tr>
+              <tr><td class="num muted">昨 18:02</td><td>PCS-A</td><td><span class="tag err">Modbus 心跳掉</span></td><td><span class="tag ok">15 秒</span></td></tr>
+              <tr><td class="num muted">04/22 09:30</td><td>關口表</td><td><span class="tag warn">RS485 CRC 錯</span></td><td><span class="tag ok">即時</span></td></tr>
+              <tr><td class="num muted">04/19 14:48</td><td>雲端 MQTT</td><td><span class="tag warn">TLS 握手延遲</span></td><td><span class="tag ok">2 秒</span></td></tr>
+              <tr><td class="num muted">04/19 04:12</td><td>HVAC AC-3</td><td><span class="tag warn">BACnet 超時</span></td><td><span class="tag ok">8 秒</span></td></tr>
+            </tbody>
+          </table>
+          <div class="row mt-12" style="padding:8px 12px;background:rgba(245,158,11,0.06);border-left:3px solid var(--amber);border-radius:6px;font-size:12px">
+            <span><strong>診斷建議</strong>：HVAC AC-3 連續 5 日內出現 BACnet 異常，建議檢查網路 switch port 與設備電源。</span>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
 }
 
 // ────────── 3. Device monitoring ──────────
