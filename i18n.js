@@ -100,6 +100,41 @@ const I18N = {
   "tpc.none":         ["7 日內無", "None in 7 days", "Keine in 7 Tagen", "7日間なし"],
   "tpc.source":       ["資料來源：台電公司 openAPI", "Source: Taipower openAPI", "Quelle: Taipower openAPI", "出典: 台電openAPI"],
   "alarm.viewAll":    ["全部 →", "View all →", "Alle anzeigen →", "全表示 →"],
+  "sev.ok":           ["完成", "Done", "Erledigt", "完了"],
+  "sev.info":         ["資訊", "Info", "Info", "情報"],
+  "sev.warn":         ["警告", "Warning", "Warnung", "警告"],
+  "sev.err":          ["錯誤", "Error", "Fehler", "エラー"],
+  "sev.critical":     ["緊急", "Critical", "Kritisch", "緊急"],
+
+  // ─── AI forecast card (dashboard) ───
+  "fc.title":         ["🔮 明日預測", "🔮 Tomorrow's Forecast", "🔮 Morgen-Prognose", "🔮 翌日予測"],
+  "fc.layer3":        ["AI · 建議層 · 不自動執行", "AI · Advisory · not auto-executed", "KI · Beratung · nicht autom. ausgeführt", "AI · 推奨 · 自動実行しない"],
+  "fc.lastTrain":     ["最後訓練 4 小時前", "Last trained 4 hours ago", "Zuletzt trainiert vor 4 Std.", "最終学習 4時間前"],
+  "fc.chartHint":     ["明日負載 + PV 預測 (含 95% 信賴區間)", "Tomorrow load + PV forecast (with 95% CI)", "Morgen Last + PV-Prognose (mit 95% KI)", "翌日負荷 + PV予測 (95% CI含む)"],
+  "fc.aiObs":         ["AI 觀察 + 建議", "AI Observation + Recommendation", "KI-Beobachtung + Empfehlung", "AI 観察 + 推奨"],
+  "fc.warn.title":    ["⚠ 預測異常 · 19:00 負載突增", "⚠ Anomaly · 19:00 load spike", "⚠ Anomalie · 19:00 Lastspitze", "⚠ 異常 · 19:00 負荷急増"],
+  "fc.warn.body":     ["預估尖峰需量達 <strong style=\"color:var(--text)\">2,640 kW</strong>，超出契約 5.6%。建議提早充電並備援放電。", "Estimated peak demand <strong style=\"color:var(--text)\">2,640 kW</strong>, 5.6% over contract. Recommend pre-charging and discharge backup.", "Geschätzte Spitzenlast <strong style=\"color:var(--text)\">2.640 kW</strong>, 5,6% über Vertrag. Vorladen + Entladungsreserve empfohlen.", "ピーク需要見込み <strong style=\"color:var(--text)\">2,640 kW</strong>、契約超過5.6%。事前充電+放電バックアップ推奨。"],
+  "fc.cloud.title":   ["☁ 明日 PV 偏低", "☁ PV low tomorrow", "☁ PV morgen niedrig", "☁ 翌日PV低下"],
+  "fc.cloud.body":    ["雲量 70%，PV 預估 <strong style=\"color:var(--text)\">1,320 kWh</strong>（一般日 2,180）。少 860 kWh 缺口。", "70% cloud cover, PV estimated <strong style=\"color:var(--text)\">1,320 kWh</strong> (typical 2,180). Shortfall ~860 kWh.", "Bewölkung 70%, PV geschätzt <strong style=\"color:var(--text)\">1.320 kWh</strong> (typisch 2.180). Defizit ~860 kWh.", "雲量70%、PV見込み <strong style=\"color:var(--text)\">1,320 kWh</strong> (通常 2,180)。不足 約860 kWh。"],
+  "fc.advise.title":  ["💡 建議排程調整", "💡 Suggested schedule adjustments", "💡 Empfohlene Zeitplananpassungen", "💡 推奨スケジュール調整"],
+  "fc.advise.1":      ["17:00 提早補充電 +50 kW (避免 19:00 SoC 不足)", "17:00 pre-charge +50 kW (avoid low SoC at 19:00)", "17:00 vorladen +50 kW (niedriger SoC um 19:00 vermeiden)", "17:00 事前充電 +50 kW (19:00 のSoC不足回避)"],
+  "fc.advise.2":      ["19:00–20:00 多放電 +50 kW (削峰)", "19:00–20:00 extra discharge +50 kW (peak shave)", "19:00–20:00 zusätzliche Entladung +50 kW (Spitzenkappung)", "19:00–20:00 追加放電 +50 kW (ピークシェービング)"],
+  "fc.advise.3":      ["00:00–05:00 維持 180 kW 主充 (離峰補足)", "00:00–05:00 maintain 180 kW main charge (off-peak top-up)", "00:00–05:00 180 kW Hauptladung (Schwachlast-Aufladung)", "00:00–05:00 180 kW 主充電維持 (オフピーク補充)"],
+  "fc.btn.apply":     ["套用建議到排程", "Apply to schedule", "Auf Zeitplan anwenden", "スケジュールに適用"],
+  "fc.btn.dismiss":   ["忽略", "Dismiss", "Ignorieren", "却下"],
+  "fc.notice":        ["⓵ AI 不會自動執行 — 需人工確認", "⓵ AI does not auto-execute — manual confirmation required", "⓵ KI führt nicht autom. aus — manuelle Bestätigung nötig", "⓵ AI は自動実行しません — 手動確認が必要"],
+
+  // ─── Dashboard demo strip ───
+  "ds.title":         ["Demo · 告警停機連動", "Demo · Alarm-driven Shutdown", "Demo · Alarm-gesteuerte Abschaltung", "Demo · アラーム連動停止"],
+  "ds.sub":           ["點下方按鈕模擬即時告警，看 EMS 全螢幕接管流程", "Click below to simulate live alarms and see EMS take over full-screen", "Klicken Sie, um Live-Alarme zu simulieren — EMS übernimmt Vollbild", "下のボタンでアラーム模擬。EMSが全画面で対応"],
+  "ds.btn.thermal":   ["🌡 過熱停機", "🌡 Overheat Shutdown", "🌡 Übertemperatur-Stopp", "🌡 過熱停止"],
+  "ds.btn.fire":      ["🔥 煙感消防", "🔥 Smoke Suppression", "🔥 Brandunterdrückung", "🔥 煙感消火"],
+  "ds.btn.contract":  ["⚡ 超約削峰", "⚡ Over-contract Trim", "⚡ Vertragsüberschreitung kappen", "⚡ 契約超過削減"],
+  "ds.editRules":     ["編輯規則 →", "Edit rules →", "Regeln bearbeiten →", "ルール編集 →"],
+
+  // ─── Dashboard toasts ───
+  "toast.aiDismissed":["AI 預測已忽略，明天重新評估", "AI forecast dismissed, will re-evaluate tomorrow", "KI-Prognose verworfen, morgige Neubewertung", "AI予測を却下、明日再評価"],
+  "toast.aiApplied":  ["已套用 AI 動態建議，請至排程頁檢視差異", "AI dynamic recommendation applied — see Schedule for diff", "KI-Empfehlung angewendet — Zeitplan für Diff prüfen", "AI推奨を適用 — スケジュールで差分を確認"],
 
   // ─── Page: SLD ───
   "page.sld.title":  ["案場單線圖", "Single-Line Diagram", "Schaltbild", "単線結線図"],

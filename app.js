@@ -437,7 +437,7 @@ function viewDashboard() {
           <div class="alarm-row" style="padding:8px 0">
             <span class="alarm-ts">${a.ts}</span>
             <div class="alarm-msg">${a.msg}<span class="sub">${a.sys}</span></div>
-            <span class="tag ${a.sev}">${ {ok:"完成",info:"資訊",warn:"警告",err:"錯誤"}[a.sev] }</span>
+            <span class="tag ${a.sev}">${t(`sev.${a.sev}`)}</span>
           </div>
         `).join("")}
       </div>
@@ -446,40 +446,40 @@ function viewDashboard() {
     <!-- 🔮 AI 明日預測 (Layer 3 · 建議層) -->
     <div class="card mt-16" style="border-left:3px solid var(--purple)">
       <div class="card-head">
-        <h3>🔮 明日預測 (AI · 建議層 · 不自動執行)</h3>
+        <h3>${t("fc.title")} (${t("fc.layer3")})</h3>
         <div class="row" style="gap:6px">
           <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple);font-size:11px">LSTM v2.3</span>
-          <span class="muted" style="font-size:11.5px">最後訓練 4 小時前</span>
+          <span class="muted" style="font-size:11.5px">${t("fc.lastTrain")}</span>
         </div>
       </div>
       <div class="grid g-2" style="gap:14px">
         <div>
-          <div class="muted mb-8" style="font-size:12px">明日負載 + PV 預測 (含 95% 信賴區間)</div>
+          <div class="muted mb-8" style="font-size:12px">${t("fc.chartHint")}</div>
           <div class="chart-wrap" style="height:200px"><canvas id="chartForecast"></canvas></div>
         </div>
         <div>
-          <div class="muted mb-8" style="font-size:12px">AI 觀察 + 建議</div>
+          <div class="muted mb-8" style="font-size:12px">${t("fc.aiObs")}</div>
           <div style="display:flex;flex-direction:column;gap:8px">
             <div style="padding:10px 14px;background:rgba(245,158,11,0.08);border-left:3px solid var(--amber);border-radius:6px;font-size:12.5px;line-height:1.6">
-              <strong>⚠ 預測異常 · 19:00 負載突增</strong><br>
-              <span class="muted">預估尖峰需量達 <strong style="color:var(--text)">2,640 kW</strong>，超出契約 5.6%。建議提早充電並備援放電。</span>
+              <strong>${t("fc.warn.title")}</strong><br>
+              <span class="muted">${t("fc.warn.body")}</span>
             </div>
             <div style="padding:10px 14px;background:rgba(59,130,246,0.08);border-left:3px solid var(--blue);border-radius:6px;font-size:12.5px;line-height:1.6">
-              <strong>☁ 明日 PV 偏低</strong><br>
-              <span class="muted">雲量 70%，PV 預估 <strong style="color:var(--text)">1,320 kWh</strong>（一般日 2,180）。少 860 kWh 缺口。</span>
+              <strong>${t("fc.cloud.title")}</strong><br>
+              <span class="muted">${t("fc.cloud.body")}</span>
             </div>
             <div style="padding:10px 14px;background:rgba(0,194,168,0.1);border-left:3px solid var(--primary);border-radius:6px;font-size:12.5px;line-height:1.6">
-              <strong>💡 建議排程調整</strong>
+              <strong>${t("fc.advise.title")}</strong>
               <ul style="margin:6px 0 0 18px;padding:0;line-height:1.8;color:var(--text-muted)">
-                <li>17:00 提早補充電 +50 kW (避免 19:00 SoC 不足)</li>
-                <li>19:00–20:00 多放電 +50 kW (削峰)</li>
-                <li>00:00–05:00 維持 180 kW 主充 (離峰補足)</li>
+                <li>${t("fc.advise.1")}</li>
+                <li>${t("fc.advise.2")}</li>
+                <li>${t("fc.advise.3")}</li>
               </ul>
             </div>
             <div class="row mt-8" style="gap:8px">
-              <button class="btn btn-primary" style="font-size:12.5px;padding:6px 14px" id="applyAiAdvice">套用建議到排程</button>
-              <button class="btn" style="font-size:12px;padding:6px 12px" id="dismissForecast">忽略</button>
-              <span class="muted" style="font-size:11px;margin-left:auto">⓵ AI 不會自動執行 — 需人工確認</span>
+              <button class="btn btn-primary" style="font-size:12.5px;padding:6px 14px" id="applyAiAdvice">${t("fc.btn.apply")}</button>
+              <button class="btn" style="font-size:12px;padding:6px 12px" id="dismissForecast">${t("fc.btn.dismiss")}</button>
+              <span class="muted" style="font-size:11px;margin-left:auto">${t("fc.notice")}</span>
             </div>
           </div>
         </div>
@@ -490,14 +490,14 @@ function viewDashboard() {
     <div class="demo-strip" id="demoStrip">
       <div class="demo-strip-icon">🎬</div>
       <div class="demo-strip-text">
-        <strong>Demo · 告警停機連動</strong>
-        <span class="muted" style="font-size:11.5px">點下方按鈕模擬即時告警，看 EMS 全螢幕接管流程</span>
+        <strong>${t("ds.title")}</strong>
+        <span class="muted" style="font-size:11.5px">${t("ds.sub")}</span>
       </div>
       <div class="demo-strip-buttons">
-        <button class="btn-mini" id="dashDemoThermal" title="電芯過熱 → 停機">🌡 過熱停機</button>
-        <button class="btn-mini" id="dashDemoFire" style="border-color:var(--red);color:var(--red)" title="煙感 → 消防">🔥 煙感消防</button>
-        <button class="btn-mini" id="dashDemoContract" title="超約 → 削峰">⚡ 超約削峰</button>
-        <a href="#/alarms" class="muted" style="font-size:11px;text-decoration:none">編輯規則 →</a>
+        <button class="btn-mini" id="dashDemoThermal">${t("ds.btn.thermal")}</button>
+        <button class="btn-mini" id="dashDemoFire" style="border-color:var(--red);color:var(--red)">${t("ds.btn.fire")}</button>
+        <button class="btn-mini" id="dashDemoContract">${t("ds.btn.contract")}</button>
+        <a href="#/alarms" class="muted" style="font-size:11px;text-decoration:none">${t("ds.editRules")}</a>
       </div>
     </div>
   `;
@@ -508,12 +508,12 @@ function viewDashboard() {
   drawForecastChart();
 
   $("#dashDemoThermal")?.addEventListener("click", () => demoTriggerAlarm("thermal"));
-  $("#dismissForecast")?.addEventListener("click", () => showToast("AI 預測已忽略，明天重新評估", "info"));
+  $("#dismissForecast")?.addEventListener("click", () => showToast(t("toast.aiDismissed"), "info"));
   $("#applyAiAdvice")?.addEventListener("click", () => {
     state.strategy = "aiAdvisory";
     state.scheduleOverride = {};        // clear manual edits so the AI baseline is clean
     renderModePill();
-    showToast("已套用 AI 動態建議，請至排程頁檢視差異", "ok", 3500);
+    showToast(t("toast.aiApplied"), "ok", 3500);
     location.hash = "#/schedule";
   });
   $("#dashDemoFire")?.addEventListener("click",    () => demoTriggerAlarm("fire"));
