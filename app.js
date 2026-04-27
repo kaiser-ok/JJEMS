@@ -3095,20 +3095,20 @@ function viewSettings() {
 
     <div class="grid g-2 mb-16">
       <div class="card">
-        <div class="card-head"><h3>站點基本資料</h3></div>
+        <div class="card-head"><h3>${t("set.site.title")}</h3></div>
         <div class="grid g-2e" style="gap:12px">
-          <div class="form-row"><label>站點名稱</label><input class="inp" value="${SITE.name}" /></div>
-          <div class="form-row"><label>地址</label><input class="inp" value="${SITE.address}" /></div>
-          <div class="form-row"><label>契約容量 (kW)</label><input class="inp" value="${SITE.contractKW}" /></div>
-          <div class="form-row"><label>電價方案</label><input class="inp" value="${SITE.tariff}" /></div>
-          <div class="form-row"><label>產業別</label><input class="inp" value="${SITE.industry}" /></div>
-          <div class="form-row"><label>太陽能裝置 (kWp)</label><input class="inp" value="${SITE.pvKWp}" /></div>
+          <div class="form-row"><label>${t("set.site.name")}</label><input class="inp" value="${SITE.name}" /></div>
+          <div class="form-row"><label>${t("set.site.addr")}</label><input class="inp" value="${SITE.address}" /></div>
+          <div class="form-row"><label>${t("set.site.contract")}</label><input class="inp" value="${SITE.contractKW}" /></div>
+          <div class="form-row"><label>${t("set.site.tariff")}</label><input class="inp" value="${SITE.tariff}" /></div>
+          <div class="form-row"><label>${t("set.site.industry")}</label><input class="inp" value="${SITE.industry}" /></div>
+          <div class="form-row"><label>${t("set.site.pv")}</label><input class="inp" value="${SITE.pvKWp}" /></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>儲能系統規格</h3></div>
+        <div class="card-head"><h3>${t("set.spec.title")}</h3></div>
         <table class="data">
-          <thead><tr><th>系統</th><th class="right">PCS (kW)</th><th class="right">電池 (kWh)</th><th class="right">SoC</th><th>廠牌</th></tr></thead>
+          <thead><tr><th>${t("set.spec.thSys")}</th><th class="right">${t("set.spec.thPcs")}</th><th class="right">${t("set.spec.thBat")}</th><th class="right">${t("set.spec.thSoc")}</th><th>${t("set.spec.thVendor")}</th></tr></thead>
           <tbody>
             ${SITE.systems.map(s=>`
               <tr>
@@ -3120,7 +3120,7 @@ function viewSettings() {
               </tr>
             `).join("")}
             <tr style="background:rgba(0,194,168,0.05)">
-              <td class="strong">合計</td>
+              <td class="strong">${t("set.spec.total")}</td>
               <td class="num right strong">${SITE.systems.reduce((s,x)=>s+x.pcsKW,0)}</td>
               <td class="num right strong">${SITE.systems.reduce((s,x)=>s+x.batteryKWh,0)}</td>
               <td class="num right strong">${(SITE.systems.reduce((s,x)=>s+x.soc,0)/SITE.systems.length).toFixed(0)}%</td>
@@ -3134,7 +3134,7 @@ function viewSettings() {
     <!-- Protocol map -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>通訊協議地圖</h3>
+        <h3>${t("set.proto.title")}</h3>
         <div class="row" style="gap:6px;flex-wrap:wrap">
           <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple)">◼ MQTT/TLS</span>
           <span class="tag" style="background:rgba(0,194,168,0.12);color:var(--primary)">◼ Modbus TCP</span>
@@ -3166,29 +3166,28 @@ function viewSettings() {
         <!-- Cloud layer (= this EMS system) -->
         <g>
           <rect x="380" y="14" width="440" height="80" rx="14" fill="#0a1d20" stroke="#00c2a8" stroke-width="2"/>
-          <text x="600" y="42" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">☁  J&amp;J Power EMS Cloud  ← 即本系統</text>
-          <text x="600" y="62" text-anchor="middle" fill="#cbd5e1" font-size="11.5">Web UI · 多租戶 · TimescaleDB · 策略引擎 · AI Copilot · 告警引擎</text>
-          <text x="600" y="80" text-anchor="middle" fill="#94e0d2" font-size="10.5">三拓撲：A 邊緣單站 / B 純 IP 多站 / C 雲地架構</text>
+          <text x="600" y="42" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">${t("set.proto.cloudTitle")}</text>
+          <text x="600" y="62" text-anchor="middle" fill="#cbd5e1" font-size="11.5">${t("set.proto.cloudDesc")}</text>
+          <text x="600" y="80" text-anchor="middle" fill="#94e0d2" font-size="10.5">${t("set.proto.topo")}</text>
         </g>
 
-        <!-- TPC trading platform (right of cloud) -->
         <g>
           <rect x="900" y="30" width="220" height="48" rx="8" fill="#0a1830" stroke="#3b82f6" stroke-width="1.2"/>
-          <text x="1010" y="50" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="600">⚡ 台電交易平台</text>
-          <text x="1010" y="68" text-anchor="middle" fill="#8b98b0" font-size="10.5">sReg / dReg / 即時備轉</text>
+          <text x="1010" y="50" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="600">${t("set.proto.tpcMkt")}</text>
+          <text x="1010" y="68" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.tpcMktSub")}</text>
         </g>
 
         <!-- MQTT line cloud↔站控 -->
         <line x1="540" y1="94" x2="540" y2="160" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#pa-purple)">
           <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.5s" repeatCount="indefinite"/>
         </line>
-        <text x="552" y="118" fill="#a78bfa" font-size="11" font-weight="600">↑ MQTT 上行 (QoS 1)</text>
-        <text x="552" y="132" fill="#8b98b0" font-size="10">$ESS/{設備}/data · FULL/VARY</text>
+        <text x="552" y="118" fill="#a78bfa" font-size="11" font-weight="600">${t("set.proto.mqttUp")}</text>
+        <text x="552" y="132" fill="#8b98b0" font-size="10">$ESS/{dev}/data · FULL/VARY</text>
         <line x1="660" y1="160" x2="660" y2="94" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#pa-purple)">
           <animate attributeName="stroke-dashoffset" from="0" to="18" dur="1.5s" repeatCount="indefinite"/>
         </line>
-        <text x="672" y="118" fill="#a78bfa" font-size="11" font-weight="600">↓ RPC 下行 (QoS 1)</text>
-        <text x="672" y="132" fill="#8b98b0" font-size="10">$ESC/{網關}/rpcreq</text>
+        <text x="672" y="118" fill="#a78bfa" font-size="11" font-weight="600">${t("set.proto.mqttDown")}</text>
+        <text x="672" y="132" fill="#8b98b0" font-size="10">$ESC/{gw}/rpcreq</text>
 
         <!-- IEC 104 line tpc→站控 -->
         <path d="M 1010 78 Q 1010 130, 750 175" stroke="#3b82f6" stroke-width="2" fill="none" stroke-dasharray="5,3" marker-end="url(#pa-blue)">
@@ -3196,63 +3195,54 @@ function viewSettings() {
         </path>
         <text x="900" y="130" fill="#60a5fa" font-size="11" font-weight="600">IEC 60870-5-104</text>
 
-        <!-- Site controller -->
         <g>
           <rect x="450" y="160" width="300" height="74" rx="10" fill="#0a2024" stroke="#00c2a8" stroke-width="2"/>
-          <text x="600" y="188" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">站控一體機 (Site Controller)</text>
-          <text x="600" y="208" text-anchor="middle" fill="#e6edf5" font-size="11.5">HiEMS-SCU-V2-2 · BCM2711 · Linux</text>
-          <text x="600" y="224" text-anchor="middle" fill="#8b98b0" font-size="10.5">每案場 1 台 · 策略引擎 · 雲端代理 · OTA</text>
+          <text x="600" y="188" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">${t("set.proto.scu")}</text>
+          <text x="600" y="208" text-anchor="middle" fill="#e6edf5" font-size="11.5">${t("set.proto.scuHw")}</text>
+          <text x="600" y="224" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.scuRole")}</text>
         </g>
 
-        <!-- Site → meter (RS485) -->
         <line x1="450" y1="195" x2="280" y2="280" stroke="#f59e0b" stroke-width="2" marker-end="url(#pa-amber)">
           <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.6s" repeatCount="indefinite"/>
         </line>
-        <text x="280" y="240" fill="#fbbf24" font-size="11" font-weight="600">DLT645 / Modbus RTU</text>
-        <text x="280" y="254" fill="#8b98b0" font-size="10">RS485 · 9600 baud · 光纖 (option)</text>
+        <text x="280" y="240" fill="#fbbf24" font-size="11" font-weight="600">${t("set.proto.dlt645")}</text>
+        <text x="280" y="254" fill="#8b98b0" font-size="10">${t("set.proto.dlt645Sub")}</text>
 
-        <!-- Meters -->
         <g>
           <rect x="100" y="280" width="220" height="68" rx="8" fill="#1a1505" stroke="#f59e0b" stroke-width="1.2"/>
-          <text x="210" y="306" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="600">📊 關口表 / 儲能表</text>
-          <text x="210" y="324" text-anchor="middle" fill="#8b98b0" font-size="10.5">三相多功能電錶</text>
-          <text x="210" y="340" text-anchor="middle" fill="#8b98b0" font-size="10.5">P / Q / V / I / kWh / 功率因數</text>
+          <text x="210" y="306" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="600">${t("set.proto.meter")}</text>
+          <text x="210" y="324" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.meterType")}</text>
+          <text x="210" y="340" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.meterFields")}</text>
         </g>
 
-        <!-- Site → switch (Ethernet) -->
         <line x1="600" y1="234" x2="600" y2="290" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)"/>
-        <text x="612" y="270" fill="#00c2a8" font-size="11" font-weight="600">Ethernet (1 GbE)</text>
+        <text x="612" y="270" fill="#00c2a8" font-size="11" font-weight="600">${t("set.proto.eth")}</text>
 
-        <!-- Switch -->
         <g>
           <rect x="490" y="290" width="220" height="42" rx="6" fill="#101a2e" stroke="#3b82f6" stroke-width="1.5"/>
-          <text x="600" y="312" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="700">⇆ 工業 Switch (8-port, IP30)</text>
+          <text x="600" y="312" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="700">${t("set.proto.switch")}</text>
           <text x="600" y="326" text-anchor="middle" fill="#8b98b0" font-size="10">192.168.1.0/24</text>
         </g>
 
-        <!-- Switch → Cabinet 1 -->
         <line x1="540" y1="332" x2="280" y2="400" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)">
           <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.3s" repeatCount="indefinite"/>
         </line>
         <text x="320" y="370" fill="#00c2a8" font-size="11" font-weight="600">Modbus TCP</text>
-        <text x="320" y="384" fill="#8b98b0" font-size="10">port 502 · Unit 1</text>
+        <text x="320" y="384" fill="#8b98b0" font-size="10">${t("set.proto.modbusTcp1")}</text>
 
-        <!-- Switch → Cabinet 2 -->
         <line x1="660" y1="332" x2="920" y2="400" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)">
           <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.4s" repeatCount="indefinite"/>
         </line>
         <text x="820" y="370" fill="#00c2a8" font-size="11" font-weight="600">Modbus TCP</text>
-        <text x="820" y="384" fill="#8b98b0" font-size="10">port 502 · Unit 2</text>
+        <text x="820" y="384" fill="#8b98b0" font-size="10">${t("set.proto.modbusTcp2")}</text>
 
-        <!-- Cabinet 1 outline -->
         <g>
           <rect x="80" y="400" width="400" height="296" rx="10" fill="#0a0e1e" stroke="#1b2740" stroke-width="1.5" stroke-dasharray="4,3"/>
-          <text x="280" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">SYS-A 儲能櫃 (Zpower-AC-261L)</text>
+          <text x="280" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">${t("set.proto.cabinet").replace("{sys}", "SYS-A")}</text>
 
-          <!-- 櫃控 -->
           <rect x="120" y="436" width="320" height="58" rx="8" fill="#0a2024" stroke="#00c2a8" stroke-width="1.5"/>
-          <text x="280" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">櫃控一體機 (Cabinet Controller)</text>
-          <text x="280" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">CM4 · 每櫃 1 台 · 隨櫃標配</text>
+          <text x="280" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">${t("set.proto.bcu")}</text>
+          <text x="280" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.bcuHw")}</text>
 
           <!-- PCS -->
           <line x1="180" y1="494" x2="180" y2="530" stroke="#00c2a8" stroke-width="1.5" marker-end="url(#pa-teal)"/>
@@ -3261,14 +3251,12 @@ function viewSettings() {
           <text x="180" y="550" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">PCS</text>
           <text x="180" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">125 kW · port 502</text>
 
-          <!-- BCU -->
           <line x1="380" y1="494" x2="380" y2="530" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
           <text x="392" y="514" fill="#f9a8d4" font-size="10" font-weight="600">CAN bus</text>
           <rect x="320" y="530" width="120" height="44" rx="6" fill="#1a0a14" stroke="#ec4899" stroke-width="1"/>
-          <text x="380" y="550" text-anchor="middle" fill="#fbcfe8" font-size="11" font-weight="700">BCU (簇控)</text>
-          <text x="380" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">高壓箱</text>
+          <text x="380" y="550" text-anchor="middle" fill="#fbcfe8" font-size="11" font-weight="700">${t("set.proto.bcuCluster")}</text>
+          <text x="380" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">${t("set.proto.hvBox")}</text>
 
-          <!-- BCU → BMUs -->
           <line x1="380" y1="574" x2="380" y2="600" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
           <text x="392" y="592" fill="#f9a8d4" font-size="9.5">CAN</text>
           <rect x="290" y="600" width="60" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.8"/>
@@ -3277,24 +3265,22 @@ function viewSettings() {
           <text x="384" y="619" text-anchor="middle" fill="#fbcfe8" font-size="10" font-weight="600">BMU 2</text>
           <rect x="418" y="600" width="20" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.5"/>
           <text x="428" y="623" text-anchor="middle" fill="#fbcfe8" font-size="9">···</text>
-          <text x="380" y="654" text-anchor="middle" fill="#8b98b0" font-size="10">每 Pack 1 個 BMU · 共 13 串</text>
-          <text x="380" y="670" text-anchor="middle" fill="#8b98b0" font-size="9.5">電芯電壓 / 溫度 / 均衡</text>
+          <text x="380" y="654" text-anchor="middle" fill="#8b98b0" font-size="10">${t("set.proto.bmuPerPack")}</text>
+          <text x="380" y="670" text-anchor="middle" fill="#8b98b0" font-size="9.5">${t("set.proto.bmuFunc")}</text>
 
-          <!-- I/O 設備 -->
           <rect x="120" y="595" width="120" height="44" rx="6" fill="#0f1729" stroke="#f59e0b" stroke-width="1"/>
-          <text x="180" y="615" text-anchor="middle" fill="#fbbf24" font-size="10.5" font-weight="700">消防 / 液冷 / 門禁</text>
-          <text x="180" y="630" text-anchor="middle" fill="#8b98b0" font-size="9.5">DI/DO 8 路 + RS485</text>
+          <text x="180" y="615" text-anchor="middle" fill="#fbbf24" font-size="10.5" font-weight="700">${t("set.proto.io")}</text>
+          <text x="180" y="630" text-anchor="middle" fill="#8b98b0" font-size="9.5">${t("set.proto.ioFields")}</text>
           <line x1="180" y1="595" x2="180" y2="574" stroke="#f59e0b" stroke-width="1.5"/>
           <text x="125" y="588" fill="#fbbf24" font-size="9.5">DI/DO</text>
         </g>
 
-        <!-- Cabinet 2 outline (mirror) -->
         <g>
           <rect x="720" y="400" width="400" height="200" rx="10" fill="#0a0e1e" stroke="#1b2740" stroke-width="1.5" stroke-dasharray="4,3"/>
-          <text x="920" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">SYS-B 儲能櫃 (Zpower-AC-261L)</text>
+          <text x="920" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">${t("set.proto.cabinet").replace("{sys}", "SYS-B")}</text>
           <rect x="760" y="436" width="320" height="58" rx="8" fill="#0a2024" stroke="#00c2a8" stroke-width="1.5"/>
-          <text x="920" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">櫃控一體機</text>
-          <text x="920" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">同 SYS-A 架構</text>
+          <text x="920" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">${t("set.proto.bcuMirror")}</text>
+          <text x="920" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.bcuMirrorSub")}</text>
           <line x1="820" y1="494" x2="820" y2="530" stroke="#00c2a8" stroke-width="1.5" marker-end="url(#pa-teal)"/>
           <rect x="760" y="530" width="120" height="44" rx="6" fill="#0f1729" stroke="#00c2a8" stroke-width="1"/>
           <text x="820" y="550" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">PCS</text>
@@ -3307,42 +3293,42 @@ function viewSettings() {
       </svg>
       </div>
       <div class="proto-foot">
-        <strong>讀法</strong>：上層走 MQTT 跨網（雲端通訊）、中層走 Modbus TCP 走本地 LAN（站控 ↔ 櫃控 ↔ PCS）、櫃內走 CAN（電芯保護即時性 &lt; 10ms）、電錶走 DLT645 / Modbus RTU（傳統 RS485 介面）。
+        ${t("set.proto.foot")}
       </div>
     </div>
 
     <div class="grid g-3 mb-16">
       <div class="card">
-        <div class="card-head"><h3>通訊協定</h3></div>
+        <div class="card-head"><h3>${t("set.protocols.title")}</h3></div>
         <table class="data">
-          <tr><td>PCS</td><td><span class="tag info">Modbus TCP</span></td></tr>
-          <tr><td>BMS</td><td><span class="tag info">Modbus RTU</span></td></tr>
-          <tr><td>電錶</td><td><span class="tag info">Modbus TCP</span></td></tr>
-          <tr><td>HVAC</td><td><span class="tag info">BACnet/IP</span></td></tr>
-          <tr><td>台電交易平台</td><td><span class="tag info">IEC 61850</span></td></tr>
-          <tr><td>雲平台上傳</td><td><span class="tag info">MQTT (TLS)</span></td></tr>
+          <tr><td>${t("set.protocols.pcs")}</td><td><span class="tag info">Modbus TCP</span></td></tr>
+          <tr><td>${t("set.protocols.bms")}</td><td><span class="tag info">Modbus RTU</span></td></tr>
+          <tr><td>${t("set.protocols.meter")}</td><td><span class="tag info">Modbus TCP</span></td></tr>
+          <tr><td>${t("set.protocols.hvac")}</td><td><span class="tag info">BACnet/IP</span></td></tr>
+          <tr><td>${t("set.protocols.tpc")}</td><td><span class="tag info">IEC 61850</span></td></tr>
+          <tr><td>${t("set.protocols.cloud")}</td><td><span class="tag info">MQTT (TLS)</span></td></tr>
         </table>
       </div>
       <div class="card">
-        <div class="card-head"><h3>資訊安全</h3></div>
+        <div class="card-head"><h3>${t("set.security.title")}</h3></div>
         <table class="data">
-          <tr><td>IEC 62443 認證</td><td><span class="tag ok">符合</span></td></tr>
-          <tr><td>X.509 雙向認證</td><td><span class="tag ok">啟用</span></td></tr>
-          <tr><td>角色存取控制 (RBAC)</td><td><span class="tag ok">啟用</span></td></tr>
-          <tr><td>資料加密傳輸</td><td><span class="tag ok">TLS 1.3</span></td></tr>
-          <tr><td>資料加密儲存</td><td><span class="tag ok">AES-256</span></td></tr>
-          <tr><td>稽核日誌保留</td><td>3 年</td></tr>
+          <tr><td>${t("set.security.iec62443")}</td><td><span class="tag ok">${t("set.security.compliant")}</span></td></tr>
+          <tr><td>${t("set.security.x509")}</td><td><span class="tag ok">${t("set.security.enabled")}</span></td></tr>
+          <tr><td>${t("set.security.rbac")}</td><td><span class="tag ok">${t("set.security.enabled")}</span></td></tr>
+          <tr><td>${t("set.security.encInTransit")}</td><td><span class="tag ok">TLS 1.3</span></td></tr>
+          <tr><td>${t("set.security.encAtRest")}</td><td><span class="tag ok">AES-256</span></td></tr>
+          <tr><td>${t("set.security.audit")}</td><td>${t("set.security.years").replace("{n}", 3)}</td></tr>
         </table>
       </div>
       <div class="card">
-        <div class="card-head"><h3>使用者權限</h3></div>
+        <div class="card-head"><h3>${t("set.users.title")}</h3></div>
         <table class="data">
-          <thead><tr><th>角色</th><th class="right">人數</th></tr></thead>
+          <thead><tr><th>${t("set.users.thRole")}</th><th class="right">${t("set.users.thCount")}</th></tr></thead>
           <tbody>
-            <tr><td>系統管理員</td><td class="num right">2</td></tr>
-            <tr><td>維運工程師</td><td class="num right">5</td></tr>
-            <tr><td>經營主管</td><td class="num right">3</td></tr>
-            <tr><td>唯讀訪客</td><td class="num right">8</td></tr>
+            <tr><td>${t("set.users.admin")}</td><td class="num right">2</td></tr>
+            <tr><td>${t("set.users.eng")}</td><td class="num right">5</td></tr>
+            <tr><td>${t("set.users.exec")}</td><td class="num right">3</td></tr>
+            <tr><td>${t("set.users.guest")}</td><td class="num right">8</td></tr>
           </tbody>
         </table>
       </div>
