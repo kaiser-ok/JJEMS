@@ -3599,20 +3599,20 @@ function viewPassport() {
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
           <span class="tag" style="background:rgba(0,194,168,0.15);color:var(--primary);font-size:11px;padding:3px 10px">EU PASSPORT v1.0</span>
-          <span class="tag ok">✓ 已認證</span>
-          <span class="muted" style="font-size:11.5px">最後更新 2026-04-15</span>
+          <span class="tag ok">${t("pp.cert")}</span>
+          <span class="muted" style="font-size:11.5px">${t("pp.lastUpdate")} 2026-04-15</span>
         </div>
         <h2 style="margin:0 0 4px;font-size:22px">${p.model}</h2>
-        <div class="muted" style="font-size:12.5px;margin-bottom:14px">序號 <strong style="color:var(--text);font-family:monospace">${p.sn}</strong></div>
+        <div class="muted" style="font-size:12.5px;margin-bottom:14px">${t("pp.serial")} <strong style="color:var(--text);font-family:monospace">${p.sn}</strong></div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
-          <div><div class="muted" style="font-size:11px">製造商</div><div style="font-size:13px;margin-top:2px">${p.manufacturer}</div></div>
-          <div><div class="muted" style="font-size:11px">出廠日期</div><div style="font-size:13px;margin-top:2px">${p.mfgDate}</div></div>
-          <div><div class="muted" style="font-size:11px">安裝日期</div><div style="font-size:13px;margin-top:2px">${p.installDate}</div></div>
-          <div><div class="muted" style="font-size:11px">保固至</div><div style="font-size:13px;margin-top:2px">${p.warrantyEnd}</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.manufacturer")}</div><div style="font-size:13px;margin-top:2px">${p.manufacturer}</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.mfgDate")}</div><div style="font-size:13px;margin-top:2px">${p.mfgDate}</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.installDate")}</div><div style="font-size:13px;margin-top:2px">${p.installDate}</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.warrantyEnd")}</div><div style="font-size:13px;margin-top:2px">${p.warrantyEnd}</div></div>
         </div>
       </div>
       <div style="text-align:center">
-        <div class="muted" style="font-size:11px;margin-bottom:4px">護照 ID</div>
+        <div class="muted" style="font-size:11px;margin-bottom:4px">${t("pp.passportId")}</div>
         <div style="font-family:monospace;font-size:13px;color:var(--primary);font-weight:600">EU-PP-2026-${p.sn.slice(-4)}</div>
       </div>
     </div>
@@ -3620,41 +3620,41 @@ function viewPassport() {
     <!-- 3 columns: Chemistry / Carbon / Performance -->
     <div class="grid g-3 mb-16">
       <div class="card">
-        <div class="card-head"><h3>⚗ 化學組成</h3><span class="tag info">LFP</span></div>
+        <div class="card-head"><h3>${t("pp.chemistry")}</h3><span class="tag info">LFP</span></div>
         <table class="data" style="margin-top:-4px">
-          <tr><td>化學類型</td><td class="num right">${p.chemistry.type}</td></tr>
-          <tr><td>正極材料</td><td class="num right">${p.chemistry.cathode}</td></tr>
-          <tr><td>負極材料</td><td class="num right">${p.chemistry.anode}</td></tr>
-          <tr><td>電解液</td><td class="num right">${p.chemistry.electrolyte}</td></tr>
-          <tr><td>隔膜</td><td class="num right">${p.chemistry.separator}</td></tr>
-          <tr><td>電芯廠</td><td class="num right">${p.chemistry.cellMaker}</td></tr>
-          <tr><td>電芯型號</td><td class="num right">${p.chemistry.cellModel}</td></tr>
-          <tr><td>電芯數量</td><td class="num right">${p.chemistry.cellCount}</td></tr>
-          <tr><td>單顆規格</td><td class="num right">${p.chemistry.cellNominal}</td></tr>
+          <tr><td>${t("pp.ch.type")}</td><td class="num right">${p.chemistry.type}</td></tr>
+          <tr><td>${t("pp.ch.cathode")}</td><td class="num right">${p.chemistry.cathode}</td></tr>
+          <tr><td>${t("pp.ch.anode")}</td><td class="num right">${p.chemistry.anode}</td></tr>
+          <tr><td>${t("pp.ch.electrolyte")}</td><td class="num right">${p.chemistry.electrolyte}</td></tr>
+          <tr><td>${t("pp.ch.separator")}</td><td class="num right">${p.chemistry.separator}</td></tr>
+          <tr><td>${t("pp.ch.cellMaker")}</td><td class="num right">${p.chemistry.cellMaker}</td></tr>
+          <tr><td>${t("pp.ch.cellModel")}</td><td class="num right">${p.chemistry.cellModel}</td></tr>
+          <tr><td>${t("pp.ch.cellCount")}</td><td class="num right">${p.chemistry.cellCount}</td></tr>
+          <tr><td>${t("pp.ch.cellSpec")}</td><td class="num right">${p.chemistry.cellNominal}</td></tr>
         </table>
       </div>
 
       <div class="card">
-        <div class="card-head"><h3>🌱 碳足跡</h3><span class="tag ok">ISO 14064-1</span></div>
+        <div class="card-head"><h3>${t("pp.carbon")}</h3><span class="tag ok">ISO 14064-1</span></div>
         <div style="text-align:center;padding:8px 0 12px">
           <div style="font-size:30px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums">${p.carbon.perKWh}</div>
           <div class="muted" style="font-size:12px">kg CO₂e / kWh</div>
-          <div style="font-size:13px;margin-top:6px">總排放：<strong>${(p.carbon.total/1000).toFixed(1)}</strong> 噸 CO₂e</div>
+          <div style="font-size:13px;margin-top:6px">${t("pp.carb.totalEmit")}：<strong>${(p.carbon.total/1000).toFixed(1)}</strong> ${t("pp.carb.tons")}</div>
         </div>
         <div class="chart-wrap" style="height:140px"><canvas id="chartCarbon"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="card-head"><h3>📈 性能履歷</h3><span class="tag ok">SOH ${p.performance.soh}%</span></div>
+        <div class="card-head"><h3>${t("pp.performance")}</h3><span class="tag ok">SOH ${p.performance.soh}%</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;font-size:12.5px;margin-bottom:10px">
-          <div><div class="muted" style="font-size:11px">額定容量</div><div class="num strong">${p.performance.ratedKWh} kWh</div></div>
-          <div><div class="muted" style="font-size:11px">實測容量</div><div class="num strong">${p.performance.actualKWh} kWh</div></div>
-          <div><div class="muted" style="font-size:11px">累積循環</div><div class="num strong">${p.performance.cyclesUsed} / ${p.performance.cyclesRated}</div></div>
-          <div><div class="muted" style="font-size:11px">累積吞吐</div><div class="num strong">${p.performance.throughputMWh} MWh</div></div>
-          <div><div class="muted" style="font-size:11px">平均效率</div><div class="num strong">${p.performance.avgEff}%</div></div>
-          <div><div class="muted" style="font-size:11px">SOH 衰退率</div><div class="num strong" style="color:var(--green)">${p.performance.sohTrend}%/月</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.perf.rated")}</div><div class="num strong">${p.performance.ratedKWh} kWh</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.perf.actual")}</div><div class="num strong">${p.performance.actualKWh} kWh</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.perf.cycles")}</div><div class="num strong">${p.performance.cyclesUsed} / ${p.performance.cyclesRated}</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.perf.thru")}</div><div class="num strong">${p.performance.throughputMWh} MWh</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.perf.avgEff")}</div><div class="num strong">${p.performance.avgEff}%</div></div>
+          <div><div class="muted" style="font-size:11px">${t("pp.perf.sohTrend")}</div><div class="num strong" style="color:var(--green)">${p.performance.sohTrend}${t("pp.perf.perMonth")}</div></div>
         </div>
-        <div class="muted" style="font-size:11px;margin-bottom:4px">循環使用率 ${(p.performance.cyclesUsed/p.performance.cyclesRated*100).toFixed(1)}%</div>
+        <div class="muted" style="font-size:11px;margin-bottom:4px">${t("pp.perf.cycleUsage")} ${(p.performance.cyclesUsed/p.performance.cyclesRated*100).toFixed(1)}%</div>
         <div class="pbar"><span style="width:${p.performance.cyclesUsed/p.performance.cyclesRated*100}%"></span></div>
       </div>
     </div>
@@ -3662,69 +3662,69 @@ function viewPassport() {
     <!-- SOH trend with prediction + RUL KPIs -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>📈 SOH 時序與 RUL 預測 (24 個月)</h3>
+        <h3>${t("pp.soh.title")}</h3>
         <div class="row" style="gap:6px">
           <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple);font-size:11px">LSTM v2.3</span>
-          <span class="muted" style="font-size:11.5px">每月重訓 · 信賴區間 95%</span>
+          <span class="muted" style="font-size:11.5px">${t("pp.soh.retrain")}</span>
         </div>
       </div>
       <div class="grid g-3" style="gap:12px;margin-bottom:14px">
         <div class="stat blue">
-          <div class="lbl">當前 SOH</div>
+          <div class="lbl">${t("pp.soh.current")}</div>
           <div class="val">${p.performance.soh}<span class="u">%</span></div>
-          <div class="sub">月衰退 ${p.performance.sohTrend}%</div>
+          <div class="sub">${t("pp.soh.monthly")} ${p.performance.sohTrend}%</div>
         </div>
         <div class="stat amber">
-          <div class="lbl">預估剩餘壽命 (RUL)</div>
-          <div class="val">14.2<span class="u">±1.8 月</span></div>
-          <div class="sub">至 SOH 80% (EOL)</div>
+          <div class="lbl">${t("pp.soh.rul")}</div>
+          <div class="val">14.2<span class="u">±1.8 ${t("pp.perf.perMonth").replace('%','').trim() || 'mo'}</span></div>
+          <div class="sub">${t("pp.soh.toEol")}</div>
         </div>
         <div class="stat green">
-          <div class="lbl">預估 EOL 日期</div>
+          <div class="lbl">${t("pp.soh.eolDate")}</div>
           <div class="val" style="font-size:18px">2027-06</div>
-          <div class="sub">含信賴區間 ±2 月</div>
+          <div class="sub">${t("pp.soh.eolCi")}</div>
         </div>
       </div>
       <div class="chart-wrap"><canvas id="chartSoh"></canvas></div>
       <div class="row mt-12" style="padding:10px 14px;background:rgba(139,92,246,0.06);border-left:3px solid var(--purple);border-radius:6px;font-size:12.5px;line-height:1.6">
-        <span><strong>🤖 AI 觀察</strong>：歷史 6 個月（藍實線）SOH 線性下降約 0.13%/月；模型偵測電芯內阻離散度 (σ) 開始上升 + 平均工作溫度 29.4°C 偏高，預測未來進入「加速衰退期」（紫虛線），約於 <strong>+14 月（2027-06）</strong> 觸及 EOL 80%（橘虛線）。紫色帶狀為 95% 信賴區間，越遠越寬代表不確定性增加。建議：① EOL 前 6 個月啟動 EPC 採購；② 14:00 高溫時段限制 C-rate 至 0.4C，模型估壽命可延長 ~8%。</span>
+        <span><strong>${t("pp.soh.aiObs")}</strong>：歷史 6 個月（藍實線）SOH 線性下降約 0.13%/月；模型偵測電芯內阻離散度 (σ) 開始上升 + 平均工作溫度 29.4°C 偏高，預測未來進入「加速衰退期」（紫虛線），約於 <strong>+14 月（2027-06）</strong> 觸及 EOL 80%（橘虛線）。紫色帶狀為 95% 信賴區間，越遠越寬代表不確定性增加。建議：① EOL 前 6 個月啟動 EPC 採購；② 14:00 高溫時段限制 C-rate 至 0.4C，模型估壽命可延長 ~8%。</span>
       </div>
     </div>
 
     <!-- Materials & Recycling -->
     <div class="grid g-2 mb-16">
       <div class="card">
-        <div class="card-head"><h3>📦 材料組成與再生比例</h3></div>
+        <div class="card-head"><h3>${t("pp.materials")}</h3></div>
         <table class="data">
-          <thead><tr><th>材料</th><th class="right">重量比</th><th class="right">再生料</th><th>來源驗證</th></tr></thead>
+          <thead><tr><th>${t("pp.mat.thMat")}</th><th class="right">${t("pp.mat.thWeight")}</th><th class="right">${t("pp.mat.thRecyc")}</th><th>${t("pp.mat.thVerify")}</th></tr></thead>
           <tbody>
             ${p.materials.map(m=>`
               <tr>
                 <td>${m.name}</td>
                 <td class="num right">${m.percent}%</td>
                 <td class="num right" style="color:${m.recycled>=30?'var(--green)':m.recycled>=10?'var(--amber)':'var(--text-muted)'}">${m.recycled}%</td>
-                <td><span class="tag ${m.recycled>0?'ok':'mute'}">${m.recycled>0?'已驗證':'N/A'}</span></td>
+                <td><span class="tag ${m.recycled>0?'ok':'mute'}">${m.recycled>0?t("pp.mat.verified"):'N/A'}</span></td>
               </tr>
             `).join("")}
           </tbody>
         </table>
-        <div class="muted mt-12" style="font-size:11.5px">※ 依 EU 2023/1542 §8 揭露要求；2027 年起鋰再生料須 ≥ 6%、鈷 ≥ 16%</div>
+        <div class="muted mt-12" style="font-size:11.5px">${t("pp.mat.foot")}</div>
       </div>
 
       <div class="card">
-        <div class="card-head"><h3>♻ 回收路徑與二次利用</h3></div>
+        <div class="card-head"><h3>${t("pp.recycling")}</h3></div>
         <div style="background:rgba(16,185,129,0.06);border-left:3px solid var(--green);padding:10px 14px;border-radius:6px;margin-bottom:12px">
-          <div style="font-size:13px"><strong>回收夥伴：</strong>${p.recycling.partner}</div>
-          <div style="font-size:12px;margin-top:4px;color:var(--text-muted)">聯繫：${p.recycling.contact} · 標準：${p.recycling.standard}</div>
+          <div style="font-size:13px"><strong>${t("pp.rec.partner")}：</strong>${p.recycling.partner}</div>
+          <div style="font-size:12px;margin-top:4px;color:var(--text-muted)">${t("pp.rec.contact")}：${p.recycling.contact} · ${t("pp.rec.standard")}：${p.recycling.standard}</div>
         </div>
         <table class="data">
-          <tr><td>材料回收率</td><td class="num right" style="color:var(--green)">${p.recycling.recoveryRate}%</td></tr>
-          <tr><td>處理流向</td><td class="num right">${p.recycling.destination}</td></tr>
-          <tr><td>EOL 預估</td><td class="num right">${p.secondLife.eolEstimate}</td></tr>
-          <tr><td>EOL 殘值</td><td class="num right" style="color:var(--green)">${money(p.secondLife.residualValue)}</td></tr>
+          <tr><td>${t("pp.rec.recovery")}</td><td class="num right" style="color:var(--green)">${p.recycling.recoveryRate}%</td></tr>
+          <tr><td>${t("pp.rec.destination")}</td><td class="num right">${p.recycling.destination}</td></tr>
+          <tr><td>${t("pp.rec.eolEst")}</td><td class="num right">${p.secondLife.eolEstimate}</td></tr>
+          <tr><td>${t("pp.rec.eolValue")}</td><td class="num right" style="color:var(--green)">${money(p.secondLife.residualValue)}</td></tr>
         </table>
         <div class="mt-12">
-          <div class="muted" style="font-size:11.5px;margin-bottom:6px">建議二次利用路徑：</div>
+          <div class="muted" style="font-size:11.5px;margin-bottom:6px">${t("pp.rec.suggested")}：</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
             ${p.secondLife.paths.map(x=>`<span class="tag info" style="font-size:11px">${x}</span>`).join("")}
           </div>
@@ -3743,16 +3743,16 @@ function viewPassport() {
       });
       const urgent = certsWithStatus.filter(c => c.status !== "green").length;
       const headTag = urgent === 0
-        ? `<span class="tag ok">${p.certs.length} 項全部有效</span>`
-        : `<span class="tag warn">${urgent} 項需復驗 · 共 ${p.certs.length} 項</span>`;
+        ? `<span class="tag ok">${p.certs.length} ${t("pp.cert.allValid")}</span>`
+        : `<span class="tag warn">${urgent} ${t("pp.cert.urgent")} · ${t("pp.cert.totalOf")} ${p.certs.length}</span>`;
       return `
       <div class="card mb-16">
         <div class="card-head" style="flex-wrap:wrap;gap:8px">
-          <h3>🏛 合規認證</h3>
+          <h3>${t("pp.certs")}</h3>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             ${headTag}
-            <button class="btn btn-ghost" id="ppRecallBtn" style="padding:5px 12px;font-size:12px">🔍 召回追溯</button>
-            <button class="btn btn-primary" id="ppExportBtn" style="padding:5px 12px;font-size:12px">📦 匯出合規包</button>
+            <button class="btn btn-ghost" id="ppRecallBtn" style="padding:5px 12px;font-size:12px">${t("pp.cert.recallBtn")}</button>
+            <button class="btn btn-primary" id="ppExportBtn" style="padding:5px 12px;font-size:12px">${t("pp.cert.exportBtn")}</button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
@@ -3760,9 +3760,9 @@ function viewPassport() {
             const colorVar = c.status === "red" ? "var(--red)" : c.status === "amber" ? "var(--amber)" : "var(--green)";
             const bgRgba   = c.status === "red" ? "rgba(239,68,68,0.06)" : c.status === "amber" ? "rgba(245,158,11,0.06)" : "rgba(16,185,129,0.05)";
             const dayLabel = c.days < 0
-              ? `已過期 ${-c.days} 天`
-              : c.days === 0 ? "今日到期"
-              : `剩 ${c.days} 天`;
+              ? t("pp.cert.expired").replace("{d}", -c.days)
+              : c.days === 0 ? t("pp.cert.expireToday")
+              : t("pp.cert.daysLeft").replace("{d}", c.days);
             const dayTag = c.status === "red" ? "err" : c.status === "amber" ? "warn" : "ok";
             return `
               <div style="padding:11px 13px;background:${bgRgba};border-left:3px solid ${colorVar};border-radius:6px">
@@ -3774,26 +3774,26 @@ function viewPassport() {
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:10.5px">
                   <span style="color:var(--text-muted);font-family:ui-monospace,monospace">${c.certNo}</span>
                   <span style="display:flex;gap:10px">
-                    <a href="${c.pdfUrl}" onclick="event.preventDefault();showToast('PDF 預覽尚未實作 · 連結為佔位 (' + this.getAttribute('href') + ')','info',3500)" style="color:var(--primary);text-decoration:none">📄 PDF</a>
-                    <button data-cert-renew="${certsWithStatus.indexOf(c)}" style="background:none;border:none;padding:0;color:${c.status === 'green' ? 'var(--text-muted)' : 'var(--amber)'};cursor:pointer;font-size:10.5px;font-family:inherit">📤 更新</button>
+                    <a href="${c.pdfUrl}" onclick="event.preventDefault();showToast('PDF preview not implemented · placeholder link (' + this.getAttribute('href') + ')','info',3500)" style="color:var(--primary);text-decoration:none">📄 PDF</a>
+                    <button data-cert-renew="${certsWithStatus.indexOf(c)}" style="background:none;border:none;padding:0;color:${c.status === 'green' ? 'var(--text-muted)' : 'var(--amber)'};cursor:pointer;font-size:10.5px;font-family:inherit">${t("pp.cert.renewBtn")}</button>
                   </span>
                 </div>
-                <div class="muted" style="font-size:10.5px;margin-top:3px">發證 ${c.issued} · 到期 ${c.expiry}</div>
+                <div class="muted" style="font-size:10.5px;margin-top:3px">${t("pp.cert.issued")} ${c.issued} · ${t("pp.cert.expiry")} ${c.expiry}</div>
               </div>
             `;
           }).join("")}
         </div>
-        <div class="muted mt-12" style="font-size:11px">※ 到期前 90 天 黃燈 · 30 天 紅燈 · 系統會於 30/7/1 天時自動推 Email + Line 給維運主管</div>
+        <div class="muted mt-12" style="font-size:11px">${t("pp.cert.footnote")}</div>
       </div>`;
     })()}
 
     <!-- Service event timeline -->
     <div class="card">
       <div class="card-head">
-        <h3>🕒 維運事件時間軸</h3>
-        <span class="muted" style="font-size:11.5px;display:flex;align-items:center;gap:6px" title="目前以 PostgreSQL + 數位簽章 + TÜV 第三方稽核達成「不可篡改」要求（與 CATL 路線一致）；公鏈錨定 (Polygon hash + IPFS) 規劃 2027 上線">
-          <span style="background:rgba(16,185,129,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:10.5px;font-weight:600">🔒 不可篡改</span>
-          <span style="font-size:11px">DB + 簽章 + 第三方稽核 · 公鏈錨定 2027</span>
+        <h3>${t("pp.timeline")}</h3>
+        <span class="muted" style="font-size:11.5px;display:flex;align-items:center;gap:6px">
+          <span style="background:rgba(16,185,129,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:10.5px;font-weight:600">${t("pp.immutable")}</span>
+          <span style="font-size:11px">${t("pp.immutableSub")}</span>
         </span>
       </div>
       <div class="timeline">

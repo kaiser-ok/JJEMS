@@ -142,6 +142,80 @@ const I18N = {
   "pp.certs":        ["🏛 合規認證", "🏛 Compliance Certifications", "🏛 Konformitäten", "🏛 認証"],
   "pp.timeline":     ["🕒 維運事件時間軸", "🕒 Service Event Timeline", "🕒 Service-Zeitachse", "🕒 サービス履歴"],
   "pp.blockchain":   ["區塊鏈不可篡改紀錄", "Blockchain-anchored record", "Blockchain-verankerte Aufzeichnung", "ブロックチェーン記録"],
+  "pp.serial":       ["序號", "Serial No.", "Seriennr.", "シリアル番号"],
+  "pp.immutable":    ["🔒 不可篡改", "🔒 Immutable", "🔒 Unveränderlich", "🔒 改ざん防止"],
+  "pp.immutableSub": ["DB + 簽章 + 第三方稽核 · 公鏈錨定 2027", "DB + signature + 3rd-party audit · public-chain anchoring 2027", "DB + Signatur + Drittprüfung · Public-Chain-Anker 2027", "DB+署名+第三者監査 · 公開チェーン2027"],
+
+  // ─── Chemistry table ───
+  "pp.ch.type":      ["化學類型", "Chemistry type", "Chemie-Typ", "化学種別"],
+  "pp.ch.cathode":   ["正極材料", "Cathode", "Kathode", "正極材料"],
+  "pp.ch.anode":     ["負極材料", "Anode", "Anode", "負極材料"],
+  "pp.ch.electrolyte":["電解液", "Electrolyte", "Elektrolyt", "電解液"],
+  "pp.ch.separator": ["隔膜", "Separator", "Separator", "セパレータ"],
+  "pp.ch.cellMaker": ["電芯廠", "Cell maker", "Zellhersteller", "セルメーカー"],
+  "pp.ch.cellModel": ["電芯型號", "Cell model", "Zellmodell", "セル型番"],
+  "pp.ch.cellCount": ["電芯數量", "Cell count", "Zellenanzahl", "セル数"],
+  "pp.ch.cellSpec":  ["單顆規格", "Cell spec", "Zellspez.", "セル仕様"],
+
+  // ─── Carbon card ───
+  "pp.carb.totalEmit": ["總排放", "Total emissions", "Gesamtemissionen", "総排出"],
+  "pp.carb.tons":    ["噸 CO₂e", "t CO₂e", "t CO₂e", "t CO₂e"],
+
+  // ─── Performance card ───
+  "pp.perf.rated":   ["額定容量", "Rated capacity", "Nennkapazität", "定格容量"],
+  "pp.perf.actual":  ["實測容量", "Measured capacity", "Gemessene Kap.", "実測容量"],
+  "pp.perf.cycles":  ["累積循環", "Cycles used", "Verwendete Zyklen", "累積サイクル"],
+  "pp.perf.thru":    ["累積吞吐", "Cum. throughput", "Kum. Durchsatz", "累積スループット"],
+  "pp.perf.avgEff":  ["平均效率", "Avg. efficiency", "Ø Wirkungsgrad", "平均効率"],
+  "pp.perf.sohTrend":["SOH 衰退率", "SOH decay rate", "SOH-Abfallrate", "SOH低下率"],
+  "pp.perf.perMonth":["%/月", "%/mo", "%/Monat", "%/月"],
+  "pp.perf.cycleUsage":["循環使用率", "Cycle usage", "Zyklusnutzung", "サイクル使用率"],
+
+  // ─── SOH RUL card ───
+  "pp.soh.title":    ["📈 SOH 時序與 RUL 預測 (24 個月)", "📈 SOH Trend & RUL Forecast (24 mo)", "📈 SOH-Trend & RUL-Prognose (24 Mon.)", "📈 SOH推移とRUL予測 (24ヶ月)"],
+  "pp.soh.retrain":  ["每月重訓 · 信賴區間 95%", "Retrained monthly · 95% CI", "Monatlich neu trainiert · 95% KI", "毎月再学習 · 95% CI"],
+  "pp.soh.current":  ["當前 SOH", "Current SOH", "Aktueller SOH", "現在 SOH"],
+  "pp.soh.monthly":  ["月衰退", "Monthly decay", "Monatlicher Abfall", "月次低下"],
+  "pp.soh.rul":      ["預估剩餘壽命 (RUL)", "Remaining Useful Life (RUL)", "Restnutzungsdauer (RUL)", "残存寿命 (RUL)"],
+  "pp.soh.toEol":    ["至 SOH 80% (EOL)", "to SOH 80% (EOL)", "bis SOH 80% (EOL)", "SOH 80% (EOL) まで"],
+  "pp.soh.eolDate":  ["預估 EOL 日期", "Forecast EOL date", "Prognostiziertes EOL-Datum", "EOL予測日"],
+  "pp.soh.eolCi":    ["含信賴區間 ±2 月", "incl. ±2 mo CI", "inkl. ±2 Mon. KI", "±2ヶ月 CI 含む"],
+  "pp.soh.aiObs":    ["🤖 AI 觀察", "🤖 AI Observation", "🤖 KI-Beobachtung", "🤖 AI 観察"],
+
+  // ─── Materials card ───
+  "pp.mat.thMat":    ["材料", "Material", "Material", "材料"],
+  "pp.mat.thWeight": ["重量比", "Weight %", "Gewicht %", "重量比"],
+  "pp.mat.thRecyc":  ["再生料", "Recycled %", "Recycelt %", "再生材"],
+  "pp.mat.thVerify": ["來源驗證", "Source verification", "Quellverifizierung", "源泉検証"],
+  "pp.mat.verified": ["已驗證", "Verified", "Verifiziert", "検証済"],
+  "pp.mat.foot":     ["※ 依 EU 2023/1542 §8 揭露要求；2027 年起鋰再生料須 ≥ 6%、鈷 ≥ 16%", "※ Per EU 2023/1542 §8; from 2027: Li recycled ≥ 6%, Co ≥ 16%", "※ Gemäß EU 2023/1542 §8; ab 2027: Li recycelt ≥ 6%, Co ≥ 16%", "※ EU 2023/1542 §8準拠;2027年からLi再生材 ≥ 6%、Co ≥ 16%"],
+
+  // ─── Recycling card ───
+  "pp.rec.partner":  ["回收夥伴", "Recycling partner", "Recyclingpartner", "リサイクルパートナー"],
+  "pp.rec.contact":  ["聯繫", "Contact", "Kontakt", "連絡"],
+  "pp.rec.standard": ["標準", "Standard", "Standard", "標準"],
+  "pp.rec.recovery": ["材料回收率", "Material recovery rate", "Materialrückgewinnung", "材料回収率"],
+  "pp.rec.destination":["處理流向", "Destination", "Bestimmung", "処理先"],
+  "pp.rec.eolEst":   ["EOL 預估", "EOL estimate", "EOL-Prognose", "EOL予測"],
+  "pp.rec.eolValue": ["EOL 殘值", "EOL residual value", "EOL-Restwert", "EOL残存価値"],
+  "pp.rec.suggested":["建議二次利用路徑", "Suggested second-life paths", "Empfohlene Second-Life-Pfade", "推奨セカンドライフ経路"],
+
+  // ─── Certs card ───
+  "pp.cert.allValid":["全部有效", "all valid", "alle gültig", "すべて有効"],
+  "pp.cert.urgent":  ["需復驗", "need renewal", "Erneuerung nötig", "更新要"],
+  "pp.cert.totalOf": ["共", "of", "von", "合計"],
+  "pp.cert.recallBtn":["🔍 召回追溯", "🔍 Recall lookup", "🔍 Rückruf prüfen", "🔍 リコール照会"],
+  "pp.cert.exportBtn":["📦 匯出合規包", "📦 Export bundle", "📦 Bundle exportieren", "📦 コンプラパック出力"],
+  "pp.cert.renewBtn":["📤 更新", "📤 Renew", "📤 Erneuern", "📤 更新"],
+  "pp.cert.daysLeft":["剩 {d} 天", "{d} d left", "{d} T verbleibend", "残り {d} 日"],
+  "pp.cert.expired": ["已過期 {d} 天", "expired {d} d ago", "vor {d} T abgelaufen", "{d} 日前に失効"],
+  "pp.cert.expireToday":["今日到期", "Expires today", "Läuft heute ab", "本日失効"],
+  "pp.cert.issued":  ["發證", "Issued", "Ausgestellt", "発行"],
+  "pp.cert.expiry":  ["到期", "Expires", "Läuft ab", "有効期限"],
+  "pp.cert.footnote":["※ 到期前 90 天 黃燈 · 30 天 紅燈 · 系統會於 30/7/1 天時自動推 Email + Line 給維運主管", "※ 90 d → amber · 30 d → red · system auto-pushes Email + Line at 30/7/1 d", "※ 90 T → gelb · 30 T → rot · System sendet Email + Line bei 30/7/1 T", "※ 90日前 黄信号 · 30日前 赤信号 · 30/7/1日前にEmail+Line自動通知"],
+
+  // ─── Common ───
+  "common.tonnes":   ["噸", "t", "t", "t"],
 
   // ─── Page: Schedule ───
   "page.sch.title":  ["排程與策略", "Schedule & Strategy", "Zeitplan & Strategie", "スケジュール・戦略"],
