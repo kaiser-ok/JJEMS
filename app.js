@@ -1418,11 +1418,11 @@ function viewDevices() {
 
     <div class="card mb-16">
       <div class="card-head">
-        <h3>SYS-A 模組溫度分佈 · 13 模組 <span class="muted" style="font-size:11px;font-weight:400">BMS 即時上送 max / min / avg</span></h3>
+        <h3>${t("dev.mod.title").replace("{sys}", "SYS-A")} <span class="muted" style="font-size:11px;font-weight:400">${t("dev.mod.subtitle")}</span></h3>
         <div class="row" style="gap:6px;font-size:11px;color:var(--muted)">
-          <span><span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:50%;vertical-align:-1px"></span> &lt; 33°C</span>
-          <span><span style="display:inline-block;width:10px;height:10px;background:#f59e0b;border-radius:50%;vertical-align:-1px"></span> 33-35°C</span>
-          <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:50%;vertical-align:-1px"></span> ≥ 35°C</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:50%;vertical-align:-1px"></span> ${t("dev.mod.legendOk")}</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#f59e0b;border-radius:50%;vertical-align:-1px"></span> ${t("dev.mod.legendMid")}</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:50%;vertical-align:-1px"></span> ${t("dev.mod.legendHi")}</span>
         </div>
       </div>
       <div id="mod-temp"></div>
@@ -1430,36 +1430,36 @@ function viewDevices() {
 
     <div class="grid g-3 mb-16">
       <div class="card">
-        <div class="card-head"><h3>絕緣監測</h3><span class="tag ok">正常</span></div>
+        <div class="card-head"><h3>${t("dev.iso.title")}</h3><span class="tag ok">${t("dev.iso.normal")}</span></div>
         <table class="data">
-          <tr><td>正極對地</td><td class="num right">3,420 kΩ</td></tr>
-          <tr><td>負極對地</td><td class="num right">3,180 kΩ</td></tr>
-          <tr><td>總絕緣值</td><td class="num right">1,650 kΩ</td></tr>
-          <tr><td>絕緣告警閾值</td><td class="num right">≥ 500 kΩ</td></tr>
-          <tr><td>採集週期</td><td class="num right">5 秒</td></tr>
+          <tr><td>${t("dev.iso.posGnd")}</td><td class="num right">3,420 kΩ</td></tr>
+          <tr><td>${t("dev.iso.negGnd")}</td><td class="num right">3,180 kΩ</td></tr>
+          <tr><td>${t("dev.iso.total")}</td><td class="num right">1,650 kΩ</td></tr>
+          <tr><td>${t("dev.iso.thresh")}</td><td class="num right">≥ 500 kΩ</td></tr>
+          <tr><td>${t("dev.iso.period")}</td><td class="num right">${t("dev.iso.5sec")}</td></tr>
         </table>
         <div class="muted mt-8" style="font-size:11px">Modbus reg: Rack Insulation Value / Pos / Neg</div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>電芯不平衡監測</h3><span class="tag warn">關注</span></div>
+        <div class="card-head"><h3>${t("dev.imb.title")}</h3><span class="tag warn">${t("dev.imb.attention")}</span></div>
         <table class="data">
-          <tr><td>最高電壓 cell</td><td class="num right">#142 · 3.418 V</td></tr>
-          <tr><td>最低電壓 cell</td><td class="num right">#057 · 3.352 V</td></tr>
-          <tr><td>壓差 ΔV</td><td class="num right">66 mV</td></tr>
-          <tr><td>不平衡告警閾值</td><td class="num right">≥ 80 mV</td></tr>
-          <tr><td>主動均衡</td><td><span class="tag ok">運作中</span></td></tr>
+          <tr><td>${t("dev.imb.maxV")}</td><td class="num right">#142 · 3.418 V</td></tr>
+          <tr><td>${t("dev.imb.minV")}</td><td class="num right">#057 · 3.352 V</td></tr>
+          <tr><td>${t("dev.imb.dv")}</td><td class="num right">66 mV</td></tr>
+          <tr><td>${t("dev.imb.thresh")}</td><td class="num right">≥ 80 mV</td></tr>
+          <tr><td>${t("dev.imb.balance")}</td><td><span class="tag ok">${t("dev.imb.balOn")}</span></td></tr>
         </table>
         <div class="muted mt-8" style="font-size:11px">Modbus reg: Max/Min Cell Voltage + Cell ID</div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>BMU 通訊狀態</h3><span class="tag ok">13/13 線上</span></div>
+        <div class="card-head"><h3>${t("dev.bmu.title")}</h3><span class="tag ok">${t("dev.bmu.online")}</span></div>
         <table class="data" style="font-size:12px">
           <tr><td>BMU 1–4</td><td class="num right" style="color:var(--green)">●●●●</td></tr>
           <tr><td>BMU 5–8</td><td class="num right" style="color:var(--green)">●●●●</td></tr>
           <tr><td>BMU 9–12</td><td class="num right" style="color:var(--green)">●●●●</td></tr>
           <tr><td>BMU 13</td><td class="num right" style="color:var(--green)">●</td></tr>
           <tr><td>BCU ↔ BMU CAN</td><td class="num right">125 kbps</td></tr>
-          <tr><td>掉線次數 (24h)</td><td class="num right">0</td></tr>
+          <tr><td>${t("dev.bmu.discon")}</td><td class="num right">0</td></tr>
         </table>
         <div class="muted mt-8" style="font-size:11px">Modbus reg: BMU1-16 Communication State (bitmap)</div>
       </div>
@@ -1467,48 +1467,48 @@ function viewDevices() {
 
     <div class="grid g-2 mt-16">
       <div class="card">
-        <div class="card-head"><h3>PCS 參數即時</h3></div>
+        <div class="card-head"><h3>${t("dev.pcs.title")}</h3></div>
         <table class="data">
-          <thead><tr><th>參數</th><th class="right">SYS-A</th><th class="right">SYS-B</th></tr></thead>
+          <thead><tr><th>${t("dev.pcs.thItem")}</th><th class="right">SYS-A</th><th class="right">SYS-B</th></tr></thead>
           <tbody>
-            <tr><td>運行模式</td><td class="right">PQ Mode</td><td class="right">PQ Mode</td></tr>
-            <tr><td>輸出 P</td><td class="num right">+118.2 kW</td><td class="num right">+97.4 kW</td></tr>
-            <tr><td>輸出 Q</td><td class="num right">-3.1 kVAR</td><td class="num right">-1.8 kVAR</td></tr>
-            <tr><td>DC 電壓</td><td class="num right">763.4 V</td><td class="num right">758.2 V</td></tr>
-            <tr><td>DC 電流</td><td class="num right">155.3 A</td><td class="num right">128.9 A</td></tr>
-            <tr><td>效率</td><td class="num right">96.8%</td><td class="num right">96.4%</td></tr>
-            <tr><td>模組溫度</td><td class="num right">42 °C</td><td class="num right">44 °C</td></tr>
+            <tr><td>${t("dev.pcs.runMode")}</td><td class="right">PQ Mode</td><td class="right">PQ Mode</td></tr>
+            <tr><td>${t("dev.pcs.outP")}</td><td class="num right">+118.2 kW</td><td class="num right">+97.4 kW</td></tr>
+            <tr><td>${t("dev.pcs.outQ")}</td><td class="num right">-3.1 kVAR</td><td class="num right">-1.8 kVAR</td></tr>
+            <tr><td>${t("dev.pcs.dcV")}</td><td class="num right">763.4 V</td><td class="num right">758.2 V</td></tr>
+            <tr><td>${t("dev.pcs.dcI")}</td><td class="num right">155.3 A</td><td class="num right">128.9 A</td></tr>
+            <tr><td>${t("dev.pcs.eff")}</td><td class="num right">96.8%</td><td class="num right">96.4%</td></tr>
+            <tr><td>${t("dev.pcs.modTemp")}</td><td class="num right">42 °C</td><td class="num right">44 °C</td></tr>
           </tbody>
         </table>
       </div>
       <div class="card">
-        <div class="card-head"><h3>BMS 電芯統計</h3></div>
+        <div class="card-head"><h3>${t("dev.bms.title")}</h3></div>
         <table class="data">
-          <thead><tr><th>項目</th><th class="right">SYS-A</th><th class="right">SYS-B</th></tr></thead>
+          <thead><tr><th>${t("dev.bms.thItem")}</th><th class="right">SYS-A</th><th class="right">SYS-B</th></tr></thead>
           <tbody>
-            <tr><td>模組串數</td><td class="num right">13</td><td class="num right">11</td></tr>
-            <tr><td>總電芯數</td><td class="num right">208</td><td class="num right">176</td></tr>
-            <tr><td>最高/最低電壓</td><td class="num right">3.42 / 3.35 V</td><td class="num right">3.44 / 3.36 V</td></tr>
-            <tr><td>最高/最低溫度</td><td class="num right">30.6 / 28.9 °C</td><td class="num right">31.1 / 29.2 °C</td></tr>
-            <tr><td>SOH</td><td class="num right">98.2%</td><td class="num right">98.6%</td></tr>
-            <tr><td>累積循環</td><td class="num right">182</td><td class="num right">176</td></tr>
-            <tr><td>累積吞吐</td><td class="num right">44.2 MWh</td><td class="num right">34.8 MWh</td></tr>
+            <tr><td>${t("dev.bms.modules")}</td><td class="num right">13</td><td class="num right">11</td></tr>
+            <tr><td>${t("dev.bms.cellCount")}</td><td class="num right">208</td><td class="num right">176</td></tr>
+            <tr><td>${t("dev.bms.maxMinV")}</td><td class="num right">3.42 / 3.35 V</td><td class="num right">3.44 / 3.36 V</td></tr>
+            <tr><td>${t("dev.bms.maxMinT")}</td><td class="num right">30.6 / 28.9 °C</td><td class="num right">31.1 / 29.2 °C</td></tr>
+            <tr><td>${t("dev.bms.soh")}</td><td class="num right">98.2%</td><td class="num right">98.6%</td></tr>
+            <tr><td>${t("dev.bms.cycles")}</td><td class="num right">182</td><td class="num right">176</td></tr>
+            <tr><td>${t("dev.bms.thru")}</td><td class="num right">44.2 MWh</td><td class="num right">34.8 MWh</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
     <div class="card mt-16">
-      <div class="card-head"><h3>環控系統 (HVAC / Fire / Door)</h3></div>
+      <div class="card-head"><h3>${t("dev.env.title")}</h3></div>
       <table class="data">
-        <thead><tr><th>設備</th><th>機櫃</th><th>狀態</th><th class="right">溫度</th><th class="right">濕度</th><th>通訊</th></tr></thead>
+        <thead><tr><th>${t("dev.env.thDev")}</th><th>${t("dev.env.thCab")}</th><th>${t("dev.env.thStat")}</th><th class="right">${t("dev.env.thTemp")}</th><th class="right">${t("dev.env.thHum")}</th><th>${t("dev.env.thComm")}</th></tr></thead>
         <tbody>
-          <tr><td>空調機 AC-1</td><td>SYS-A</td><td><span class="tag ok">運轉中</span></td><td class="num right">28.4°C</td><td class="num right">52%</td><td><span class="dot dot-ok"></span> 線上</td></tr>
-          <tr><td>空調機 AC-2</td><td>SYS-A</td><td><span class="tag ok">運轉中</span></td><td class="num right">28.9°C</td><td class="num right">53%</td><td><span class="dot dot-ok"></span> 線上</td></tr>
-          <tr><td>空調機 AC-3</td><td>SYS-B</td><td><span class="tag ok">運轉中</span></td><td class="num right">30.2°C</td><td class="num right">55%</td><td><span class="dot dot-ok"></span> 線上</td></tr>
-          <tr><td>消防 VESDA</td><td>All</td><td><span class="tag ok">正常</span></td><td class="num right">-</td><td class="num right">-</td><td><span class="dot dot-ok"></span> 線上</td></tr>
-          <tr><td>門禁</td><td>All</td><td><span class="tag ok">關閉</span></td><td class="num right">-</td><td class="num right">-</td><td><span class="dot dot-ok"></span> 線上</td></tr>
-          <tr><td>UPS</td><td>EMS 機櫃</td><td><span class="tag ok">市電</span></td><td class="num right">-</td><td class="num right">-</td><td><span class="dot dot-ok"></span> 線上</td></tr>
+          <tr><td>${t("dev.env.ac").replace("{n}", 1)}</td><td>SYS-A</td><td><span class="tag ok">${t("dev.env.acRunning")}</span></td><td class="num right">28.4°C</td><td class="num right">52%</td><td><span class="dot dot-ok"></span> ${t("dev.env.online")}</td></tr>
+          <tr><td>${t("dev.env.ac").replace("{n}", 2)}</td><td>SYS-A</td><td><span class="tag ok">${t("dev.env.acRunning")}</span></td><td class="num right">28.9°C</td><td class="num right">53%</td><td><span class="dot dot-ok"></span> ${t("dev.env.online")}</td></tr>
+          <tr><td>${t("dev.env.ac").replace("{n}", 3)}</td><td>SYS-B</td><td><span class="tag ok">${t("dev.env.acRunning")}</span></td><td class="num right">30.2°C</td><td class="num right">55%</td><td><span class="dot dot-ok"></span> ${t("dev.env.online")}</td></tr>
+          <tr><td>${t("dev.env.fire")}</td><td>${t("dev.env.allCabinets")}</td><td><span class="tag ok">${t("dev.env.fireOk")}</span></td><td class="num right">-</td><td class="num right">-</td><td><span class="dot dot-ok"></span> ${t("dev.env.online")}</td></tr>
+          <tr><td>${t("dev.env.door")}</td><td>${t("dev.env.allCabinets")}</td><td><span class="tag ok">${t("dev.env.doorClosed")}</span></td><td class="num right">-</td><td class="num right">-</td><td><span class="dot dot-ok"></span> ${t("dev.env.online")}</td></tr>
+          <tr><td>${t("dev.env.ups")}</td><td>${t("dev.env.upsCab")}</td><td><span class="tag ok">${t("dev.env.mains")}</span></td><td class="num right">-</td><td class="num right">-</td><td><span class="dot dot-ok"></span> ${t("dev.env.online")}</td></tr>
         </tbody>
       </table>
     </div>
@@ -1568,10 +1568,10 @@ function viewDevices() {
     <div style="display:grid;grid-template-columns:90px 1fr 200px;gap:14px;font-size:10.5px;color:var(--text-muted);margin-top:8px">
       <div></div>
       <div style="display:flex;justify-content:space-between"><span>${allMin.toFixed(1)}°C</span><span>${((allMin+allMax)/2).toFixed(1)}°C</span><span>${allMax.toFixed(1)}°C</span></div>
-      <div style="text-align:right;font-size:10.5px">min ─ avg ─ max</div>
+      <div style="text-align:right;font-size:10.5px">${t("dev.mod.axisHint")}</div>
     </div>
     <div class="row mt-12" style="padding:8px 12px;background:rgba(59,130,246,0.06);border-left:3px solid var(--blue);border-radius:6px;font-size:11.5px;line-height:1.6">
-      <span><strong>📡 資料來源</strong>：BMS 即時上送（Modbus reg <code style="font-size:10.5px">Module N Max/Min/Avg Cell Temperature</code>，1s 週期）。海辰 V1.4 規格揭露至模組級；per-cell 溫度需透過 RPC 查詢（回應 ~2s · 一次 16 顆）。</span>
+      <span>${t("dev.mod.source")}</span>
     </div>
   `;
   modHost.innerHTML = modHtml;
@@ -1846,9 +1846,9 @@ function renderSysCard(sys) {
       <div class="card-head">
         <div>
           <h3>${sys.id} · ${sys.pcsKW} kW / ${sys.batteryKWh} kWh</h3>
-          <div class="muted" style="font-size:12px; margin-top:2px">${sys.vendor} · 液冷 · 磷酸鐵鋰</div>
+          <div class="muted" style="font-size:12px; margin-top:2px">${sys.vendor} · ${t("dev.sys.subtitle")}</div>
         </div>
-        <span class="tag ok">● 運轉中</span>
+        <span class="tag ok">${t("dev.sys.running")}</span>
       </div>
       <div class="grid g-3" style="gap:10px">
         <div>
@@ -1859,14 +1859,14 @@ function renderSysCard(sys) {
           <div class="pbar mt-8"><span style="width:${sys.soc}%"></span></div>
         </div>
         <div>
-          <div class="muted" style="font-size:12px">當前功率</div>
+          <div class="muted" style="font-size:12px">${t("dev.sys.power")}</div>
           <div class="val" style="font-size:20px;font-weight:700;color:var(--ess-teal)">+${Math.round(sys.pcsKW*0.94)} <span style="font-size:12px;color:var(--text-muted)">kW</span></div>
-          <div class="muted mt-8" style="font-size:11.5px">放電模式 · 套利</div>
+          <div class="muted mt-8" style="font-size:11.5px">${t("dev.sys.disArb")}</div>
         </div>
         <div>
-          <div class="muted" style="font-size:12px">電芯溫度</div>
+          <div class="muted" style="font-size:12px">${t("dev.sys.cellTemp")}</div>
           <div class="val" style="font-size:20px;font-weight:700">${sys.temp}<span style="font-size:12px;color:var(--text-muted)"> °C</span></div>
-          <div class="muted mt-8" style="font-size:11.5px">Δ 1.8°C · 正常</div>
+          <div class="muted mt-8" style="font-size:11.5px">${t("dev.sys.deltaNormal")}</div>
         </div>
       </div>
       <div class="chart-wrap short mt-16"><canvas id="sysch-${sys.id}"></canvas></div>
