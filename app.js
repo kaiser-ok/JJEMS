@@ -2397,11 +2397,18 @@ function viewTariff() {
   if (!state.tariffDraft) state.tariffDraft = JSON.parse(JSON.stringify(TARIFF_PLAN));
   const tp = state.tariffDraft;
   const PERIOD_META = {
-    P: { label: "尖峰",   color: "#ef4444", bg: "rgba(239,68,68,0.55)"  },
-    M: { label: "半尖峰", color: "#f59e0b", bg: "rgba(245,158,11,0.45)" },
-    O: { label: "離峰",   color: "#10b981", bg: "rgba(16,185,129,0.35)" },
+    P: { label: t("tar.period.P"), color: "#ef4444", bg: "rgba(239,68,68,0.55)"  },
+    M: { label: t("tar.period.M"), color: "#f59e0b", bg: "rgba(245,158,11,0.45)" },
+    O: { label: t("tar.period.O"), color: "#10b981", bg: "rgba(16,185,129,0.35)" },
   };
-  const days = ["週一","週二","週三","週四","週五","週六","週日"];
+  const days = [1,2,3,4,5,6,7].map(n => t(`tar.day.${n}`));
+  // Localized labels for basic charge categories (data layer keeps zh keys)
+  const BASIC_LABEL = {
+    routine:    t("tar.basic.routine"),
+    midPeak:    t("tar.basic.midPeak"),
+    satMidPeak: t("tar.basic.satMidPeak"),
+    offPeak:    t("tar.basic.offPeak"),
+  };
 
   // Compute monthly bill estimate from current grid + dailyBalance
   const bal = dailyBalance(state.strategy);
@@ -2439,33 +2446,33 @@ function viewTariff() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">電價方案</h1>
-        <p class="page-sub">編輯時段、單價、契約配置 — 所有計算（排程、財務頁）即時連動</p>
+        <h1 class="page-title">${t("page.tar.title")}</h1>
+        <p class="page-sub">${t("page.tar.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-ghost" id="tariffReset">恢復預設</button>
-        <button class="btn">新增方案</button>
-        <button class="btn btn-primary" id="tariffSave">儲存變更</button>
+        <button class="btn btn-ghost" id="tariffReset">${t("tar.btn.reset")}</button>
+        <button class="btn">${t("tar.btn.add")}</button>
+        <button class="btn btn-primary" id="tariffSave">${t("tar.btn.save")}</button>
       </div>
     </div>
 
     <!-- 1. Plan selector -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>📋 方案選擇</h3>
-        <span class="muted" style="font-size:11.5px">生效期 ${tp.effectiveFrom} 起</span>
+        <h3>${t("tar.planSelect")}</h3>
+        <span class="muted" style="font-size:11.5px">${t("tar.effectiveFrom").replace("{d}", tp.effectiveFrom)}</span>
       </div>
       <div class="row" style="gap:14px;flex-wrap:wrap">
         <select class="inp" style="min-width:280px">
           <option>${tp.name}</option>
-          <option>高壓三段式時間電價 (非夏月)</option>
-          <option>高壓二段式時間電價</option>
-          <option>低壓電力</option>
-          <option>+ 新增自訂方案…</option>
+          <option>${t("tar.option.tpc3w")}</option>
+          <option>${t("tar.option.tpc2")}</option>
+          <option>${t("tar.option.lv")}</option>
+          <option>${t("tar.option.add")}</option>
         </select>
         <div class="row" style="gap:6px">
-          <button class="btn btn-ghost" style="font-size:12px">複製當前</button>
-          <button class="btn btn-ghost" style="font-size:12px">匯出 JSON</button>
+          <button class="btn btn-ghost" style="font-size:12px">${t("tar.copyCurrent")}</button>
+          <button class="btn btn-ghost" style="font-size:12px">${t("tar.exportJson")}</button>
         </div>
       </div>
     </div>
@@ -2473,13 +2480,13 @@ function viewTariff() {
     <!-- 2. 24h × 7day heat map -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>🗓 時段視覺化 (24h × 7day)</h3>
+        <h3>${t("tar.timeViz")}</h3>
         <div class="row" style="gap:10px;flex-wrap:wrap">
-          <span class="muted" style="font-size:11.5px">畫筆：</span>
-          <button class="tariff-tool active" data-tool="P" style="--c:#ef4444"><span class="dot" style="background:#ef4444"></span>尖峰</button>
-          <button class="tariff-tool" data-tool="M" style="--c:#f59e0b"><span class="dot" style="background:#f59e0b"></span>半尖峰</button>
-          <button class="tariff-tool" data-tool="O" style="--c:#10b981"><span class="dot" style="background:#10b981"></span>離峰</button>
-          <button class="btn btn-ghost" id="tariffUndo" style="margin-left:12px;font-size:12px;padding:5px 12px" disabled>↶ 復原</button>
+          <span class="muted" style="font-size:11.5px">${t("tar.brush")}：</span>
+          <button class="tariff-tool active" data-tool="P" style="--c:#ef4444"><span class="dot" style="background:#ef4444"></span>${t("tar.period.P")}</button>
+          <button class="tariff-tool" data-tool="M" style="--c:#f59e0b"><span class="dot" style="background:#f59e0b"></span>${t("tar.period.M")}</button>
+          <button class="tariff-tool" data-tool="O" style="--c:#10b981"><span class="dot" style="background:#10b981"></span>${t("tar.period.O")}</button>
+          <button class="btn btn-ghost" id="tariffUndo" style="margin-left:12px;font-size:12px;padding:5px 12px" disabled>${t("tar.undo")}</button>
         </div>
       </div>
       <div class="tariff-grid-wrap">
@@ -2489,82 +2496,82 @@ function viewTariff() {
         ${days.map((dn, di) => `
           <div class="tariff-row">
             <div class="tariff-day">${dn}</div>
-            ${tp.grid[di].map((t, h) => `
+            ${tp.grid[di].map((p, h) => `
               <div class="tariff-cell" data-day="${di}" data-hour="${h}"
-                   style="background:${PERIOD_META[t].bg}" title="${dn} ${String(h).padStart(2,"0")}:00 · ${PERIOD_META[t].label}">${PERIOD_META[t].label[0]}</div>
+                   style="background:${PERIOD_META[p].bg}" title="${dn} ${String(h).padStart(2,"0")}:00 · ${PERIOD_META[p].label}">${PERIOD_META[p].label[0]}</div>
             `).join("")}
           </div>
         `).join("")}
       </div>
-      <div class="muted mt-12" style="font-size:11.5px">點擊或拖曳格子套用畫筆。常見用法：複製週一規則到週二–週五，或把週六改半尖峰。</div>
+      <div class="muted mt-12" style="font-size:11.5px">${t("tar.heatHint")}</div>
     </div>
 
     <!-- 3 & 4. Prices + basic charges -->
     <div class="grid g-2 mb-16">
       <div class="card">
-        <div class="card-head"><h3>💰 流動電費 (NT$/度)</h3></div>
+        <div class="card-head"><h3>${t("tar.flowPrice")}</h3></div>
         <table class="data">
-          <tr><td><span class="tag err">尖峰</span></td>
+          <tr><td><span class="tag err">${t("tar.period.P")}</span></td>
               <td><input class="inp tariff-price" data-key="P" type="number" step="0.01" value="${tp.prices.P}" style="width:100px"> NT$</td></tr>
-          <tr><td><span class="tag warn">半尖峰</span></td>
+          <tr><td><span class="tag warn">${t("tar.period.M")}</span></td>
               <td><input class="inp tariff-price" data-key="M" type="number" step="0.01" value="${tp.prices.M}" style="width:100px"> NT$</td></tr>
-          <tr><td><span class="tag ok">離峰</span></td>
+          <tr><td><span class="tag ok">${t("tar.period.O")}</span></td>
               <td><input class="inp tariff-price" data-key="O" type="number" step="0.01" value="${tp.prices.O}" style="width:100px"> NT$</td></tr>
         </table>
-        <div class="muted mt-8" style="font-size:11.5px">當前尖離峰價差：NT$ ${(tp.prices.P - tp.prices.O).toFixed(2)}/度（套利空間）</div>
+        <div class="muted mt-8" style="font-size:11.5px">${t("tar.peakSpread")}：NT$ ${(tp.prices.P - tp.prices.O).toFixed(2)}/${t("tar.kWh")}（${t("tar.arbHint")}）</div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>📐 基本電費 (契約容量)</h3></div>
+        <div class="card-head"><h3>${t("tar.basicCharge")}</h3></div>
         <table class="data">
           ${Object.entries(tp.basicCharges).map(([k,b]) => `
             <tr>
-              <td>${b.label}</td>
-              <td><input class="inp tariff-basic" data-key="${k}" type="number" step="0.1" value="${b.ratePerKW}" style="width:100px"> 元/kW · 月</td>
+              <td>${BASIC_LABEL[k] || b.label}</td>
+              <td><input class="inp tariff-basic" data-key="${k}" type="number" step="0.1" value="${b.ratePerKW}" style="width:100px"> ${t("tar.unitNTPerKwMo")}</td>
             </tr>`).join("")}
         </table>
-        <div class="muted mt-8" style="font-size:11.5px">超約附加費規則：≤10% × ${tp.overContractPenalty.withinMultiplier} 倍、>10% × ${tp.overContractPenalty.aboveMultiplier} 倍</div>
+        <div class="muted mt-8" style="font-size:11.5px">${t("tar.overRule").replace("{a}", tp.overContractPenalty.withinMultiplier).replace("{b}", tp.overContractPenalty.aboveMultiplier)}</div>
       </div>
     </div>
 
     <!-- 5. Monthly estimate -->
     <div class="card">
       <div class="card-head">
-        <h3>🧮 本月電費試算（依當前策略 ${STRATEGIES[state.strategy].label}）</h3>
-        <span class="tag ${overPct>0?"warn":"ok"}">${overPct>0?`超約 ${overPct.toFixed(1)}%`:"未超約"}</span>
+        <h3>${t("tar.monthlyEst")}（${t("tar.byStrategy")} ${STRATEGIES[state.strategy].label}）</h3>
+        <span class="tag ${overPct>0?"warn":"ok"}">${overPct>0?t("tar.overByPct").replace("{p}", overPct.toFixed(1)):t("tar.notOver")}</span>
       </div>
       <table class="data">
-        <thead><tr><th>項目</th><th class="right">用量</th><th class="right">單價</th><th class="right">小計</th></tr></thead>
+        <thead><tr><th>${t("tar.thItem")}</th><th class="right">${t("tar.thUsage")}</th><th class="right">${t("tar.thUnitPrice")}</th><th class="right">${t("tar.thSubtotal")}</th></tr></thead>
         <tbody>
-          <tr><td><span class="tag err">尖峰</span> 流動電費</td>
-              <td class="num right">${fmt(monthlyByPeriod.P)} 度</td>
+          <tr><td><span class="tag err">${t("tar.period.P")}</span> ${t("tar.flowItem")}</td>
+              <td class="num right">${fmt(monthlyByPeriod.P)} ${t("tar.kWh")}</td>
               <td class="num right">$${tp.prices.P.toFixed(2)}</td>
               <td class="num right">${money(monthlyByPeriod.P*tp.prices.P)}</td></tr>
-          <tr><td><span class="tag warn">半尖峰</span> 流動電費</td>
-              <td class="num right">${fmt(monthlyByPeriod.M)} 度</td>
+          <tr><td><span class="tag warn">${t("tar.period.M")}</span> ${t("tar.flowItem")}</td>
+              <td class="num right">${fmt(monthlyByPeriod.M)} ${t("tar.kWh")}</td>
               <td class="num right">$${tp.prices.M.toFixed(2)}</td>
               <td class="num right">${money(monthlyByPeriod.M*tp.prices.M)}</td></tr>
-          <tr><td><span class="tag ok">離峰</span> 流動電費</td>
-              <td class="num right">${fmt(monthlyByPeriod.O)} 度</td>
+          <tr><td><span class="tag ok">${t("tar.period.O")}</span> ${t("tar.flowItem")}</td>
+              <td class="num right">${fmt(monthlyByPeriod.O)} ${t("tar.kWh")}</td>
               <td class="num right">$${tp.prices.O.toFixed(2)}</td>
               <td class="num right">${money(monthlyByPeriod.O*tp.prices.O)}</td></tr>
-          <tr><td>基本電費 (經常契約)</td>
+          <tr><td>${t("tar.basicItem")}</td>
               <td class="num right">${fmt(peakDemand)} kW</td>
               <td class="num right">$${tp.basicCharges.routine.ratePerKW.toFixed(1)}</td>
               <td class="num right">${money(basicCost)}</td></tr>
           ${penalty > 0 ? `<tr style="background:rgba(239,68,68,0.05)">
-            <td><span class="tag err">超約罰款</span></td>
+            <td><span class="tag err">${t("tar.overPenalty")}</span></td>
             <td class="num right">${overPct.toFixed(1)}%</td>
-            <td class="num right">${tp.overContractPenalty.withinMultiplier}× 基本</td>
+            <td class="num right">${tp.overContractPenalty.withinMultiplier}${t("tar.basicTimes")}</td>
             <td class="num right" style="color:var(--red)">${money(penalty)}</td>
           </tr>` : ""}
           <tr style="background:rgba(0,194,168,0.06)">
-            <td class="strong">本月總電費</td>
-            <td colspan="2" class="num right muted">含基本 ${money(basicCost)} + 流動 ${money(energyCost)} ${penalty>0?`+ 罰款 ${money(penalty)}`:""}</td>
+            <td class="strong">${t("tar.totalMonthly")}</td>
+            <td colspan="2" class="num right muted">${t("tar.includes").replace("{b}", money(basicCost)).replace("{e}", money(energyCost))}${penalty>0?` ${t("tar.plusPenalty").replace("{p}", money(penalty))}`:""}</td>
             <td class="num right strong" style="font-size:18px;color:var(--primary)">${money(totalCost+penalty)}</td>
           </tr>
         </tbody>
       </table>
-      <div class="muted mt-8" style="font-size:11.5px">※ 試算依當前策略 24h 模擬曲線推估，實際以台電帳單為準。</div>
+      <div class="muted mt-8" style="font-size:11.5px">${t("tar.estFoot")}</div>
     </div>
   `;
 
@@ -2582,7 +2589,9 @@ function viewTariff() {
   const undoBtn = $("#tariffUndo");
   const updateUndoBtn = () => {
     undoBtn.disabled = undoStack.length === 0;
-    undoBtn.textContent = undoStack.length > 0 ? `↶ 復原 (${undoStack.length})` : "↶ 復原";
+    undoBtn.textContent = undoStack.length > 0
+      ? t("tar.undoN").replace("{n}", undoStack.length)
+      : t("tar.undo");
   };
   let dragBatch = null;     // collect during one drag, push as single entry on mouseup
   let dragging = false;
@@ -2622,7 +2631,7 @@ function viewTariff() {
       }
     }
     updateUndoBtn();
-    showToast(`已復原 ${batch.length} 格`, "info", 1500);
+    showToast(t("tar.toast.undone").replace("{n}", batch.length), "info", 1500);
   });
   // Touch
   grid.addEventListener("touchstart", e => {
@@ -2648,7 +2657,7 @@ function viewTariff() {
       TARIFF.peak.price    = tp.prices.P;
       TARIFF.midPeak.price = tp.prices.M;
       TARIFF.offPeak.price = tp.prices.O;
-      showToast("流動電費已更新（影響排程試算）", "ok", 2000);
+      showToast(t("tar.toast.priceUpd"), "ok", 2000);
     });
   });
   $$(".tariff-basic").forEach(inp => {
@@ -2659,11 +2668,11 @@ function viewTariff() {
 
   $("#tariffReset").addEventListener("click", () => {
     state.tariffDraft = null;
-    showToast("已恢復預設電價方案", "info");
+    showToast(t("tar.toast.reset"), "info");
     router();
   });
   $("#tariffSave").addEventListener("click", () => {
-    showToast("✓ 電價方案已儲存（生效於下個結算週期）", "ok", 4000);
+    showToast(t("tar.toast.saved"), "ok", 4000);
   });
 }
 
