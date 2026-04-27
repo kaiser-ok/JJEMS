@@ -3357,6 +3357,95 @@ function makeQR(text) {
   return svg;
 }
 
+// ────────── Compliance: recall lookup + export bundle ──────────
+function showRecallModal(p) {
+  const dbs = [
+    { name: "CPSC (US Consumer Product Safety)",  region: "美國",   delay: 250 },
+    { name: "RAPEX (EU Safety Gate)",             region: "歐盟",   delay: 320 },
+    { name: "SAMR (中國市場監督管理總局)",         region: "中國",   delay: 280 },
+    { name: "TÜV 撤證公告",                        region: "全球",   delay: 200 },
+    { name: "海辰 ESS 召回通報 (廠商)",            region: "全球",   delay: 180 },
+  ];
+  const now = new Date();
+  const ts = now.toISOString().replace("T"," ").slice(0, 19);
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:560px">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">🔍 召回 / 撤證追溯</div>
+          <div class="modal-sub">序號 <span style="font-family:ui-monospace,monospace">${p.sn}</span> · 型號 ${p.model}</div>
+        </div>
+        <button class="modal-close" aria-label="關閉">×</button>
+      </div>
+      <div style="padding:16px 18px">
+        <div id="recall-progress" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">
+          🛰 正在比對 5 個國際資料庫…
+        </div>
+        <div id="recall-list" style="display:grid;gap:8px;font-size:12.5px"></div>
+        <div id="recall-result" style="margin-top:14px;display:none">
+          <div style="padding:12px 14px;background:rgba(16,185,129,0.08);border-left:3px solid var(--green);border-radius:6px">
+            <strong style="color:var(--green)">✓ 未列入任何召回 / 撤證名單</strong>
+            <div class="muted" style="font-size:11.5px;margin-top:6px;line-height:1.6">
+              查詢時間：${ts}<br>
+              下次自動掃描：每日 03:00 (cron) · 命中時 5 分鐘內推 Email + Line<br>
+              訂閱費用：US$ 200/年 (CPSC + RAPEX) · 其他免費
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector(".modal-close").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+  const list = overlay.querySelector("#recall-list");
+  let idx = 0;
+  dbs.forEach(db => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(139,152,176,0.05);border-radius:6px";
+    row.innerHTML = `
+      <div>
+        <div><strong style="font-size:12.5px">${db.name}</strong> <span class="muted" style="font-size:10.5px">${db.region}</span></div>
+      </div>
+      <span class="tag mute" style="font-size:10.5px" data-db="${db.name}">查詢中…</span>`;
+    list.appendChild(row);
+  });
+
+  // 依序模擬查詢回應
+  let cumulative = 0;
+  dbs.forEach((db, i) => {
+    cumulative += db.delay;
+    setTimeout(() => {
+      const tag = list.querySelector(`[data-db="${CSS.escape(db.name)}"]`);
+      if (tag) {
+        tag.className = "tag ok";
+        tag.style.fontSize = "10.5px";
+        tag.textContent = "✓ 未列入";
+      }
+      if (i === dbs.length - 1) {
+        overlay.querySelector("#recall-progress").innerHTML = "✓ 5 個資料庫全部完成 ·  耗時 1.23s";
+        overlay.querySelector("#recall-result").style.display = "block";
+      }
+    }, cumulative);
+  });
+}
+
+function exportComplianceBundle(p) {
+  const today = new Date();
+  const stamp = today.toISOString().slice(0,10).replace(/-/g,"");
+  const fname = `${p.sn}_compliance_${stamp}.zip`;
+  showToast(`📦 正在打包 ${p.certs.length} 張認證 + 序號清單 + 召回查詢報告…`, "info", 2000);
+  setTimeout(() => {
+    const totalKB = p.certs.length * 320 + 24;
+    showToast(`✓ 已下載 ${fname} (${(totalKB/1024).toFixed(1)} MB · ${p.certs.length} PDFs + manifest.json + recall_check_${stamp}.txt)`, "ok", 6000);
+  }, 1800);
+}
+
 function viewPassport() {
   const sysId = state.passportSys || "SYS-A";
   const p = PASSPORTS[sysId];
@@ -3518,22 +3607,57 @@ function viewPassport() {
       </div>
     </div>
 
-    <!-- Certifications -->
-    <div class="card mb-16">
-      <div class="card-head"><h3>🏛 合規認證</h3><span class="tag ok">${p.certs.length} 項全數通過</span></div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-        ${p.certs.map(c=>`
-          <div style="padding:10px 12px;background:rgba(16,185,129,0.05);border-left:3px solid var(--green);border-radius:6px">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <strong style="font-size:13px">${c.name}</strong>
-              <span class="tag ok">${c.status}</span>
-            </div>
-            <div class="muted" style="font-size:11.5px;margin-top:4px">${c.scope}</div>
-            <div class="muted" style="font-size:11px;margin-top:2px">${c.date}</div>
+    <!-- Certifications (with expiry countdown + recall lookup + export bundle) -->
+    ${(() => {
+      const today = new Date();
+      const certsWithStatus = p.certs.map(c => {
+        const exp = new Date(c.expiry);
+        const days = Math.ceil((exp - today) / 86400000);
+        const status = days <= 30 ? "red" : days <= 90 ? "amber" : "green";
+        return { ...c, days, status };
+      });
+      const urgent = certsWithStatus.filter(c => c.status !== "green").length;
+      const headTag = urgent === 0
+        ? `<span class="tag ok">${p.certs.length} 項全部有效</span>`
+        : `<span class="tag warn">${urgent} 項需復驗 · 共 ${p.certs.length} 項</span>`;
+      return `
+      <div class="card mb-16">
+        <div class="card-head" style="flex-wrap:wrap;gap:8px">
+          <h3>🏛 合規認證</h3>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            ${headTag}
+            <button class="btn btn-ghost" id="ppRecallBtn" style="padding:5px 12px;font-size:12px">🔍 召回追溯</button>
+            <button class="btn btn-primary" id="ppExportBtn" style="padding:5px 12px;font-size:12px">📦 匯出合規包</button>
           </div>
-        `).join("")}
-      </div>
-    </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+          ${certsWithStatus.map(c => {
+            const colorVar = c.status === "red" ? "var(--red)" : c.status === "amber" ? "var(--amber)" : "var(--green)";
+            const bgRgba   = c.status === "red" ? "rgba(239,68,68,0.06)" : c.status === "amber" ? "rgba(245,158,11,0.06)" : "rgba(16,185,129,0.05)";
+            const dayLabel = c.days < 0
+              ? `已過期 ${-c.days} 天`
+              : c.days === 0 ? "今日到期"
+              : `剩 ${c.days} 天`;
+            const dayTag = c.status === "red" ? "err" : c.status === "amber" ? "warn" : "ok";
+            return `
+              <div style="padding:11px 13px;background:${bgRgba};border-left:3px solid ${colorVar};border-radius:6px">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                  <strong style="font-size:13px">${c.name}</strong>
+                  <span class="tag ${dayTag}" style="font-size:10.5px;white-space:nowrap">${dayLabel}</span>
+                </div>
+                <div class="muted" style="font-size:11.5px;margin-top:4px">${c.scope} · ${c.body}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:10.5px">
+                  <span style="color:var(--text-muted);font-family:ui-monospace,monospace">${c.certNo}</span>
+                  <a href="${c.pdfUrl}" onclick="event.preventDefault();showToast('PDF 預覽尚未實作 · 連結為佔位 (' + this.getAttribute('href') + ')','info',3500)" style="color:var(--primary);text-decoration:none">📄 PDF</a>
+                </div>
+                <div class="muted" style="font-size:10.5px;margin-top:3px">發證 ${c.issued} · 到期 ${c.expiry}</div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+        <div class="muted mt-12" style="font-size:11px">※ 到期前 90 天 黃燈 · 30 天 紅燈 · 系統會於 30/7/1 天時自動推 Email + Line 給維運主管</div>
+      </div>`;
+    })()}
 
     <!-- Service event timeline -->
     <div class="card">
@@ -3563,6 +3687,11 @@ function viewPassport() {
     state.passportSys = b.dataset.pp;
     router();
   }));
+
+  // 召回追溯 modal
+  $("#ppRecallBtn")?.addEventListener("click", () => showRecallModal(p));
+  // 匯出合規包
+  $("#ppExportBtn")?.addEventListener("click", () => exportComplianceBundle(p));
 
   // Carbon donut
   addChart(new Chart($("#chartCarbon"), {
