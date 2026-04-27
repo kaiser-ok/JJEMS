@@ -1052,8 +1052,8 @@ function viewProtection() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">電氣保護</h1>
-        <p class="page-sub">保護電驛配置 · 短路電流 · 跳脫紀錄 · 接地監測 · IDMT 配合曲線</p>
+        <h1 class="page-title">${t("page.prot.title")}</h1>
+        <p class="page-sub">${t("page.prot.sub")}</p>
       </div>
     </div>
     ${sldTabBar("protection")}
@@ -1066,83 +1066,83 @@ function renderProtectionContent(host) {
     host.innerHTML = `
       <div class="grid g-3 mt-16">
         <div class="card">
-          <div class="card-head"><h3>🛡 保護電驛配置</h3><span class="tag ok">8/8 正常</span></div>
+          <div class="card-head"><h3>${t("prot.relay.title")}</h3><span class="tag ok">${t("prot.relay.allOk").replace("{n}", "8/8")}</span></div>
           <table class="data" style="font-size:12.5px">
-            <thead><tr><th>ANSI</th><th>名稱</th><th class="right">設定值</th><th>狀態</th></tr></thead>
+            <thead><tr><th>${t("prot.relay.thAnsi")}</th><th>${t("prot.relay.thName")}</th><th class="right">${t("prot.relay.thSet")}</th><th>${t("prot.relay.thStat")}</th></tr></thead>
             <tbody>
-              <tr><td><code>50/51</code></td><td>過流 / 瞬時過流</td><td class="num right">450A · 0.3s</td><td><span class="tag ok">正常</span></td></tr>
-              <tr><td><code>50G/51G</code></td><td>接地過流</td><td class="num right">80A inst · 0.5In td=1s</td><td><span class="tag ok">正常</span></td></tr>
-              <tr><td><code>27/59</code></td><td>欠/過壓</td><td class="num right">±10/15% × Vn</td><td><span class="tag ok">正常</span></td></tr>
-              <tr><td><code>81U/81O</code></td><td>低/高頻率</td><td class="num right">59.5 / 60.5 Hz</td><td><span class="tag ok">正常</span></td></tr>
-              <tr><td><code>87T</code></td><td>變壓器差動</td><td class="num right">0.3In · slope 30%</td><td><span class="tag ok">正常</span></td></tr>
-              <tr><td><code>25</code></td><td>同步檢查</td><td class="num right">±10° / ±0.2 Hz</td><td><span class="tag ok">啟用</span></td></tr>
-              <tr><td><code>49</code></td><td>熱模擬</td><td class="num right">τ = 30 min</td><td><span class="tag ok">正常</span></td></tr>
-              <tr><td><code>Buchholz</code></td><td>瓦斯/油流</td><td class="num right">第一段警/第二段跳</td><td><span class="tag ok">正常</span></td></tr>
+              <tr><td><code>50/51</code></td><td>${t("prot.relay.50_51")}</td><td class="num right">450A · 0.3s</td><td><span class="tag ok">${t("prot.relay.normal")}</span></td></tr>
+              <tr><td><code>50G/51G</code></td><td>${t("prot.relay.50G_51G")}</td><td class="num right">80A inst · 0.5In td=1s</td><td><span class="tag ok">${t("prot.relay.normal")}</span></td></tr>
+              <tr><td><code>27/59</code></td><td>${t("prot.relay.27_59")}</td><td class="num right">±10/15% × Vn</td><td><span class="tag ok">${t("prot.relay.normal")}</span></td></tr>
+              <tr><td><code>81U/81O</code></td><td>${t("prot.relay.81U_81O")}</td><td class="num right">59.5 / 60.5 Hz</td><td><span class="tag ok">${t("prot.relay.normal")}</span></td></tr>
+              <tr><td><code>87T</code></td><td>${t("prot.relay.87T")}</td><td class="num right">0.3In · slope 30%</td><td><span class="tag ok">${t("prot.relay.normal")}</span></td></tr>
+              <tr><td><code>25</code></td><td>${t("prot.relay.25")}</td><td class="num right">±10° / ±0.2 Hz</td><td><span class="tag ok">${t("prot.relay.enabled")}</span></td></tr>
+              <tr><td><code>49</code></td><td>${t("prot.relay.49")}</td><td class="num right">τ = 30 min</td><td><span class="tag ok">${t("prot.relay.normal")}</span></td></tr>
+              <tr><td><code>Buchholz</code></td><td>${t("prot.relay.buchholz")}</td><td class="num right">${t("prot.relay.firstWarnSecondTrip")}</td><td><span class="tag ok">${t("prot.relay.normal")}</span></td></tr>
             </tbody>
           </table>
-          <div class="muted mt-8" style="font-size:11px">符合 IEC 60255 · CT 600/5A · VT 22.8kV/110V</div>
+          <div class="muted mt-8" style="font-size:11px">${t("prot.relay.foot")}</div>
         </div>
 
         <div class="card">
-          <div class="card-head"><h3>⚡ 短路電流容量</h3><span class="tag ok">設計餘裕充足</span></div>
+          <div class="card-head"><h3>${t("prot.sc.title")}</h3><span class="tag ok">${t("prot.sc.sufficient")}</span></div>
           <table class="data">
-            <tr><td>22.8kV 高壓側 Isc</td><td class="num right">12.4 kA</td></tr>
-            <tr><td>480V 低壓側 Isc</td><td class="num right">32.5 kA</td></tr>
-            <tr><td>主 ACB 切斷容量 (Icu)</td><td class="num right">≥ 50 kA</td><td><span class="tag ok">充裕</span></td></tr>
-            <tr><td>PCS DC 側熔斷器</td><td class="num right">200A · 1000VDC</td></tr>
-            <tr><td>變壓器阻抗</td><td class="num right">6.0%</td></tr>
-            <tr><td>系統接地方式</td><td class="num right">高阻接地 (NGR 50Ω)</td></tr>
+            <tr><td>${t("prot.sc.hvIsc")}</td><td class="num right">12.4 kA</td></tr>
+            <tr><td>${t("prot.sc.lvIsc")}</td><td class="num right">32.5 kA</td></tr>
+            <tr><td>${t("prot.sc.acbIcu")}</td><td class="num right">≥ 50 kA</td><td><span class="tag ok">${t("prot.sc.ample")}</span></td></tr>
+            <tr><td>${t("prot.sc.dcFuse")}</td><td class="num right">200A · 1000VDC</td></tr>
+            <tr><td>${t("prot.sc.txZ")}</td><td class="num right">6.0%</td></tr>
+            <tr><td>${t("prot.sc.grounding")}</td><td class="num right">${t("prot.sc.ngr")}</td></tr>
           </table>
-          <div class="muted mt-8" style="font-size:11px">依 IEEE 141 / 242 計算 · 上次校核 2025-12-08</div>
+          <div class="muted mt-8" style="font-size:11px">${t("prot.sc.foot")}</div>
         </div>
 
         <div class="card">
-          <div class="card-head"><h3>📜 最近 30 日跳脫紀錄</h3><span class="tag warn">2 次</span></div>
+          <div class="card-head"><h3>${t("prot.trip.title")}</h3><span class="tag warn">${t("prot.trip.count").replace("{n}", 2)}</span></div>
           <table class="data" style="font-size:12.5px">
-            <thead><tr><th>時間</th><th>裝置</th><th>動作</th><th>原因</th></tr></thead>
+            <thead><tr><th>${t("prot.trip.thTime")}</th><th>${t("prot.trip.thDevice")}</th><th>${t("prot.trip.thAct")}</th><th>${t("prot.trip.thReason")}</th></tr></thead>
             <tbody>
               <tr>
                 <td class="num muted">04/11 14:23</td>
                 <td>VCB-SYS-A</td>
-                <td><span class="tag warn">51 過流</span></td>
-                <td class="muted">PCS 啟動湧流，自動重合閘成功</td>
+                <td><span class="tag warn">${t("prot.trip.51oc")}</span></td>
+                <td class="muted">${t("prot.trip.r1")}</td>
               </tr>
               <tr>
                 <td class="num muted">04/03 09:08</td>
-                <td>主 ACB</td>
-                <td><span class="tag info">25 同步</span></td>
-                <td class="muted">並網切換，正常動作</td>
+                <td>${t("prot.curve.upstream").replace(/\s*\(.*\)/, "")}</td>
+                <td><span class="tag info">${t("prot.trip.25sync")}</span></td>
+                <td class="muted">${t("prot.trip.r2")}</td>
               </tr>
               <tr>
                 <td class="num muted">03/17 02:55</td>
                 <td>VCB-SYS-B</td>
-                <td><span class="tag warn">81U 低頻</span></td>
-                <td class="muted">59.45 Hz 約 0.6s，符合 LVRT 規範</td>
+                <td><span class="tag warn">${t("prot.trip.81uf")}</span></td>
+                <td class="muted">${t("prot.trip.r3")}</td>
               </tr>
             </tbody>
           </table>
           <div class="row mt-12" style="padding:8px 12px;background:rgba(0,194,168,0.06);border-left:3px solid var(--primary);border-radius:6px;font-size:12px">
-            <span><strong>選擇性協調</strong>：上下游時間級差 ≥ 0.3s · IDMT 配合曲線已校核</span>
+            <span>${t("prot.trip.coord")}</span>
           </div>
         </div>
       </div>
 
       <div class="grid g-2 mt-16">
         <div class="card">
-          <div class="card-head"><h3>🌍 接地與絕緣監測 (即時)</h3><span class="tag ok">健康</span></div>
+          <div class="card-head"><h3>${t("prot.iso.title")}</h3><span class="tag ok">${t("prot.iso.healthy")}</span></div>
           <table class="data">
-            <tr><td>系統對地絕緣</td><td class="num right" style="color:var(--green)">1,650 kΩ</td></tr>
-            <tr><td>正極對地</td><td class="num right">3,420 kΩ</td></tr>
-            <tr><td>負極對地</td><td class="num right">3,180 kΩ</td></tr>
-            <tr><td>絕緣告警閾值</td><td class="num right">≥ 500 kΩ</td></tr>
-            <tr><td>漏電流 (CBCT)</td><td class="num right">2.4 mA</td></tr>
-            <tr><td>NGR 接地電阻</td><td class="num right">50 Ω · 健康</td></tr>
+            <tr><td>${t("prot.iso.sysIso")}</td><td class="num right" style="color:var(--green)">1,650 kΩ</td></tr>
+            <tr><td>${t("prot.iso.posIso")}</td><td class="num right">3,420 kΩ</td></tr>
+            <tr><td>${t("prot.iso.negIso")}</td><td class="num right">3,180 kΩ</td></tr>
+            <tr><td>${t("prot.iso.thresh")}</td><td class="num right">≥ 500 kΩ</td></tr>
+            <tr><td>${t("prot.iso.leak")}</td><td class="num right">2.4 mA</td></tr>
+            <tr><td>${t("prot.iso.ngrR")}</td><td class="num right">${t("prot.iso.ngrOk")}</td></tr>
           </table>
-          <div class="muted mt-8" style="font-size:11px">採集週期：每 5 秒 · 來源 BMS Modbus reg [Insulation/Pos/Neg]</div>
+          <div class="muted mt-8" style="font-size:11px">${t("prot.iso.foot")}</div>
         </div>
 
         <div class="card">
-          <div class="card-head"><h3>📈 過流時間配合曲線 (示意)</h3><span class="tag info">IEC 標準</span></div>
+          <div class="card-head"><h3>${t("prot.curve.title")}</h3><span class="tag info">${t("prot.curve.iec")}</span></div>
           <svg viewBox="0 0 360 180" style="width:100%;height:180px">
             <line x1="40" y1="20" x2="40" y2="160" stroke="#8b98b0" stroke-width="1"/>
             <line x1="40" y1="160" x2="340" y2="160" stroke="#8b98b0" stroke-width="1"/>
@@ -1156,19 +1156,16 @@ function renderProtectionContent(host) {
             <text x="240" y="172" fill="#8b98b0" font-size="8" text-anchor="middle">10</text>
             <text x="320" y="172" fill="#8b98b0" font-size="8" text-anchor="middle">20</text>
 
-            <!-- Upstream curve (slower) -->
             <path d="M 60 30 Q 100 60, 160 90 T 320 145" stroke="#3b82f6" stroke-width="2" fill="none"/>
-            <text x="200" y="78" fill="#3b82f6" font-size="10" font-weight="600">主 ACB (上游)</text>
+            <text x="200" y="78" fill="#3b82f6" font-size="10" font-weight="600">${t("prot.curve.upstream")}</text>
 
-            <!-- Downstream curve (faster) -->
             <path d="M 60 60 Q 100 90, 160 115 T 320 158" stroke="#facc15" stroke-width="2" fill="none"/>
-            <text x="200" y="135" fill="#facc15" font-size="10" font-weight="600">VCB (下游)</text>
+            <text x="200" y="135" fill="#facc15" font-size="10" font-weight="600">${t("prot.curve.downstream")}</text>
 
-            <!-- Coordination margin band -->
             <path d="M 100 70 L 100 92 M 200 92 L 200 122 M 300 137 L 300 155" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2"/>
-            <text x="240" y="50" fill="#10b981" font-size="9">↕ 協調級差 ≥ 0.3s</text>
+            <text x="240" y="50" fill="#10b981" font-size="9">${t("prot.curve.margin")}</text>
           </svg>
-          <div class="muted mt-8" style="font-size:11px">確保下游故障時下游先動作；上游給予時間餘裕。</div>
+          <div class="muted mt-8" style="font-size:11px">${t("prot.curve.foot")}</div>
         </div>
       </div>`;
   }
