@@ -1615,28 +1615,32 @@ function renderDevicesAnalytics() {
   // Risk score (0-100, lower = better)
   const riskScore = Math.round(Math.min(100, vRange*0.6 + vStd*1500 + (sortedWeak[0].v < 3.34 ? 8 : 0)));
 
+  const stdMv = vStd*1000;
+  const stdTagText = stdMv<15 ? `<span style="color:var(--green)">${t("an.kpi.stdGood")}</span>` : stdMv<25 ? `<span style="color:var(--amber)">${t("an.kpi.stdOk")}</span>` : `<span style="color:var(--red)">${t("an.kpi.stdNeed")}</span>`;
+  const riskTagText = riskScore<15 ? t("an.kpi.riskLow") : riskScore<35 ? t("an.kpi.riskMid") : t("an.kpi.riskHi");
+
   $("#dev-content").innerHTML = `
     <!-- KPI cards -->
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
       <div class="kpi green">
-        <div class="kpi-label">平均電芯電壓</div>
+        <div class="kpi-label">${t("an.kpi.avgV")}</div>
         <div class="kpi-value">${vMean.toFixed(3)}<span class="unit">V</span></div>
-        <div class="kpi-foot">384 cells · LFP 標稱 3.2 V</div>
+        <div class="kpi-foot">${t("an.kpi.avgVFoot").replace("{n}", "384")}</div>
       </div>
       <div class="kpi blue">
-        <div class="kpi-label">電壓標準差 (均衡度)</div>
-        <div class="kpi-value">${(vStd*1000).toFixed(1)}<span class="unit">mV</span></div>
-        <div class="kpi-foot">${vStd*1000<15?'<span style="color:var(--green)">優良</span>':vStd*1000<25?'<span style="color:var(--amber)">尚可</span>':'<span style="color:var(--red)">需均衡</span>'} · 閾值 25 mV</div>
+        <div class="kpi-label">${t("an.kpi.std")}</div>
+        <div class="kpi-value">${stdMv.toFixed(1)}<span class="unit">mV</span></div>
+        <div class="kpi-foot">${t("an.kpi.stdFoot").replace("{tag}", stdTagText)}</div>
       </div>
       <div class="kpi amber">
-        <div class="kpi-label">最大 V 偏差</div>
+        <div class="kpi-label">${t("an.kpi.dv")}</div>
         <div class="kpi-value">${vRange.toFixed(0)}<span class="unit">mV</span></div>
-        <div class="kpi-foot">${(vMax).toFixed(3)} − ${(vMin).toFixed(3)} V · 閾值 50 mV</div>
+        <div class="kpi-foot">${t("an.kpi.dvFoot").replace("{max}", vMax.toFixed(3)).replace("{min}", vMin.toFixed(3))}</div>
       </div>
       <div class="kpi ${riskScore<15?'green':riskScore<35?'amber':'pink'}">
-        <div class="kpi-label">熱失控風險分數 (AI)</div>
+        <div class="kpi-label">${t("an.kpi.risk")}</div>
         <div class="kpi-value">${riskScore}<span class="unit">/100</span></div>
-        <div class="kpi-foot">${riskScore<15?'低風險':riskScore<35?'中度關注':'立即檢測'}</div>
+        <div class="kpi-foot">${riskTagText}</div>
       </div>
     </div>
 
@@ -1644,23 +1648,23 @@ function renderDevicesAnalytics() {
     <div class="grid g-2 mb-16">
       <div class="card">
         <div class="card-head">
-          <h3>電芯電壓分佈直方圖</h3>
+          <h3>${t("an.histo.title")}</h3>
           <div class="row">
-            <span class="tag info">SYS-A · 208 cells</span>
-            <span class="tag" style="color:var(--ess-teal);background:rgba(20,184,166,0.12)">SYS-B · 176 cells</span>
+            <span class="tag info">SYS-A · ${t("an.cellCount").replace("{n}", "208")}</span>
+            <span class="tag" style="color:var(--ess-teal);background:rgba(20,184,166,0.12)">SYS-B · ${t("an.cellCount").replace("{n}", "176")}</span>
           </div>
         </div>
         <div class="chart-wrap tall"><canvas id="chartHisto"></canvas></div>
-        <div class="muted" style="font-size:11.5px;margin-top:6px">理想為窄鐘形分佈;偏移或拖尾代表電芯不一致或衰退</div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">${t("an.histo.foot")}</div>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <h3>Top 10 弱電芯排行</h3>
-          <span class="tag warn">需重點關注</span>
+          <h3>${t("an.weak.title")}</h3>
+          <span class="tag warn">${t("an.weak.attention")}</span>
         </div>
         <table class="data" style="font-size:12px">
-          <thead><tr><th>#</th><th>系統</th><th>編號</th><th class="right">電壓</th><th class="right">溫度</th><th class="right">偏差</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>${t("an.weak.thSys")}</th><th>${t("an.weak.thIdx")}</th><th class="right">${t("an.weak.thV")}</th><th class="right">${t("an.weak.thT")}</th><th class="right">${t("an.weak.thDev")}</th><th></th></tr></thead>
           <tbody>
             ${sortedWeak.map((c,i)=>{
               const dev = (c.v - vMean) * 1000;
@@ -1672,7 +1676,7 @@ function renderDevicesAnalytics() {
                 <td class="num right">${c.v.toFixed(3)} V</td>
                 <td class="num right">${c.temp.toFixed(1)} °C</td>
                 <td class="num right"><span class="tag ${sev}" style="font-size:10.5px">${dev.toFixed(0)} mV</span></td>
-                <td><button class="btn btn-ghost" style="padding:2px 8px;font-size:10.5px">派工</button></td>
+                <td><button class="btn btn-ghost" style="padding:2px 8px;font-size:10.5px">${t("an.weak.dispatch")}</button></td>
               </tr>`;
             }).join("")}
           </tbody>
@@ -1683,33 +1687,33 @@ function renderDevicesAnalytics() {
     <!-- Thermal runaway prognostics — 6 indicator cards -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>🔥 熱失控早期指標 (Prognostics)</h3>
-        <span class="muted" style="font-size:12px">物理模型 + ML 推論 · 每 5 秒更新</span>
+        <h3>${t("an.therm.title")}</h3>
+        <span class="muted" style="font-size:12px">${t("an.therm.sub")}</span>
       </div>
       <div class="prog-grid">
-        ${prognosticIndicator("溫度上升斜率", 0.12, 0.3, "°C/min", "monotonic")}
-        ${prognosticIndicator("模組間最大溫差", 4.8, 8, "°C", "balanced")}
-        ${prognosticIndicator("V/I 相關性", 0.94, 0.7, "ρ", "rising", true)}
-        ${prognosticIndicator("自放電率", 0.8, 2.0, "%/週", "monotonic")}
-        ${prognosticIndicator("SoC 估算漂移", 1.2, 5, "%", "monotonic")}
-        ${prognosticIndicator("電壓變異係數", 4.2, 10, "%", "monotonic")}
+        ${prognosticIndicator(t("an.ind.tempRise"), 0.12, 0.3, t("an.ind.unit.cmin"), "monotonic")}
+        ${prognosticIndicator(t("an.ind.modDeltaT"), 4.8, 8, "°C", "balanced")}
+        ${prognosticIndicator(t("an.ind.viCorr"), 0.94, 0.7, "ρ", "rising", true)}
+        ${prognosticIndicator(t("an.ind.selfDis"), 0.8, 2.0, t("an.ind.unit.week"), "monotonic")}
+        ${prognosticIndicator(t("an.ind.socDrift"), 1.2, 5, "%", "monotonic")}
+        ${prognosticIndicator(t("an.ind.vCv"), 4.2, 10, "%", "monotonic")}
       </div>
       <div style="margin-top:14px;padding:10px 14px;background:rgba(16,185,129,0.05);border-left:3px solid var(--green);border-radius:6px;font-size:12.5px">
-        <strong>AI 評估：</strong>所有指標皆在安全區間，未觀察到熱失控前兆訊號。預估到下次例行檢測 (2026-07-15) 之間出現異常的機率為 <strong style="color:var(--green)">2.1%</strong>。
+        ${t("an.therm.aiEval")}
       </div>
     </div>
 
-    <!-- 7-day balance trend + IR heat map -->
+    <!-- 7-day balance trend + ΔV heat map -->
     <div class="grid g-2">
       <div class="card">
-        <div class="card-head"><h3>近 7 日電壓離散度趨勢</h3></div>
+        <div class="card-head"><h3>${t("an.spread.title")}</h3></div>
         <div class="chart-wrap"><canvas id="chartSpread"></canvas></div>
-        <div class="muted" style="font-size:11.5px;margin-top:6px">每日由主動均衡程序壓低離散度;若持續上升代表均衡電路或弱電芯問題</div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">${t("an.spread.foot")}</div>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <h3>電芯電壓偏差熱力圖 · ${SITE.systems[0].cells} cells <span class="muted" style="font-size:11px;font-weight:400">ΔV = Cell V − Avg</span></h3>
+          <h3>${t("an.dv.title").replace("{n}", SITE.systems[0].cells)} <span class="muted" style="font-size:11px;font-weight:400">${t("an.dv.formula")}</span></h3>
           <div class="row" style="gap:4px">
             <span class="muted" style="font-size:11px">−25 mV</span>
             <div style="width:160px;height:8px;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981,#f59e0b,#ef4444);border-radius:4px"></div>
@@ -1717,7 +1721,7 @@ function renderDevicesAnalytics() {
           </div>
         </div>
         <div class="heat" id="dvHeat"></div>
-        <div class="muted" style="font-size:11.5px;margin-top:6px">綠色 = 與平均值接近（健康）；黃/紅色 = 偏離 ±15 mV 以上的弱電芯。資料源：BMS Modbus reg [Cell Voltage 1‥512] 減 [Rack Avg Voltage]</div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">${t("an.dv.foot")}</div>
       </div>
     </div>
   `;
@@ -1750,14 +1754,22 @@ function renderDevicesAnalytics() {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { title: { display: true, text: "電壓 (V)" }, ticks: { maxTicksLimit: 8 }, grid: { display: false } },
-        y: { title: { display: true, text: "電芯數" }, grid: { color: "rgba(139,152,176,0.08)" } }
+        x: { title: { display: true, text: t("an.histo.xLabel") }, ticks: { maxTicksLimit: 8 }, grid: { display: false } },
+        y: { title: { display: true, text: t("an.histo.yLabel") }, grid: { color: "rgba(139,152,176,0.08)" } }
       }
     }
   }));
 
   // 7-day spread chart
-  const days = ["6 日前","5 日前","4 日前","3 日前","2 日前","昨日","今日"];
+  const days = [
+    t("an.spread.day.nago").replace("{n}", 6),
+    t("an.spread.day.nago").replace("{n}", 5),
+    t("an.spread.day.nago").replace("{n}", 4),
+    t("an.spread.day.nago").replace("{n}", 3),
+    t("an.spread.day.nago").replace("{n}", 2),
+    t("an.spread.day.yesterday"),
+    t("an.spread.day.today"),
+  ];
   const spreadData = [22.4, 18.6, 24.8, 19.2, 21.5, 17.3, +(vRange).toFixed(1)];
   addChart(new Chart($("#chartSpread"), {
     type: "line",
@@ -1765,7 +1777,7 @@ function renderDevicesAnalytics() {
       labels: days,
       datasets: [
         { label: "V Spread", data: spreadData, borderColor: "#00c2a8", backgroundColor: "rgba(0,194,168,0.18)", fill: true, tension: 0.35, pointRadius: 4, borderWidth: 2 },
-        { label: "閾值", data: days.map(()=>50), borderColor: "#ef4444", borderWidth: 1, borderDash: [4,3], pointRadius: 0, fill: false }
+        { label: t("an.spread.thresh"), data: days.map(()=>50), borderColor: "#ef4444", borderWidth: 1, borderDash: [4,3], pointRadius: 0, fill: false }
       ]
     },
     options: {
@@ -1824,7 +1836,7 @@ function prognosticIndicator(label, value, threshold, unit, trend, higherIsBette
   const ratio = value / threshold;
   const ok = higherIsBetter ? ratio >= 1 : ratio <= 0.6;
   const warn = higherIsBetter ? ratio >= 0.7 && ratio < 1 : ratio > 0.6 && ratio <= 0.85;
-  const status = ok ? "正常" : warn ? "監視" : "警示";
+  const status = ok ? t("an.ind.statusOk") : warn ? t("an.ind.statusWatch") : t("an.ind.statusWarn");
   const color = ok ? "var(--green)" : warn ? "var(--amber)" : "var(--red)";
   const seed = label.charCodeAt(0) + label.charCodeAt(1);
   return `
@@ -1835,7 +1847,7 @@ function prognosticIndicator(label, value, threshold, unit, trend, higherIsBette
       </div>
       <div class="prog-val" style="color:${color}">${value} <span class="prog-unit">${unit}</span></div>
       <div class="prog-spark-wrap"><canvas class="prog-spark" data-trend="${trend}" data-seed="${seed}"></canvas></div>
-      <div class="prog-foot muted">閾值 ${higherIsBetter ? "≥" : "≤"} ${threshold} ${unit}</div>
+      <div class="prog-foot muted">${t("an.ind.thresh")} ${higherIsBetter ? "≥" : "≤"} ${threshold} ${unit}</div>
     </div>
   `;
 }
