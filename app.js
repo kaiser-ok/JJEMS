@@ -1176,8 +1176,8 @@ function viewComm() {
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
-        <h1 class="page-title">通訊狀態</h1>
-        <p class="page-sub">設備連線健康度 · 鏈路統計 · 故障歷史 · 多協議監測</p>
+        <h1 class="page-title">${t("page.comm.title")}</h1>
+        <p class="page-sub">${t("page.comm.sub")}</p>
       </div>
     </div>
     ${sldTabBar("comm")}
@@ -1187,33 +1187,36 @@ function viewComm() {
 
 function renderCommContent(host) {
   {
+    const justNow = t("comm.justNow");
+    const secAgo = (n) => t("comm.secAgo").replace("{n}", n);
     const links = [
-      { dev:"PCS-A",        proto:"Modbus TCP",   addr:"192.168.1.11:502",     latency:"12 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"PCS-B",        proto:"Modbus TCP",   addr:"192.168.1.12:502",     latency:"14 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"BCU-A",        proto:"Modbus TCP",   addr:"192.168.1.21:502",     latency:"9 ms",   loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"BCU-B",        proto:"Modbus TCP",   addr:"192.168.1.22:502",     latency:"11 ms",  loss:"0.1%", lastSeen:"剛才", status:"ok" },
-      { dev:"BMU 1-13 (A)", proto:"CAN bus",      addr:"125 kbps",             latency:"2 ms",   loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"BMU 1-11 (B)", proto:"CAN bus",      addr:"125 kbps",             latency:"2 ms",   loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"關口表 (主)",  proto:"DLT645/RS485", addr:"COM1, addr=01",         latency:"82 ms",  loss:"0.3%", lastSeen:"3 秒前", status:"ok" },
-      { dev:"儲能表",       proto:"Modbus RTU",   addr:"COM2, addr=02",         latency:"75 ms",  loss:"0.2%", lastSeen:"3 秒前", status:"ok" },
-      { dev:"PV Inverter",  proto:"Modbus TCP",   addr:"192.168.1.31:502",     latency:"18 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"HVAC AC-1",    proto:"BACnet/IP",    addr:"192.168.1.41:47808",   latency:"28 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"HVAC AC-2",    proto:"BACnet/IP",    addr:"192.168.1.42:47808",   latency:"31 ms",  loss:"0.0%", lastSeen:"剛才", status:"ok" },
-      { dev:"HVAC AC-3",    proto:"BACnet/IP",    addr:"192.168.1.43:47808",   latency:"245 ms", loss:"4.2%", lastSeen:"12 秒前", status:"warn" },
-      { dev:"消防 VESDA",   proto:"DI/Relay",     addr:"DI 4",                  latency:"-",      loss:"-",    lastSeen:"剛才", status:"ok" },
-      { dev:"門禁",         proto:"DI/Relay",     addr:"DI 2-3",                latency:"-",      loss:"-",    lastSeen:"剛才", status:"ok" },
-      { dev:"台電 OpenADR", proto:"IEC 61850",    addr:"adr.taipower.com.tw",   latency:"180 ms", loss:"0.5%", lastSeen:"30 秒前", status:"ok" },
-      { dev:"雲端 MQTT",    proto:"MQTT/TLS",     addr:"$ESS/site/data:8883",   latency:"145 ms", loss:"0.2%", lastSeen:"剛才", status:"ok" },
+      { dev:"PCS-A",                 proto:"Modbus TCP",   addr:"192.168.1.11:502",     latency:"12 ms",  loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:"PCS-B",                 proto:"Modbus TCP",   addr:"192.168.1.12:502",     latency:"14 ms",  loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:"BCU-A",                 proto:"Modbus TCP",   addr:"192.168.1.21:502",     latency:"9 ms",   loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:"BCU-B",                 proto:"Modbus TCP",   addr:"192.168.1.22:502",     latency:"11 ms",  loss:"0.1%", lastSeen:justNow, status:"ok" },
+      { dev:"BMU 1-13 (A)",          proto:"CAN bus",      addr:"125 kbps",             latency:"2 ms",   loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:"BMU 1-11 (B)",          proto:"CAN bus",      addr:"125 kbps",             latency:"2 ms",   loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:t("comm.dev.meterMain"), proto:"DLT645/RS485", addr:"COM1, addr=01",        latency:"82 ms",  loss:"0.3%", lastSeen:secAgo(3), status:"ok" },
+      { dev:t("comm.dev.meterEss"),  proto:"Modbus RTU",   addr:"COM2, addr=02",        latency:"75 ms",  loss:"0.2%", lastSeen:secAgo(3), status:"ok" },
+      { dev:"PV Inverter",           proto:"Modbus TCP",   addr:"192.168.1.31:502",     latency:"18 ms",  loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:"HVAC AC-1",             proto:"BACnet/IP",    addr:"192.168.1.41:47808",   latency:"28 ms",  loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:"HVAC AC-2",             proto:"BACnet/IP",    addr:"192.168.1.42:47808",   latency:"31 ms",  loss:"0.0%", lastSeen:justNow, status:"ok" },
+      { dev:"HVAC AC-3",             proto:"BACnet/IP",    addr:"192.168.1.43:47808",   latency:"245 ms", loss:"4.2%", lastSeen:secAgo(12), status:"warn" },
+      { dev:t("comm.dev.fire"),      proto:"DI/Relay",     addr:"DI 4",                 latency:"-",      loss:"-",    lastSeen:justNow, status:"ok" },
+      { dev:t("comm.dev.door"),      proto:"DI/Relay",     addr:"DI 2-3",               latency:"-",      loss:"-",    lastSeen:justNow, status:"ok" },
+      { dev:t("comm.dev.openadr"),   proto:"IEC 61850",    addr:"adr.taipower.com.tw",  latency:"180 ms", loss:"0.5%", lastSeen:secAgo(30), status:"ok" },
+      { dev:t("comm.dev.mqtt"),      proto:"MQTT/TLS",     addr:"$ESS/site/data:8883",  latency:"145 ms", loss:"0.2%", lastSeen:justNow, status:"ok" },
     ];
     const okN = links.filter(l => l.status === "ok").length;
     const warnN = links.filter(l => l.status === "warn").length;
 
+    const sec = (n) => t("comm.faults.sec").replace("{n}", n);
     host.innerHTML = `
       <!-- Data path: EMS → SCU → BCU → BMS/PCS -->
       <div class="card mt-16">
         <div class="card-head">
-          <h3>🔀 資料路徑 · EMS 透過站控分層取得電池資料</h3>
-          <span class="muted" style="font-size:11.5px">EMS 不直連 PCS / BMS，所有電池資料經由站控收斂上送</span>
+          <h3>${t("comm.dp.title")}</h3>
+          <span class="muted" style="font-size:11.5px">${t("comm.dp.sub")}</span>
         </div>
         <svg viewBox="0 0 1080 270" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
           <defs>
@@ -1222,87 +1225,75 @@ function renderCommContent(host) {
             </marker>
           </defs>
 
-          <!-- Tier 1: J&J EMS -->
           <g>
             <rect x="380" y="10" width="320" height="48" rx="8" fill="#0a2924" stroke="#00c2a8" stroke-width="1.5"/>
             <text x="540" y="32" text-anchor="middle" fill="#00c2a8" font-size="13" font-weight="700">J&amp;J Power EMS</text>
-            <text x="540" y="48" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Web UI · 策略 · TimescaleDB · AI Copilot</text>
+            <text x="540" y="48" text-anchor="middle" fill="#cbd5e1" font-size="10.5">${t("comm.dp.emsRole")}</text>
           </g>
 
-          <!-- Arrow EMS → SCU -->
           <line x1="540" y1="58" x2="540" y2="92" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
           <text x="556" y="74" fill="#3b82f6" font-size="10.5" font-weight="600">MQTT / TLS</text>
           <text x="556" y="86" fill="#8b98b0" font-size="9.5">↑ $ESS/{dev}/data 1-5s · ↓ $ESC/{gw}/rpcreq</text>
 
-          <!-- Tier 2: SCU -->
           <g>
             <rect x="320" y="92" width="440" height="48" rx="8" fill="#101a2e" stroke="#3b82f6" stroke-width="1.5"/>
-            <text x="540" y="114" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="700">站控 SCU (Station Control Unit)</text>
-            <text x="540" y="130" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Modbus master · MQTT client · 多櫃聚合 · 周邊整合 · 本地策略執行</text>
+            <text x="540" y="114" text-anchor="middle" fill="#3b82f6" font-size="13" font-weight="700">${t("comm.dp.scu")}</text>
+            <text x="540" y="130" text-anchor="middle" fill="#cbd5e1" font-size="10.5">${t("comm.dp.scuRole")}</text>
           </g>
 
-          <!-- 3 branches from SCU -->
-          <!-- Branch 1: SCU → BCU -->
           <line x1="430" y1="140" x2="200" y2="178" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
           <text x="240" y="158" fill="#14b8a6" font-size="10.5" font-weight="600">Modbus TCP @ 1s</text>
-          <text x="240" y="170" fill="#8b98b0" font-size="9.5">poll cabinet state (107 欄)</text>
+          <text x="240" y="170" fill="#8b98b0" font-size="9.5">${t("comm.dp.poll107")}</text>
 
-          <!-- Branch 2: SCU → meters -->
           <line x1="540" y1="140" x2="540" y2="178" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
           <text x="552" y="158" fill="#fbbf24" font-size="10.5" font-weight="600">Modbus RTU @ 5s</text>
           <text x="552" y="170" fill="#8b98b0" font-size="9.5">DLT645 · RS485</text>
 
-          <!-- Branch 3: SCU → HVAC/DI -->
           <line x1="650" y1="140" x2="880" y2="178" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrDP)"/>
           <text x="780" y="158" fill="#a78bfa" font-size="10.5" font-weight="600">BACnet/IP · DI/O</text>
-          <text x="780" y="170" fill="#8b98b0" font-size="9.5">HVAC / 消防 / 門禁</text>
+          <text x="780" y="170" fill="#8b98b0" font-size="9.5">${t("comm.dp.peripheralWire")}</text>
 
-          <!-- Tier 3a: BCU -->
           <g>
             <rect x="60" y="180" width="280" height="44" rx="8" fill="#0a2320" stroke="#14b8a6" stroke-width="1.5"/>
-            <text x="200" y="201" text-anchor="middle" fill="#14b8a6" font-size="12.5" font-weight="700">櫃控 BCU × N</text>
-            <text x="200" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">單櫃整合 · alarm 聚合 · 接 BMS + PCS</text>
+            <text x="200" y="201" text-anchor="middle" fill="#14b8a6" font-size="12.5" font-weight="700">${t("comm.dp.bcu")}</text>
+            <text x="200" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">${t("comm.dp.bcuRole")}</text>
           </g>
 
-          <!-- Tier 3b: Meters -->
           <g>
             <rect x="430" y="180" width="220" height="44" rx="8" fill="#1a1505" stroke="#fbbf24" stroke-width="1.5"/>
-            <text x="540" y="201" text-anchor="middle" fill="#fbbf24" font-size="12.5" font-weight="700">關口表 / 儲能表</text>
-            <text x="540" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">kWh · kW · V · I · 功率因數</text>
+            <text x="540" y="201" text-anchor="middle" fill="#fbbf24" font-size="12.5" font-weight="700">${t("comm.dp.meters")}</text>
+            <text x="540" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">${t("comm.dp.metersRole")}</text>
           </g>
 
-          <!-- Tier 3c: Peripheral -->
           <g>
             <rect x="740" y="180" width="280" height="44" rx="8" fill="#170e2a" stroke="#a78bfa" stroke-width="1.5"/>
-            <text x="880" y="201" text-anchor="middle" fill="#a78bfa" font-size="12.5" font-weight="700">HVAC · 消防 · 門禁</text>
-            <text x="880" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">空調溫度 · 煙感 · UPS · 接觸器</text>
+            <text x="880" y="201" text-anchor="middle" fill="#a78bfa" font-size="12.5" font-weight="700">${t("comm.dp.peripheral")}</text>
+            <text x="880" y="215" text-anchor="middle" fill="#8b98b0" font-size="10">${t("comm.dp.peripheralRole")}</text>
           </g>
 
-          <!-- BCU breakdown branches -->
           <line x1="130" y1="224" x2="105" y2="246" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrDP)"/>
           <line x1="270" y1="224" x2="295" y2="246" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arrDP)"/>
 
-          <!-- Tier 4: BMS / PCS (under BCU) -->
           <g>
             <rect x="20" y="246" width="170" height="20" rx="4" fill="rgba(16,185,129,0.08)" stroke="#10b981" stroke-width="1"/>
-            <text x="105" y="260" text-anchor="middle" fill="#10b981" font-size="10.5" font-weight="700">BMS (BAU+BMU+CMU)</text>
+            <text x="105" y="260" text-anchor="middle" fill="#10b981" font-size="10.5" font-weight="700">${t("comm.dp.bms")}</text>
           </g>
           <g>
             <rect x="210" y="246" width="170" height="20" rx="4" fill="rgba(20,184,166,0.08)" stroke="#14b8a6" stroke-width="1"/>
-            <text x="295" y="260" text-anchor="middle" fill="#14b8a6" font-size="10.5" font-weight="700">PCS (功率轉換)</text>
+            <text x="295" y="260" text-anchor="middle" fill="#14b8a6" font-size="10.5" font-weight="700">${t("comm.dp.pcs")}</text>
           </g>
-          <text x="105" y="240" text-anchor="middle" fill="#8b98b0" font-size="9">CAN @ 100ms · cell V/T · SOC/SOH</text>
-          <text x="295" y="240" text-anchor="middle" fill="#8b98b0" font-size="9">CAN @ 50ms · P/Q/狀態</text>
+          <text x="105" y="240" text-anchor="middle" fill="#8b98b0" font-size="9">${t("comm.dp.canBms")}</text>
+          <text x="295" y="240" text-anchor="middle" fill="#8b98b0" font-size="9">${t("comm.dp.canPcs")}</text>
         </svg>
         <div class="grid g-3 mt-12" style="font-size:11.5px;line-height:1.6">
           <div style="padding:8px 12px;background:rgba(0,194,168,0.06);border-left:3px solid var(--primary);border-radius:6px">
-            <strong>EMS 端拿到</strong>：107 欄位即時、SOC/SOH、模組 max/min/avg V·T、PCS P/Q、告警旗標
+            <strong>${t("comm.dp.cardEms")}</strong>：${t("comm.dp.cardEmsBody")}
           </div>
           <div style="padding:8px 12px;background:rgba(59,130,246,0.06);border-left:3px solid var(--blue);border-radius:6px">
-            <strong>RPC 按需查</strong>：per-cell V (260)、平衡狀態、單模組詳細統計、歷史快照
+            <strong>${t("comm.dp.cardRpc")}</strong>：${t("comm.dp.cardRpcBody")}
           </div>
           <div style="padding:8px 12px;background:rgba(245,158,11,0.06);border-left:3px solid var(--amber);border-radius:6px">
-            <strong>EMS 端衍生</strong>：SOH 預測、RUL、ΔV heatmap、效率推算、異常分數（AI 模型）
+            <strong>${t("comm.dp.cardDerived")}</strong>：${t("comm.dp.cardDerivedBody")}
           </div>
         </div>
       </div>
@@ -1310,34 +1301,34 @@ function renderCommContent(host) {
       <!-- KPI summary -->
       <div class="kpi-grid mt-16" style="grid-template-columns:repeat(4,1fr)">
         <div class="kpi green">
-          <div class="kpi-label">線上設備</div>
+          <div class="kpi-label">${t("comm.kpi.online")}</div>
           <div class="kpi-value">${okN}<span class="unit">/${links.length}</span></div>
-          <div class="kpi-foot">99.4% 整體可用率</div>
+          <div class="kpi-foot">${t("comm.kpi.uptime").replace("{p}", "99.4")}</div>
         </div>
         <div class="kpi blue">
-          <div class="kpi-label">平均延遲</div>
+          <div class="kpi-label">${t("comm.kpi.avgLat")}</div>
           <div class="kpi-value">42<span class="unit">ms</span></div>
-          <div class="kpi-foot">本地 LAN ~12ms · 雲 ~145ms</div>
+          <div class="kpi-foot">${t("comm.kpi.avgLatFoot")}</div>
         </div>
         <div class="kpi amber">
-          <div class="kpi-label">需關注</div>
+          <div class="kpi-label">${t("comm.kpi.attention")}</div>
           <div class="kpi-value">${warnN}</div>
-          <div class="kpi-foot">HVAC AC-3 BACnet 抖動</div>
+          <div class="kpi-foot">${t("comm.kpi.attentionFoot")}</div>
         </div>
         <div class="kpi purple">
-          <div class="kpi-label">24h 自動重連</div>
-          <div class="kpi-value">3<span class="unit">次</span></div>
-          <div class="kpi-foot">100% 復原成功</div>
+          <div class="kpi-label">${t("comm.kpi.reconn")}</div>
+          <div class="kpi-value">3<span class="unit">${t("comm.kpi.times")}</span></div>
+          <div class="kpi-foot">${t("comm.kpi.reconnFoot")}</div>
         </div>
       </div>
 
       <div class="card mt-16">
         <div class="card-head">
-          <h3>📡 裝置連線一覽 (${links.length} 設備)</h3>
-          <span class="muted" style="font-size:11.5px">每 5 秒輪詢</span>
+          <h3>${t("comm.list.title").replace("{n}", links.length)}</h3>
+          <span class="muted" style="font-size:11.5px">${t("comm.list.poll5s")}</span>
         </div>
         <table class="data" style="font-size:12.5px">
-          <thead><tr><th>設備</th><th>協議</th><th>位址</th><th class="right">延遲</th><th class="right">封包遺失</th><th class="right">最後通訊</th><th>狀態</th></tr></thead>
+          <thead><tr><th>${t("comm.list.thDev")}</th><th>${t("comm.list.thProto")}</th><th>${t("comm.list.thAddr")}</th><th class="right">${t("comm.list.thLat")}</th><th class="right">${t("comm.list.thLoss")}</th><th class="right">${t("comm.list.thLast")}</th><th>${t("comm.list.thStat")}</th></tr></thead>
           <tbody>
             ${links.map(l => `
               <tr ${l.status==='warn'?'style="background:rgba(245,158,11,0.04)"':''}>
@@ -1347,7 +1338,7 @@ function renderCommContent(host) {
                 <td class="num right">${l.latency}</td>
                 <td class="num right">${l.loss}</td>
                 <td class="num right muted">${l.lastSeen}</td>
-                <td><span class="tag ${l.status}">${l.status==='ok'?'● 線上':'▲ 異常'}</span></td>
+                <td><span class="tag ${l.status}">${l.status==='ok'?t("comm.list.online"):t("comm.list.warn")}</span></td>
               </tr>
             `).join("")}
           </tbody>
@@ -1356,9 +1347,9 @@ function renderCommContent(host) {
 
       <div class="grid g-2 mt-16">
         <div class="card">
-          <div class="card-head"><h3>📶 通訊鏈路健康度 (24h)</h3></div>
+          <div class="card-head"><h3>${t("comm.health.title")}</h3></div>
           <table class="data">
-            <thead><tr><th>鏈路</th><th class="right">可用率</th><th class="right">avg 延遲</th><th class="right">重送</th></tr></thead>
+            <thead><tr><th>${t("comm.health.thLink")}</th><th class="right">${t("comm.health.thAvail")}</th><th class="right">${t("comm.health.thLat")}</th><th class="right">${t("comm.health.thRetx")}</th></tr></thead>
             <tbody>
               <tr><td>Modbus TCP (PCS/BCU)</td><td class="num right" style="color:var(--green)">99.98%</td><td class="num right">12 ms</td><td class="num right">2</td></tr>
               <tr><td>CAN bus (BMU)</td><td class="num right" style="color:var(--green)">100.00%</td><td class="num right">2 ms</td><td class="num right">0</td></tr>
@@ -1368,23 +1359,23 @@ function renderCommContent(host) {
               <tr><td>OpenADR (TPC)</td><td class="num right" style="color:var(--green)">99.5%</td><td class="num right">180 ms</td><td class="num right">3</td></tr>
             </tbody>
           </table>
-          <div class="muted mt-8" style="font-size:11px">所有鏈路均符合 SLA · BACnet 異常已開維運單 #2026-018</div>
+          <div class="muted mt-8" style="font-size:11px">${t("comm.health.foot")}</div>
         </div>
 
         <div class="card">
-          <div class="card-head"><h3>📜 通訊故障歷史 (近 7 日)</h3></div>
+          <div class="card-head"><h3>${t("comm.faults.title")}</h3></div>
           <table class="data" style="font-size:12.5px">
-            <thead><tr><th>時間</th><th>設備</th><th>事件</th><th>恢復</th></tr></thead>
+            <thead><tr><th>${t("comm.faults.thTime")}</th><th>${t("comm.faults.thDev")}</th><th>${t("comm.faults.thEvent")}</th><th>${t("comm.faults.thRecov")}</th></tr></thead>
             <tbody>
-              <tr><td class="num muted">今 03:15</td><td>HVAC AC-3</td><td><span class="tag warn">BACnet 超時</span></td><td><span class="tag ok">12 秒</span></td></tr>
-              <tr><td class="num muted">昨 18:02</td><td>PCS-A</td><td><span class="tag err">Modbus 心跳掉</span></td><td><span class="tag ok">15 秒</span></td></tr>
-              <tr><td class="num muted">04/22 09:30</td><td>關口表</td><td><span class="tag warn">RS485 CRC 錯</span></td><td><span class="tag ok">即時</span></td></tr>
-              <tr><td class="num muted">04/19 14:48</td><td>雲端 MQTT</td><td><span class="tag warn">TLS 握手延遲</span></td><td><span class="tag ok">2 秒</span></td></tr>
-              <tr><td class="num muted">04/19 04:12</td><td>HVAC AC-3</td><td><span class="tag warn">BACnet 超時</span></td><td><span class="tag ok">8 秒</span></td></tr>
+              <tr><td class="num muted">${t("comm.faults.today")} 03:15</td><td>HVAC AC-3</td><td><span class="tag warn">${t("comm.faults.bacnetTo")}</span></td><td><span class="tag ok">${sec(12)}</span></td></tr>
+              <tr><td class="num muted">${t("comm.faults.yesterday")} 18:02</td><td>PCS-A</td><td><span class="tag err">${t("comm.faults.modbusHb")}</span></td><td><span class="tag ok">${sec(15)}</span></td></tr>
+              <tr><td class="num muted">04/22 09:30</td><td>${t("comm.dev.meterMain").replace(/\s*\(.*\)/, "")}</td><td><span class="tag warn">${t("comm.faults.crcErr")}</span></td><td><span class="tag ok">${t("comm.faults.instant")}</span></td></tr>
+              <tr><td class="num muted">04/19 14:48</td><td>${t("comm.dev.mqtt")}</td><td><span class="tag warn">${t("comm.faults.tlsLag")}</span></td><td><span class="tag ok">${sec(2)}</span></td></tr>
+              <tr><td class="num muted">04/19 04:12</td><td>HVAC AC-3</td><td><span class="tag warn">${t("comm.faults.bacnetTo")}</span></td><td><span class="tag ok">${sec(8)}</span></td></tr>
             </tbody>
           </table>
           <div class="row mt-12" style="padding:8px 12px;background:rgba(245,158,11,0.06);border-left:3px solid var(--amber);border-radius:6px;font-size:12px">
-            <span><strong>診斷建議</strong>：HVAC AC-3 連續 5 日內出現 BACnet 異常，建議檢查網路 switch port 與設備電源。</span>
+            <span>${t("comm.faults.diag")}</span>
           </div>
         </div>
       </div>`;
