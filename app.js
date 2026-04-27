@@ -652,9 +652,9 @@ function drawForecastChart() {
 function sldTabBar(active) {
   return `
     <div class="page-tabs">
-      <a class="page-tab ${active==='diagram'?'active':''}" href="#/sld">⎔ 單線圖</a>
-      <a class="page-tab ${active==='protection'?'active':''}" href="#/protection">🛡 電氣保護</a>
-      <a class="page-tab ${active==='comm'?'active':''}" href="#/comm">📡 通訊狀態</a>
+      <a class="page-tab ${active==='diagram'?'active':''}" href="#/sld">${t("sld.tab.diagram")}</a>
+      <a class="page-tab ${active==='protection'?'active':''}" href="#/protection">${t("sld.tab.protection")}</a>
+      <a class="page-tab ${active==='comm'?'active':''}" href="#/comm">${t("sld.tab.comm")}</a>
     </div>`;
 }
 
@@ -700,21 +700,21 @@ function viewSLD() {
         <g opacity="0.7">
           <!-- TPC zone (upper-right) -->
           <rect x="430" y="6" width="220" height="120" rx="6" fill="rgba(251,191,36,0.04)" stroke="rgba(251,191,36,0.25)" stroke-dasharray="4,3"/>
-          <text x="440" y="20" fill="#fbbf24" font-size="9.5" font-weight="700" letter-spacing="1">⚡ 台電所有</text>
+          <text x="440" y="20" fill="#fbbf24" font-size="9.5" font-weight="700" letter-spacing="1">${t("sld.zone.tpc")}</text>
           <!-- Customer infrastructure zone (transformer + LV BUS area, middle band) -->
           <rect x="6" y="200" width="1068" height="60" rx="6" fill="rgba(59,130,246,0.04)" stroke="rgba(59,130,246,0.25)" stroke-dasharray="4,3"/>
-          <text x="1064" y="215" text-anchor="end" fill="#3b82f6" font-size="9.5" font-weight="700" letter-spacing="1">🏭 客戶 / 廠區設備</text>
+          <text x="1064" y="215" text-anchor="end" fill="#3b82f6" font-size="9.5" font-weight="700" letter-spacing="1">${t("sld.zone.cust")}</text>
           <!-- J&J product zone (PV + cabinets, bottom + left source) -->
           <rect x="60" y="6" width="200" height="190" rx="6" fill="rgba(0,194,168,0.04)" stroke="rgba(0,194,168,0.3)" stroke-dasharray="4,3"/>
           <rect x="280" y="270" width="340" height="180" rx="6" fill="rgba(0,194,168,0.04)" stroke="rgba(0,194,168,0.3)" stroke-dasharray="4,3"/>
-          <text x="612" y="445" text-anchor="end" fill="#00c2a8" font-size="9.5" font-weight="700" letter-spacing="1">🟢 J&amp;J Power · Zpower-AC-261L × 2</text>
+          <text x="612" y="445" text-anchor="end" fill="#00c2a8" font-size="9.5" font-weight="700" letter-spacing="1">${t("sld.zone.jj")}</text>
         </g>
 
         <!-- TPC Grid -->
         <g>
           <rect x="460" y="20" width="160" height="58" rx="8" fill="#14213d" stroke="#fbbf24" stroke-width="1.5"/>
-          <text x="540" y="42" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="700">台電 22.8kV</text>
-          <text x="540" y="60" text-anchor="middle" fill="#cbd5e1" font-size="11">高壓三段式 · 契約 2,500 kW</text>
+          <text x="540" y="42" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="700">${t("sld.svg.tpcGrid")}</text>
+          <text x="540" y="60" text-anchor="middle" fill="#cbd5e1" font-size="11">${t("sld.svg.tpcSpec")}</text>
           <text x="540" y="72" text-anchor="middle" fill="#8b98b0" font-size="10">MOF · PT · CT</text>
         </g>
 
@@ -729,27 +729,27 @@ function viewSLD() {
           <rect x="450" y="130" width="180" height="60" rx="8" fill="#101a2e" stroke="#3b82f6" stroke-width="1.5"/>
           <circle cx="510" cy="160" r="12" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
           <circle cx="528" cy="160" r="12" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
-          <text x="555" y="156" fill="#e6edf5" font-size="11" font-weight="600">主變壓器</text>
-          <text x="555" y="172" fill="#8b98b0" font-size="10">2500 kVA · 22.8kV/480V</text>
+          <text x="555" y="156" fill="#e6edf5" font-size="11" font-weight="600">${t("sld.svg.transformer")}</text>
+          <text x="555" y="172" fill="#8b98b0" font-size="10">${t("sld.svg.transformerSpec")}</text>
         </g>
 
         <!-- LV bus -->
         <line x1="100" y1="232" x2="980" y2="232" stroke="#3b82f6" stroke-width="3"/>
         <line x1="540" y1="190" x2="540" y2="232" stroke="#3b82f6" stroke-width="2"/>
-        <text x="100" y="248" fill="#3b82f6" font-size="11" font-weight="600">LV BUS 480V</text>
+        <text x="100" y="248" fill="#3b82f6" font-size="11" font-weight="600">${t("sld.svg.lvbus")}</text>
 
         <!-- PV (上方來源) — 直接 DC 接入 SYS-A 寬版光儲一體機內建 MPPT -->
         <g>
           <rect x="80" y="20" width="180" height="58" rx="8" fill="#1a1505" stroke="#facc15" stroke-width="1.5"/>
-          <text x="170" y="42" text-anchor="middle" fill="#facc15" font-size="13" font-weight="700">☀ 太陽能 (DC)</text>
+          <text x="170" y="42" text-anchor="middle" fill="#facc15" font-size="13" font-weight="700">${t("sld.svg.pv")}</text>
           <text x="170" y="60" text-anchor="middle" fill="#e6edf5" font-size="14" font-weight="700">308 kW</text>
-          <text x="170" y="72" text-anchor="middle" fill="#8b98b0" font-size="10">400 kWp · 直接進 SYS-A MPPT</text>
+          <text x="170" y="72" text-anchor="middle" fill="#8b98b0" font-size="10">${t("sld.svg.pvHint")}</text>
 
           <!-- DC line going down to SYS-A 's MPPT input -->
           <path d="M 170 78 L 170 260 L 360 260 L 360 280" stroke="#facc15" stroke-width="2" fill="none" stroke-dasharray="5,3" marker-end="url(#arrYellow)">
             <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.3s" repeatCount="indefinite"/>
           </path>
-          <text x="180" y="180" fill="#facc15" font-size="11" font-weight="600">↓ DC 直連</text>
+          <text x="180" y="180" fill="#facc15" font-size="11" font-weight="600">${t("sld.svg.dcDirect")}</text>
           <text x="180" y="194" fill="#8b98b0" font-size="9">650-950V (4 串 × 2)</text>
         </g>
 
@@ -804,7 +804,7 @@ function viewSLD() {
             <text x="360" y="402" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" style="text-shadow:0 1px 2px rgba(0,0,0,0.5)">65%</text>
             <text x="360" y="424" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">29.4°C</text>
           </g>
-          <text x="360" y="263" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 118 kW</text>
+          <text x="360" y="263" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">${t("sld.svg.discharge").replace("{kw}", 118)}</text>
         </g>
 
         <!-- PCS-B / BAT-B (100kW / 215kWh) -->
@@ -849,7 +849,7 @@ function viewSLD() {
             <text x="540" y="402" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" style="text-shadow:0 1px 2px rgba(0,0,0,0.5)">72%</text>
             <text x="540" y="424" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">31.1°C</text>
           </g>
-          <text x="540" y="263" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">↑ 放 97 kW</text>
+          <text x="540" y="263" text-anchor="middle" fill="#14b8a6" font-size="11" font-weight="600">${t("sld.svg.discharge").replace("{kw}", 97)}</text>
         </g>
 
         <!-- Load feeders -->
@@ -858,18 +858,18 @@ function viewSLD() {
             <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.5s" repeatCount="indefinite"/>
           </line>
           <rect x="680" y="300" width="120" height="78" rx="8" fill="#170e2a" stroke="#a78bfa" stroke-width="1.5"/>
-          <text x="740" y="324" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">⚙ 生產負載</text>
+          <text x="740" y="324" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">${t("sld.svg.prodLoad")}</text>
           <text x="740" y="345" text-anchor="middle" fill="#e6edf5" font-size="16" font-weight="700">1,735 kW</text>
-          <text x="740" y="365" text-anchor="middle" fill="#8b98b0" font-size="10">一廠/二廠/辦公大樓</text>
+          <text x="740" y="365" text-anchor="middle" fill="#8b98b0" font-size="10">${t("sld.svg.prodHint")}</text>
         </g>
         <g>
           <line x1="900" y1="232" x2="900" y2="300" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrPurple)">
             <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.6s" repeatCount="indefinite"/>
           </line>
           <rect x="840" y="300" width="120" height="78" rx="8" fill="#170e2a" stroke="#a78bfa" stroke-width="1.5"/>
-          <text x="900" y="324" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">HVAC/空壓</text>
+          <text x="900" y="324" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">${t("sld.svg.hvac")}</text>
           <text x="900" y="345" text-anchor="middle" fill="#e6edf5" font-size="16" font-weight="700">385 kW</text>
-          <text x="900" y="365" text-anchor="middle" fill="#8b98b0" font-size="10">公用系統</text>
+          <text x="900" y="365" text-anchor="middle" fill="#8b98b0" font-size="10">${t("sld.svg.hvacHint")}</text>
         </g>
 
         <!-- Protection / CB status -->
@@ -885,30 +885,30 @@ function viewSLD() {
 
         <!-- Legend -->
         <g transform="translate(20, 470)">
-          <text fill="#8b98b0" font-size="11" font-weight="600">圖例</text>
+          <text fill="#8b98b0" font-size="11" font-weight="600">${t("sld.legend.title")}</text>
           <g transform="translate(0, 14)">
             <rect x="0" y="0" width="12" height="3" fill="#fbbf24"/>
-            <text x="20" y="4" fill="#cbd5e1" font-size="11">台電 22.8kV</text>
+            <text x="20" y="4" fill="#cbd5e1" font-size="11">${t("sld.legend.hv")}</text>
           </g>
           <g transform="translate(110, 14)">
             <rect x="0" y="0" width="12" height="3" fill="#3b82f6"/>
-            <text x="20" y="4" fill="#cbd5e1" font-size="11">低壓 480V</text>
+            <text x="20" y="4" fill="#cbd5e1" font-size="11">${t("sld.legend.lv")}</text>
           </g>
           <g transform="translate(210, 14)">
             <rect x="0" y="0" width="12" height="3" fill="#14b8a6"/>
-            <text x="20" y="4" fill="#cbd5e1" font-size="11">儲能饋線</text>
+            <text x="20" y="4" fill="#cbd5e1" font-size="11">${t("sld.legend.essLn")}</text>
           </g>
           <g transform="translate(310, 14)">
             <rect x="0" y="0" width="12" height="3" fill="#facc15"/>
-            <text x="20" y="4" fill="#cbd5e1" font-size="11">太陽能</text>
+            <text x="20" y="4" fill="#cbd5e1" font-size="11">${t("sld.legend.pv")}</text>
           </g>
           <g transform="translate(400, 14)">
             <rect x="0" y="0" width="12" height="3" fill="#a78bfa"/>
-            <text x="20" y="4" fill="#cbd5e1" font-size="11">負載饋線</text>
+            <text x="20" y="4" fill="#cbd5e1" font-size="11">${t("sld.legend.load")}</text>
           </g>
           <g transform="translate(500, 14)">
             <circle cx="6" cy="2" r="5" fill="#10b981"/>
-            <text x="20" y="6" fill="#cbd5e1" font-size="11">斷路器 閉</text>
+            <text x="20" y="6" fill="#cbd5e1" font-size="11">${t("sld.legend.cb")}</text>
           </g>
         </g>
       </svg>
@@ -920,73 +920,73 @@ function viewSLD() {
     <div class="grid g-2 mt-16">
       <div class="card">
         <div class="card-head">
-          <h3>⚡ 接觸器 / 隔離開關狀態</h3>
-          <span class="tag ok">遠端</span>
+          <h3>${t("sld.contactor.title")}</h3>
+          <span class="tag ok">${t("sld.contactor.remote")}</span>
         </div>
         <div class="contactor-grid">
           <div class="contactor-card closed">
-            <div class="ct-label">主隔離開關</div>
-            <div class="ct-state">閉合</div>
+            <div class="ct-label">${t("sld.contactor.mainIso")}</div>
+            <div class="ct-state">${t("sld.contactor.closed")}</div>
             <div class="ct-icon">━●━</div>
-            <div class="ct-meta">22.8kV 主迴路</div>
+            <div class="ct-meta">${t("sld.contactor.mainCircuit")}</div>
           </div>
           <div class="contactor-card closed">
-            <div class="ct-label">總正接觸器 (K+)</div>
-            <div class="ct-state">閉合</div>
+            <div class="ct-label">${t("sld.contactor.kPos")}</div>
+            <div class="ct-state">${t("sld.contactor.closed")}</div>
             <div class="ct-icon">━●━</div>
             <div class="ct-meta">SYS-A · DC+</div>
           </div>
           <div class="contactor-card closed">
-            <div class="ct-label">總負接觸器 (K−)</div>
-            <div class="ct-state">閉合</div>
+            <div class="ct-label">${t("sld.contactor.kNeg")}</div>
+            <div class="ct-state">${t("sld.contactor.closed")}</div>
             <div class="ct-icon">━●━</div>
             <div class="ct-meta">SYS-A · DC−</div>
           </div>
           <div class="contactor-card open">
-            <div class="ct-label">預充接觸器</div>
-            <div class="ct-state">斷開</div>
+            <div class="ct-label">${t("sld.contactor.preCharge")}</div>
+            <div class="ct-state">${t("sld.contactor.open")}</div>
             <div class="ct-icon">━ ●━</div>
-            <div class="ct-meta">預充已完成</div>
+            <div class="ct-meta">${t("sld.contactor.preChargeDone")}</div>
           </div>
           <div class="contactor-card closed">
-            <div class="ct-label">總正接觸器 (K+)</div>
-            <div class="ct-state">閉合</div>
+            <div class="ct-label">${t("sld.contactor.kPos")}</div>
+            <div class="ct-state">${t("sld.contactor.closed")}</div>
             <div class="ct-icon">━●━</div>
             <div class="ct-meta">SYS-B · DC+</div>
           </div>
           <div class="contactor-card closed">
-            <div class="ct-label">總負接觸器 (K−)</div>
-            <div class="ct-state">閉合</div>
+            <div class="ct-label">${t("sld.contactor.kNeg")}</div>
+            <div class="ct-state">${t("sld.contactor.closed")}</div>
             <div class="ct-icon">━●━</div>
             <div class="ct-meta">SYS-B · DC−</div>
           </div>
         </div>
-        <div class="muted mt-12" style="font-size:11.5px">⚠ 強制開關需主管權限 + 雙人覆核;設備工程模式可進入「協能上位機」處理</div>
+        <div class="muted mt-12" style="font-size:11.5px">${t("sld.contactor.foot")}</div>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <h3>📡 DIO 數位輸入/輸出狀態</h3>
-          <span class="muted" style="font-size:11.5px">8 DI · 8 DO</span>
+          <h3>${t("sld.dio.title")}</h3>
+          <span class="muted" style="font-size:11.5px">${t("sld.dio.count")}</span>
         </div>
         <div class="dio-grid">
           ${[
-            { tag: "DI1", label: "急停按鈕",     on: false },
-            { tag: "DI2", label: "門禁感測 #1",  on: false },
-            { tag: "DI3", label: "門禁感測 #2",  on: false },
-            { tag: "DI4", label: "煙霧偵測",     on: false },
-            { tag: "DI5", label: "水浸偵測",     on: false },
-            { tag: "DI6", label: "外部聯防訊號", on: true  },
-            { tag: "DI7", label: "MSD 開關",     on: true  },
-            { tag: "DI8", label: "備用",         on: false },
-            { tag: "DO1", label: "故障燈號",     on: false },
-            { tag: "DO2", label: "蜂鳴器",       on: false },
-            { tag: "DO3", label: "AC 啟動",      on: true  },
-            { tag: "DO4", label: "VESDA 排風",   on: false },
-            { tag: "DO5", label: "預充控制",     on: false },
-            { tag: "DO6", label: "保護動作",     on: false },
-            { tag: "DO7", label: "備用",         on: false },
-            { tag: "DO8", label: "備用",         on: false },
+            { tag: "DI1", label: t("sld.dio.di1"),  on: false },
+            { tag: "DI2", label: t("sld.dio.di2"),  on: false },
+            { tag: "DI3", label: t("sld.dio.di3"),  on: false },
+            { tag: "DI4", label: t("sld.dio.di4"),  on: false },
+            { tag: "DI5", label: t("sld.dio.di5"),  on: false },
+            { tag: "DI6", label: t("sld.dio.di6"),  on: true  },
+            { tag: "DI7", label: t("sld.dio.di7"),  on: true  },
+            { tag: "DI8", label: t("sld.dio.di8"),  on: false },
+            { tag: "DO1", label: t("sld.dio.do1"),  on: false },
+            { tag: "DO2", label: t("sld.dio.do2"),  on: false },
+            { tag: "DO3", label: t("sld.dio.do3"),  on: true  },
+            { tag: "DO4", label: t("sld.dio.do4"),  on: false },
+            { tag: "DO5", label: t("sld.dio.do5"),  on: false },
+            { tag: "DO6", label: t("sld.dio.do6"),  on: false },
+            { tag: "DO7", label: t("sld.dio.di8"),  on: false },
+            { tag: "DO8", label: t("sld.dio.di8"),  on: false },
           ].map(d => `
             <div class="dio-cell ${d.on?'on':'off'} ${d.tag.startsWith('DI')?'di':'do'}">
               <span class="dio-tag">${d.tag}</span>
@@ -1003,46 +1003,46 @@ function viewSLD() {
   $("#sld-mode-content").innerHTML = `
     <div class="grid g-3 mt-16">
       <div class="card">
-        <div class="card-head"><h3>📊 電力品質</h3><span class="tag ok">關口表即時</span></div>
+        <div class="card-head"><h3>${t("sld.pq.title")}</h3><span class="tag ok">${t("sld.pq.realtime")}</span></div>
         <table class="data">
-          <tr><td>R 相</td><td class="num">489.2 V</td></tr>
-          <tr><td>S 相</td><td class="num">487.8 V</td></tr>
-          <tr><td>T 相</td><td class="num">488.4 V</td></tr>
-          <tr><td>頻率</td><td class="num">60.02 Hz</td></tr>
-          <tr><td>功率因數</td><td class="num">0.96</td></tr>
-          <tr><td>THD-V</td><td class="num">2.1%</td></tr>
+          <tr><td>${t("sld.pq.phaseR")}</td><td class="num">489.2 V</td></tr>
+          <tr><td>${t("sld.pq.phaseS")}</td><td class="num">487.8 V</td></tr>
+          <tr><td>${t("sld.pq.phaseT")}</td><td class="num">488.4 V</td></tr>
+          <tr><td>${t("sld.pq.freq")}</td><td class="num">60.02 Hz</td></tr>
+          <tr><td>${t("sld.pq.pf")}</td><td class="num">0.96</td></tr>
+          <tr><td>${t("sld.pq.thdv")}</td><td class="num">2.1%</td></tr>
         </table>
-        <div class="muted mt-8" style="font-size:11px">資料源：DLT645 / Modbus RTU 關口表</div>
+        <div class="muted mt-8" style="font-size:11px">${t("sld.pq.source")}</div>
       </div>
       <div class="card">
         <div class="card-head">
-          <h3>🌡 主變壓器監測</h3>
-          <span class="tag mute">選配</span>
+          <h3>${t("sld.tx.title")}</h3>
+          <span class="tag mute">${t("sld.tx.optional")}</span>
         </div>
         <table class="data" style="opacity:0.7">
-          <tr><td>油溫</td><td class="num">— °C</td></tr>
-          <tr><td>繞組溫度</td><td class="num">— °C</td></tr>
-          <tr><td>有載分接頭</td><td class="num">— / 5</td></tr>
-          <tr><td>當前負載率</td><td class="num">— %</td></tr>
-          <tr><td>瓦斯繼電器</td><td class="num">—</td></tr>
+          <tr><td>${t("sld.tx.oilTemp")}</td><td class="num">— °C</td></tr>
+          <tr><td>${t("sld.tx.windTemp")}</td><td class="num">— °C</td></tr>
+          <tr><td>${t("sld.tx.tap")}</td><td class="num">— / 5</td></tr>
+          <tr><td>${t("sld.tx.loadRatio")}</td><td class="num">— %</td></tr>
+          <tr><td>${t("sld.tx.gas")}</td><td class="num">—</td></tr>
         </table>
         <div class="row mt-8" style="padding:8px 10px;background:rgba(245,158,11,0.06);border-left:3px solid var(--amber);border-radius:6px;font-size:11.5px;line-height:1.5">
-          <span><strong>需 IED 整合</strong>：主變壓器屬<u>客戶廠區設備</u>，此區欄位需另配溫控變送器、有載分接頭控制器或智慧電驛 (SIPROTEC/MICOM/SEL) 經 Modbus / IEC 61850 上送 EMS。</span>
+          <span>${t("sld.tx.iedHint")}</span>
         </div>
       </div>
       <div class="card">
         <div class="card-head">
-          <h3>🛡 保護電驛</h3>
-          <span class="tag mute">選配 IED</span>
+          <h3>${t("sld.relay.title")}</h3>
+          <span class="tag mute">${t("sld.tx.optional")} IED</span>
         </div>
         <table class="data" style="opacity:0.7">
-          <tr><td>50/51 過流</td><td><span class="tag mute">需 IED</span></td></tr>
-          <tr><td>27/59 欠過壓</td><td><span class="tag mute">需 IED</span></td></tr>
-          <tr><td>81 頻率</td><td><span class="tag mute">需 IED</span></td></tr>
-          <tr><td>87T 差動</td><td><span class="tag mute">需 IED</span></td></tr>
-          <tr><td>Buchholz</td><td><span class="tag mute">需 IED</span></td></tr>
+          <tr><td>50/51 過流</td><td><span class="tag mute">${t("sld.relay.iedNeeded")}</span></td></tr>
+          <tr><td>27/59 欠過壓</td><td><span class="tag mute">${t("sld.relay.iedNeeded")}</span></td></tr>
+          <tr><td>81 頻率</td><td><span class="tag mute">${t("sld.relay.iedNeeded")}</span></td></tr>
+          <tr><td>87T 差動</td><td><span class="tag mute">${t("sld.relay.iedNeeded")}</span></td></tr>
+          <tr><td>Buchholz</td><td><span class="tag mute">${t("sld.relay.iedNeeded")}</span></td></tr>
         </table>
-        <a href="#/protection" class="btn btn-ghost mt-8" style="font-size:12px;width:100%;text-align:center;padding:6px">→ 查看完整電氣保護頁</a>
+        <a href="#/protection" class="btn btn-ghost mt-8" style="font-size:12px;width:100%;text-align:center;padding:6px">${t("sld.relay.gotoPage")}</a>
       </div>
     </div>`;
 }
