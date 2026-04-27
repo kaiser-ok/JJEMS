@@ -2852,30 +2852,30 @@ function viewAlarms() {
         <p class="page-sub">${t("page.alm.sub")}</p>
       </div>
       <div class="page-actions">
-        <button class="btn">全部</button>
-        <button class="btn btn-ghost">錯誤</button>
-        <button class="btn btn-ghost">警告</button>
-        <button class="btn btn-ghost">資訊</button>
+        <button class="btn">${t("alm.filter.all")}</button>
+        <button class="btn btn-ghost">${t("alm.filter.err")}</button>
+        <button class="btn btn-ghost">${t("alm.filter.warn")}</button>
+        <button class="btn btn-ghost">${t("alm.filter.info")}</button>
       </div>
     </div>
 
     <div class="card mb-16" style="border-left:3px solid var(--amber);background:linear-gradient(90deg,rgba(245,158,11,0.06),transparent)">
       <div class="card-head" style="margin-bottom:8px">
-        <h3>🎬 Demo · 觸發告警停機連動</h3>
-        <span class="muted" style="font-size:11.5px">點下方按鈕模擬即時告警，看 EMS 自動接管的全螢幕流程</span>
+        <h3>${t("alm.demo.title")}</h3>
+        <span class="muted" style="font-size:11.5px">${t("alm.demo.sub")}</span>
       </div>
       <div class="row" style="gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" id="demoAlarmThermal">🌡 模擬電芯過熱（停機）</button>
-        <button class="btn btn-primary" id="demoAlarmFire" style="background:var(--red);border-color:var(--red);color:#fff">🔥 模擬煙感觸發（消防）</button>
-        <button class="btn" id="demoAlarmContract">⚡ 模擬契約超約（降載）</button>
+        <button class="btn btn-primary" id="demoAlarmThermal">${t("alm.demo.btnThermal")}</button>
+        <button class="btn btn-primary" id="demoAlarmFire" style="background:var(--red);border-color:var(--red);color:#fff">${t("alm.demo.btnFire")}</button>
+        <button class="btn" id="demoAlarmContract">${t("alm.demo.btnContract")}</button>
       </div>
     </div>
 
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-      <div class="kpi"><div class="kpi-label">未處理</div><div class="kpi-value">3</div><div class="kpi-foot">需關注</div></div>
-      <div class="kpi green"><div class="kpi-label">今日已處理</div><div class="kpi-value">12</div><div class="kpi-foot">自動恢復 9 / 手動 3</div></div>
-      <div class="kpi amber"><div class="kpi-label">警告</div><div class="kpi-value">2</div><div class="kpi-foot">熱控、通訊</div></div>
-      <div class="kpi pink"><div class="kpi-label">錯誤</div><div class="kpi-value">1</div><div class="kpi-foot">PCS 通訊歷史</div></div>
+      <div class="kpi"><div class="kpi-label">${t("alm.kpi.unhandled")}</div><div class="kpi-value">3</div><div class="kpi-foot">${t("alm.kpi.unhandledFoot")}</div></div>
+      <div class="kpi green"><div class="kpi-label">${t("alm.kpi.handled")}</div><div class="kpi-value">12</div><div class="kpi-foot">${t("alm.kpi.handledFoot").replace("{a}", 9).replace("{b}", 3)}</div></div>
+      <div class="kpi amber"><div class="kpi-label">${t("alm.kpi.warn")}</div><div class="kpi-value">2</div><div class="kpi-foot">${t("alm.kpi.warnFoot")}</div></div>
+      <div class="kpi pink"><div class="kpi-label">${t("alm.kpi.err")}</div><div class="kpi-value">1</div><div class="kpi-foot">${t("alm.kpi.errFoot")}</div></div>
     </div>
 
     <div class="card mt-16 mb-16">
@@ -2898,20 +2898,20 @@ function viewAlarms() {
     </div>
 
     <div class="card mb-16">
-      <div class="card-head"><h3>即時告警</h3>
-        <div class="row"><span class="muted" style="font-size:12px">每 10 秒刷新</span></div>
+      <div class="card-head"><h3>${t("alm.live.title")}</h3>
+        <div class="row"><span class="muted" style="font-size:12px">${t("alm.live.refresh10s")}</span></div>
       </div>
       <table class="data">
-        <thead><tr><th>時間</th><th>等級</th><th>設備</th><th>訊息</th><th>詳情</th><th>動作</th></tr></thead>
+        <thead><tr><th>${t("alm.live.thTime")}</th><th>${t("alm.live.thSev")}</th><th>${t("alm.live.thDev")}</th><th>${t("alm.live.thMsg")}</th><th>${t("alm.live.thDetail")}</th><th>${t("alm.live.thAct")}</th></tr></thead>
         <tbody>
           ${ALARMS.map(a=>`
             <tr>
               <td class="num">${a.ts}</td>
-              <td><span class="tag ${a.sev}">${ {ok:"完成",info:"資訊",warn:"警告",err:"錯誤"}[a.sev] }</span></td>
+              <td><span class="tag ${a.sev}">${t(`sev.${a.sev}`)}</span></td>
               <td>${a.sys}</td>
               <td>${a.msg}</td>
               <td class="muted">${a.detail}</td>
-              <td><button class="btn btn-ghost" style="padding:3px 10px;font-size:11.5px">確認</button></td>
+              <td><button class="btn btn-ghost" style="padding:3px 10px;font-size:11.5px">${t("alm.live.confirm")}</button></td>
             </tr>
           `).join("")}
         </tbody>
@@ -2921,16 +2921,16 @@ function viewAlarms() {
     <!-- 🔗 Interlock rules editor -->
     <div class="card mb-16">
       <div class="card-head">
-        <h3>🔗 告警 → 自動動作 規則</h3>
+        <h3>${t("alm.rules.title")}</h3>
         <div class="row" style="gap:6px">
-          <button class="btn btn-ghost" style="font-size:12px">匯入模板</button>
-          <button class="btn" style="font-size:12px">+ 新增規則</button>
+          <button class="btn btn-ghost" style="font-size:12px">${t("alm.rules.import")}</button>
+          <button class="btn" style="font-size:12px">${t("alm.rules.add")}</button>
         </div>
       </div>
       <table class="data">
         <thead><tr>
-          <th>啟</th><th>告警代碼</th><th>名稱</th><th>嚴重度</th><th>觸發閾值</th>
-          <th>自動動作</th><th class="right">延遲</th><th></th>
+          <th>${t("alm.rules.thOn")}</th><th>${t("alm.rules.thCode")}</th><th>${t("alm.rules.thName")}</th><th>${t("alm.rules.thSev")}</th><th>${t("alm.rules.thThresh")}</th>
+          <th>${t("alm.rules.thAuto")}</th><th class="right">${t("alm.rules.thDelay")}</th><th></th>
         </tr></thead>
         <tbody>
           ${ALARM_RULES.map((r,i) => `
@@ -2938,33 +2938,33 @@ function viewAlarms() {
               <td><input type="checkbox" ${r.enabled?'checked':''} class="rule-toggle" data-i="${i}"></td>
               <td><code style="font-size:11.5px;color:var(--text-muted)">${r.code}</code></td>
               <td>${r.name}</td>
-              <td><span class="tag ${r.sev === 'critical' ? 'err' : r.sev === 'error' ? 'err' : r.sev === 'warning' ? 'warn' : 'info'}">${ {critical:'重大',error:'錯誤',warning:'警告',info:'資訊'}[r.sev] }</span></td>
+              <td><span class="tag ${r.sev === 'critical' ? 'err' : r.sev === 'error' ? 'err' : r.sev === 'warning' ? 'warn' : 'info'}">${t(`alm.rules.sev.${r.sev}`)}</span></td>
               <td><input class="inp rule-thr" data-i="${i}" value="${r.threshold}" style="width:120px;font-size:12px;padding:4px 8px"></td>
               <td>
                 <span class="action-tag act-${r.actType}">
                   ${ {shutdown:'🛑',derate:'🔻',reset:'🔁',notify:'🔔'}[r.actType] } ${r.action}
                 </span>
               </td>
-              <td class="num right"><input class="inp rule-delay" data-i="${i}" value="${r.delaySec}" type="number" style="width:60px;font-size:12px;padding:4px 8px;text-align:right"> 秒</td>
-              <td><button class="btn-mini rule-test" data-i="${i}" title="觸發測試">▶</button></td>
+              <td class="num right"><input class="inp rule-delay" data-i="${i}" value="${r.delaySec}" type="number" style="width:60px;font-size:12px;padding:4px 8px;text-align:right"> ${t("alm.rules.sec")}</td>
+              <td><button class="btn-mini rule-test" data-i="${i}" title="${t("alm.rules.testBtn")}">▶</button></td>
             </tr>
           `).join("")}
         </tbody>
       </table>
-      <div class="muted mt-12" style="font-size:11.5px">勾選 = 啟用 · 直接編輯閾值與延遲秒數 · 點 ▶ 立即模擬觸發看連動效果。</div>
+      <div class="muted mt-12" style="font-size:11.5px">${t("alm.rules.foot")}</div>
     </div>
 
     <!-- 📜 Action audit history -->
     <div class="grid g-2 mb-16">
       <div class="card">
-        <div class="card-head"><h3>📜 自動動作執行歷史 (近 30 日)</h3></div>
+        <div class="card-head"><h3>${t("alm.audit.title")}</h3></div>
         <div class="grid g-3" style="gap:10px;margin-bottom:14px">
-          <div class="stat" style="padding:14px"><div class="lbl">總執行次數</div><div class="val">${ALARM_HISTORY.totals.shutdown + ALARM_HISTORY.totals.derate + ALARM_HISTORY.totals.notify}</div></div>
-          <div class="stat amber" style="padding:14px"><div class="lbl">停機 / 降載</div><div class="val">${ALARM_HISTORY.totals.shutdown} / ${ALARM_HISTORY.totals.derate}</div></div>
-          <div class="stat blue" style="padding:14px"><div class="lbl">通知</div><div class="val">${ALARM_HISTORY.totals.notify}</div></div>
+          <div class="stat" style="padding:14px"><div class="lbl">${t("alm.audit.totalExec")}</div><div class="val">${ALARM_HISTORY.totals.shutdown + ALARM_HISTORY.totals.derate + ALARM_HISTORY.totals.notify}</div></div>
+          <div class="stat amber" style="padding:14px"><div class="lbl">${t("alm.audit.shutDerate")}</div><div class="val">${ALARM_HISTORY.totals.shutdown} / ${ALARM_HISTORY.totals.derate}</div></div>
+          <div class="stat blue" style="padding:14px"><div class="lbl">${t("alm.audit.notify")}</div><div class="val">${ALARM_HISTORY.totals.notify}</div></div>
         </div>
         <table class="data" style="font-size:12.5px">
-          <thead><tr><th>時間</th><th>規則</th><th>動作</th><th>觸發者</th><th>結果</th></tr></thead>
+          <thead><tr><th>${t("alm.audit.thTime")}</th><th>${t("alm.audit.thRule")}</th><th>${t("alm.audit.thAct")}</th><th>${t("alm.audit.thActor")}</th><th>${t("alm.audit.thOutcome")}</th></tr></thead>
           <tbody>
             ${ALARM_HISTORY.recent.map(h => `
               <tr>
@@ -2978,24 +2978,24 @@ function viewAlarms() {
           </tbody>
         </table>
         <div class="row mt-12" style="padding:10px 12px;background:rgba(239,68,68,0.06);border-left:3px solid var(--red);border-radius:6px;gap:14px;font-size:12.5px">
-          <div><span class="muted">停機影響：</span><strong>${ALARM_HISTORY.downtimeHours} 小時</strong></div>
-          <div><span class="muted">損失放電：</span><strong>${ALARM_HISTORY.lostKWh} kWh</strong></div>
-          <div><span class="muted">機會成本：</span><strong style="color:var(--red)">${money(ALARM_HISTORY.lostNTD)}</strong></div>
+          <div><span class="muted">${t("alm.audit.downtime")}：</span><strong>${ALARM_HISTORY.downtimeHours} ${t("alm.audit.hours")}</strong></div>
+          <div><span class="muted">${t("alm.audit.lostKWh")}：</span><strong>${ALARM_HISTORY.lostKWh} kWh</strong></div>
+          <div><span class="muted">${t("alm.audit.lostNTD")}：</span><strong style="color:var(--red)">${money(ALARM_HISTORY.lostNTD)}</strong></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>🏆 最常觸發告警 Top 5</h3></div>
+        <div class="card-head"><h3>${t("alm.top.title")}</h3></div>
         <table class="data" style="font-size:12.5px">
-          <thead><tr><th>#</th><th>告警</th><th class="right">次數</th></tr></thead>
+          <thead><tr><th>#</th><th>${t("alm.top.thAlarm")}</th><th class="right">${t("alm.top.thCount")}</th></tr></thead>
           <tbody>
-            ${ALARM_HISTORY.topTriggers.map((t,i) => `
+            ${ALARM_HISTORY.topTriggers.map((tr,i) => `
               <tr>
                 <td class="num muted">${i+1}</td>
                 <td>
-                  <code style="font-size:11px;color:var(--text-muted)">${t.code}</code>
-                  <div class="muted" style="font-size:11.5px;margin-top:2px">${t.recommendation}</div>
+                  <code style="font-size:11px;color:var(--text-muted)">${tr.code}</code>
+                  <div class="muted" style="font-size:11.5px;margin-top:2px">${tr.recommendation}</div>
                 </td>
-                <td class="num right"><strong>${t.count}</strong></td>
+                <td class="num right"><strong>${tr.count}</strong></td>
               </tr>
             `).join("")}
           </tbody>
@@ -3005,18 +3005,18 @@ function viewAlarms() {
 
     <div class="grid g-2">
       <div class="card">
-        <div class="card-head"><h3>告警分佈 (近 7 日)</h3></div>
+        <div class="card-head"><h3>${t("alm.dist.title")}</h3></div>
         <div class="chart-wrap"><canvas id="alarmPie"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>推播通知設定</h3></div>
+        <div class="card-head"><h3>${t("alm.push.title")}</h3></div>
         <table class="data">
-          <tr><td>Line Notify</td><td><span class="tag ok">啟用</span></td><td class="muted">2 個群組</td></tr>
-          <tr><td>Email</td><td><span class="tag ok">啟用</span></td><td class="muted">3 位收件人</td></tr>
-          <tr><td>Webhook</td><td><span class="tag mute">未啟用</span></td><td class="muted">-</td></tr>
-          <tr><td>台電 OpenADR</td><td><span class="tag ok">啟用</span></td><td class="muted">sReg 需量反應</td></tr>
+          <tr><td>Line Notify</td><td><span class="tag ok">${t("alm.push.enabled")}</span></td><td class="muted">${t("alm.push.lineGroups").replace("{n}", 2)}</td></tr>
+          <tr><td>Email</td><td><span class="tag ok">${t("alm.push.enabled")}</span></td><td class="muted">${t("alm.push.emailRecv").replace("{n}", 3)}</td></tr>
+          <tr><td>Webhook</td><td><span class="tag mute">${t("alm.push.disabled")}</span></td><td class="muted">-</td></tr>
+          <tr><td>${t("comm.dev.openadr")}</td><td><span class="tag ok">${t("alm.push.enabled")}</span></td><td class="muted">${t("alm.push.openadrSReg")}</td></tr>
         </table>
-        <div class="muted mt-16" style="font-size:12px">錯誤等級以上每 5 分鐘重送，直到確認。</div>
+        <div class="muted mt-16" style="font-size:12px">${t("alm.push.foot")}</div>
       </div>
     </div>
   `;
@@ -3024,7 +3024,7 @@ function viewAlarms() {
   addChart(new Chart($("#alarmPie"), {
     type: "doughnut",
     data: {
-      labels: ["通訊", "熱控", "BMS 均衡", "PCS 保護", "其他"],
+      labels: [t("alm.dist.cat.comm"), t("alm.dist.cat.thermal"), t("alm.dist.cat.bms"), t("alm.dist.cat.pcs"), t("alm.dist.cat.other")],
       datasets: [{
         data: [14, 8, 6, 3, 2],
         backgroundColor: ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b98b0"],
@@ -3045,13 +3045,14 @@ function viewAlarms() {
     cb.addEventListener("change", () => {
       const i = +cb.dataset.i;
       ALARM_RULES[i].enabled = cb.checked;
-      showToast(`規則 ${ALARM_RULES[i].code} 已${cb.checked?"啟用":"停用"}`, cb.checked?"ok":"warn", 2000);
+      const key = cb.checked ? "alm.toast.ruleEnabled" : "alm.toast.ruleDisabled";
+      showToast(t(key).replace("{code}", ALARM_RULES[i].code), cb.checked?"ok":"warn", 2000);
     });
   });
   $$(".rule-thr").forEach(inp => {
     inp.addEventListener("change", () => {
       ALARM_RULES[+inp.dataset.i].threshold = inp.value;
-      showToast("閾值已更新", "ok", 1500);
+      showToast(t("alm.toast.threshUpd"), "ok", 1500);
     });
   });
   $$(".rule-delay").forEach(inp => {
@@ -3062,17 +3063,16 @@ function viewAlarms() {
   $$(".rule-test").forEach(btn => {
     btn.addEventListener("click", () => {
       const r = ALARM_RULES[+btn.dataset.i];
-      if (!r.enabled) { showToast("規則停用中，無法測試", "warn"); return; }
-      // Map specific rules to demo presets, otherwise generic
+      if (!r.enabled) { showToast(t("alm.toast.disabledTest"), "warn"); return; }
       if (r.code === "cell.temp.high") return demoTriggerAlarm("thermal");
       if (r.code === "fire.smoke")     return demoTriggerAlarm("fire");
       if (r.code === "contract.over")  return demoTriggerAlarm("contract");
       showCriticalAlarm({
-        code: r.code, severity: r.sev, device: "測試設備",
-        message: r.name, detail: `規則測試 — 模擬 ${r.threshold} 觸發`,
-        threshold: r.threshold, value: "(模擬)",
+        code: r.code, severity: r.sev, device: t("alm.test.device"),
+        message: r.name, detail: t("alm.test.ruleTrigger").replace("{threshold}", r.threshold),
+        threshold: r.threshold, value: "(simulated)",
         action: r.action, actionType: r.actType,
-        recommendation: "此為規則測試，實際運行時將自動執行該動作。",
+        recommendation: t("alm.test.simBody"),
         countdownSec: Math.max(5, r.delaySec || 8),
       });
     });
