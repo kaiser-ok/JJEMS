@@ -3446,6 +3446,131 @@ function exportComplianceBundle(p) {
   }, 1800);
 }
 
+// 認證更新 (close-loop renewal) modal
+const CERT_RENEWAL_YEARS = {
+  "UL 9540A": 5,
+  "IEC 62619": 5,
+  "UN 38.3": 2,
+  "CNS 15364-2": 5,
+  "EU 2023/1542": 1,
+  "ISO 14064-1": 3,
+};
+
+function showCertRenewModal(sysId, certIdx) {
+  const p = PASSPORTS[sysId];
+  const cert = p.certs[certIdx];
+  const yrs = CERT_RENEWAL_YEARS[cert.name] || 5;
+
+  const today = new Date();
+  const newIssued = today.toISOString().slice(0, 10);
+  const newExpDate = new Date(today);
+  newExpDate.setFullYear(newExpDate.getFullYear() + yrs);
+  const newExpiry = newExpDate.toISOString().slice(0, 10);
+  // 新證書編號：把舊編號最後一段（YY-NNNN）替換成今年序號
+  const yy = String(today.getFullYear()).slice(-2);
+  const serial = String(Math.floor(Math.random() * 9000) + 1000).padStart(5, "0");
+  const newCertNo = cert.certNo.replace(/\d{2}-\d+$/, `${yy}-${serial}`);
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:620px">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">📤 更新證書 · ${cert.name}</div>
+          <div class="modal-sub">${cert.scope} · ${cert.body} · 系統 ${sysId}</div>
+        </div>
+        <button class="modal-close" aria-label="關閉">×</button>
+      </div>
+      <div style="padding:16px 18px">
+        <!-- Step 1: drop zone -->
+        <div id="renew-step1">
+          <div id="renew-drop" style="border:2px dashed var(--border);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(139,152,176,0.03)">
+            <div style="font-size:36px;margin-bottom:8px">📄</div>
+            <div style="font-size:13.5px;font-weight:600;margin-bottom:4px">拖放新證書 PDF 至此</div>
+            <div class="muted" style="font-size:11.5px">或點擊選擇檔案 · 支援 PDF / JPG / PNG · 最大 10 MB</div>
+            <div class="muted" style="font-size:11px;margin-top:14px">系統將透過 OCR 自動讀取證書編號 / 發證日 / 有效期</div>
+          </div>
+          <div class="muted mt-12" style="font-size:11px;text-align:center">
+            🔌 已連接：${cert.body} 認證機構 API（webhook 模式）· 若機構直接推送 PDF，可跳過此步驟
+          </div>
+        </div>
+
+        <!-- Step 2: OCR diff (hidden initially) -->
+        <div id="renew-step2" style="display:none">
+          <div class="row" style="padding:8px 12px;background:rgba(139,92,246,0.08);border-left:3px solid var(--purple);border-radius:6px;margin-bottom:14px;font-size:12px">
+            <span>🤖 OCR 已解析新證書 · 信心 98.4% · 請核對欄位</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:10px;font-size:12px">
+            <div>
+              <div class="muted" style="font-size:10.5px;margin-bottom:6px;letter-spacing:1px">⬅ 舊證書（即將覆蓋）</div>
+              <div style="padding:10px 12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:6px;line-height:1.7;font-family:ui-monospace,monospace;font-size:11px">
+                <div><span class="muted">編號</span> ${cert.certNo}</div>
+                <div><span class="muted">發證</span> ${cert.issued}</div>
+                <div><span class="muted">到期</span> ${cert.expiry}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text-muted)">→</div>
+            <div>
+              <div style="font-size:10.5px;margin-bottom:6px;letter-spacing:1px;color:var(--green)">新證書 ➡</div>
+              <div style="padding:10px 12px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.3);border-radius:6px;line-height:1.7;font-family:ui-monospace,monospace;font-size:11px">
+                <div><span class="muted">編號</span> ${newCertNo}</div>
+                <div><span class="muted">發證</span> ${newIssued}</div>
+                <div><span class="muted">到期</span> ${newExpiry} <span style="color:var(--green)">(+${yrs} 年)</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="muted mt-12" style="font-size:11px;line-height:1.6">
+            ⓘ 確認後系統將：<br>
+            　① 覆蓋本卡片資料 + 倒數重置為 ${Math.floor((newExpDate - today) / 86400000)} 天<br>
+            　② 寫入 audit log（誰、何時、舊→新對照），永久保留<br>
+            　③ 取消 30 / 7 / 1 天的到期告警，重新依新到期日排程<br>
+            　④ 推 Email + Line 給相關人員：「✓ ${cert.name} 已更新」
+          </div>
+          <div class="row mt-16" style="gap:8px;justify-content:flex-end">
+            <button class="btn btn-ghost" id="renew-cancel" style="padding:6px 14px;font-size:12.5px">取消</button>
+            <button class="btn btn-primary" id="renew-confirm" style="padding:6px 14px;font-size:12.5px">✓ 確認覆蓋</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector(".modal-close").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+  // 點 drop zone → 模擬 OCR 過程 → 切到 step 2
+  overlay.querySelector("#renew-drop").addEventListener("click", () => {
+    const drop = overlay.querySelector("#renew-drop");
+    drop.style.borderColor = "var(--primary)";
+    drop.innerHTML = `
+      <div style="font-size:36px;margin-bottom:8px">⏳</div>
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:4px">解析中…</div>
+      <div class="muted" style="font-size:11.5px">cert_${cert.name.replace(/\s/g,'_')}_renewed_${newIssued}.pdf · 1.7 MB</div>`;
+    setTimeout(() => {
+      overlay.querySelector("#renew-step1").style.display = "none";
+      overlay.querySelector("#renew-step2").style.display = "block";
+    }, 1200);
+  });
+
+  overlay.querySelector("#renew-cancel")?.addEventListener("click", close);
+  overlay.querySelector("#renew-confirm")?.addEventListener("click", () => {
+    // 真的覆蓋資料（in-memory mutation）
+    p.certs[certIdx] = {
+      ...cert,
+      certNo: newCertNo,
+      issued: newIssued,
+      expiry: newExpiry,
+    };
+    const auditId = `${newIssued.replace(/-/g, "")}-${String(Math.floor(Math.random()*900)+100)}`;
+    close();
+    showToast(`✓ ${cert.name} 已更新 · 倒數重置 · audit log #${auditId} 已建立`, "ok", 5000);
+    // 重新渲染整頁，倒數標籤會變成綠色
+    setTimeout(() => router(), 300);
+  });
+}
+
 function viewPassport() {
   const sysId = state.passportSys || "SYS-A";
   const p = PASSPORTS[sysId];
@@ -3648,7 +3773,10 @@ function viewPassport() {
                 <div class="muted" style="font-size:11.5px;margin-top:4px">${c.scope} · ${c.body}</div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:10.5px">
                   <span style="color:var(--text-muted);font-family:ui-monospace,monospace">${c.certNo}</span>
-                  <a href="${c.pdfUrl}" onclick="event.preventDefault();showToast('PDF 預覽尚未實作 · 連結為佔位 (' + this.getAttribute('href') + ')','info',3500)" style="color:var(--primary);text-decoration:none">📄 PDF</a>
+                  <span style="display:flex;gap:10px">
+                    <a href="${c.pdfUrl}" onclick="event.preventDefault();showToast('PDF 預覽尚未實作 · 連結為佔位 (' + this.getAttribute('href') + ')','info',3500)" style="color:var(--primary);text-decoration:none">📄 PDF</a>
+                    <button data-cert-renew="${certsWithStatus.indexOf(c)}" style="background:none;border:none;padding:0;color:${c.status === 'green' ? 'var(--text-muted)' : 'var(--amber)'};cursor:pointer;font-size:10.5px;font-family:inherit">📤 更新</button>
+                  </span>
                 </div>
                 <div class="muted" style="font-size:10.5px;margin-top:3px">發證 ${c.issued} · 到期 ${c.expiry}</div>
               </div>
@@ -3692,6 +3820,10 @@ function viewPassport() {
   $("#ppRecallBtn")?.addEventListener("click", () => showRecallModal(p));
   // 匯出合規包
   $("#ppExportBtn")?.addEventListener("click", () => exportComplianceBundle(p));
+  // 各認證的「更新證書」按鈕
+  $$("[data-cert-renew]").forEach(b => b.addEventListener("click", () => {
+    showCertRenewModal(sysId, +b.dataset.certRenew);
+  }));
 
   // Carbon donut
   addChart(new Chart($("#chartCarbon"), {
