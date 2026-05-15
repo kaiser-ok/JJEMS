@@ -462,6 +462,64 @@ function estimateBenefit(strategyId) {
   };
 }
 
+// ────────── Battery Intelligence Layer ──────────
+// Rack-level health data — outputs from the Battery Intelligence layer
+// (between SCADA telemetry and the EMS optimizer)
+const RACK_HEALTH = [
+  { id:"RACK-01", sys:"SYS-A", soh:98.5, rulCycles:5320, degradRate:"normal",   faultRisk:0.05, tempStress:"low",    maxChgKW:65, maxDisKW:65, socMin:15, socMax:90, riskLevel:"normal"  },
+  { id:"RACK-02", sys:"SYS-A", soh:97.8, rulCycles:5180, degradRate:"normal",   faultRisk:0.08, tempStress:"low",    maxChgKW:65, maxDisKW:65, socMin:15, socMax:90, riskLevel:"normal"  },
+  { id:"RACK-03", sys:"SYS-A", soh:96.2, rulCycles:4780, degradRate:"aboveAvg", faultRisk:0.18, tempStress:"medium", maxChgKW:55, maxDisKW:52, socMin:20, socMax:85, riskLevel:"watch"   },
+  { id:"RACK-04", sys:"SYS-A", soh:94.8, rulCycles:4410, degradRate:"high",     faultRisk:0.28, tempStress:"high",   maxChgKW:45, maxDisKW:42, socMin:25, socMax:82, riskLevel:"warning" },
+  { id:"RACK-05", sys:"SYS-B", soh:98.9, rulCycles:5440, degradRate:"normal",   faultRisk:0.04, tempStress:"low",    maxChgKW:52, maxDisKW:52, socMin:15, socMax:90, riskLevel:"normal"  },
+  { id:"RACK-06", sys:"SYS-B", soh:98.1, rulCycles:5200, degradRate:"normal",   faultRisk:0.07, tempStress:"low",    maxChgKW:52, maxDisKW:52, socMin:15, socMax:90, riskLevel:"normal"  },
+  { id:"RACK-07", sys:"SYS-B", soh:93.4, rulCycles:3260, degradRate:"high",     faultRisk:0.18, tempStress:"medium", maxChgKW:42, maxDisKW:40, socMin:20, socMax:85, riskLevel:"watch"   },
+  { id:"RACK-08", sys:"SYS-B", soh:99.1, rulCycles:5510, degradRate:"normal",   faultRisk:0.03, tempStress:"low",    maxChgKW:52, maxDisKW:52, socMin:15, socMax:90, riskLevel:"normal"  },
+];
+
+// 5-level risk matrix: EMS does proactive control, BMS does last-line protection
+const RISK_LEVELS = {
+  normal:    { label:"正常", color:"#10b981", action:"正常調度",                               bg:"rgba(16,185,129,0.1)"  },
+  watch:     { label:"觀察", color:"#3b82f6", action:"限制 DoD、降低 C-rate、增加監控",         bg:"rgba(59,130,246,0.1)"  },
+  warning:   { label:"警告", color:"#f59e0b", action:"Rack 降載、避免高溫高功率操作",           bg:"rgba(245,158,11,0.1)"  },
+  critical:  { label:"危急", color:"#ef4444", action:"停止充放電、通知維護、切換備援",           bg:"rgba(239,68,68,0.1)"   },
+  emergency: { label:"緊急", color:"#991b1b", action:"交由 BMS/PCS/保護系統執行安全停機",       bg:"rgba(153,27,27,0.15)"  },
+};
+
+// Battery-lifetime-aware dispatch objective:
+// net long-term value = gross revenue − cycle degradation cost − fault risk cost
+function estimateDegradationCost(strategyId) {
+  const b = estimateBenefit(strategyId);
+  const disKWh = b.dischargeKWh;
+
+  // Cycle replacement cost: CAPEX NT$9.52M / (476 kWh × 6000 cycle life) ≈ 3.33 NT$/kWh
+  const baseCostPerKWh = 3.33;
+
+  // Operating condition adjustments
+  const tempFactor  = 1 + Math.max(0, (29.4 - 25) * 0.012);     // +1.2%/°C above optimum 25°C
+  const cRateFactor = 1 + Math.max(0, (0.42 - 0.3) * 0.08);     // +0.8% per 0.1C above 0.3C
+  const fleetSoH    = RACK_HEALTH.reduce((s, r) => s + r.soh, 0) / RACK_HEALTH.length;
+  const sohFactor   = 1 + (1 - fleetSoH / 100) * 0.5;           // higher cost for degraded fleet
+
+  const cycleCostPerKWh = +(baseCostPerKWh * tempFactor * cRateFactor * sohFactor).toFixed(2);
+  const degradCost = Math.round(disKWh * cycleCostPerKWh);
+
+  // Fault risk premium: avg risk score × NT$2/kWh exposure
+  const avgFaultRisk = RACK_HEALTH.reduce((s, r) => s + r.faultRisk, 0) / RACK_HEALTH.length;
+  const riskCost = Math.round(disKWh * avgFaultRisk * 2.0);
+
+  return {
+    cycleCostPerKWh,
+    degradCost,
+    riskCost,
+    netAfterDegradCost: b.net - degradCost - riskCost,
+    tempFactor:    +tempFactor.toFixed(3),
+    cRateFactor:   +cRateFactor.toFixed(3),
+    sohFactor:     +sohFactor.toFixed(3),
+    fleetSoH:      +fleetSoH.toFixed(1),
+    avgFaultRisk:  +avgFaultRisk.toFixed(3),
+  };
+}
+
 // ────────── Battery Passports (EU 2023/1542 合規) ──────────
 const PASSPORTS = {
   "SYS-A": {

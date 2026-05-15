@@ -303,6 +303,7 @@ window.addEventListener("hashchange", router);
 function viewDashboard() {
   const s = STRATEGIES[state.strategy];
   const benefit = estimateBenefit(state.strategy);
+  const degradInfo = estimateDegradationCost(state.strategy);
   const bal = dailyBalance(state.strategy);
   const socSeries = genSoc(state.strategy);
   const avgSoc = (socSeries.reduce((a,b)=>a+b,0) / socSeries.length).toFixed(0);
@@ -376,6 +377,48 @@ function viewDashboard() {
         <div class="kpi-label">${t("kpi.maxTemp")}</div>
         <div class="kpi-value">${KPI.maxCellTemp}<span class="unit">°C</span></div>
         <div class="kpi-foot">SYS-B</div>
+      </div>
+    </div>
+
+    <!-- Battery Intelligence Layer card -->
+    <div class="card mb-16" style="border-left:3px solid var(--primary)">
+      <div class="card-head" style="flex-wrap:wrap;gap:8px">
+        <div>
+          <h3 style="margin:0">Battery Intelligence · 資產健康感知調度</h3>
+          <div class="muted" style="font-size:11.5px;margin-top:3px">EMS 將衰退成本納入調度目標 — 從「今日最大收益」升級為「終身資產價值優化」</div>
+        </div>
+        <span class="tag" style="background:rgba(0,194,168,0.12);color:var(--primary);font-size:11px;align-self:flex-start">Layer 2 · 健康感知</span>
+      </div>
+      <div class="grid g-4" style="gap:12px;margin-top:4px">
+        <div style="padding:12px 14px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border-soft)">
+          <div class="muted" style="font-size:11px;margin-bottom:4px">艦隊平均 SoH</div>
+          <div style="font-size:22px;font-weight:700;color:${degradInfo.fleetSoH>=95?'var(--green)':degradInfo.fleetSoH>=90?'var(--amber)':'var(--red)'}">${degradInfo.fleetSoH}<span style="font-size:12px;font-weight:400;color:var(--muted)"> %</span></div>
+          <div class="muted" style="font-size:11px;margin-top:4px">8 racks · avg ${(RACK_HEALTH.reduce((s,r)=>s+r.rulCycles,0)/RACK_HEALTH.length/1000).toFixed(1)}k 剩餘循環</div>
+        </div>
+        <div style="padding:12px 14px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border-soft)">
+          <div class="muted" style="font-size:11px;margin-bottom:4px">今日衰退成本</div>
+          <div style="font-size:22px;font-weight:700;color:var(--red)">-${money(degradInfo.degradCost)}</div>
+          <div class="muted" style="font-size:11px;margin-top:4px">${degradInfo.cycleCostPerKWh} NT$/kWh × ${benefit.dischargeKWh} kWh放電</div>
+        </div>
+        <div style="padding:12px 14px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border-soft)">
+          <div class="muted" style="font-size:11px;margin-bottom:4px">衰退後真實淨收益</div>
+          <div style="font-size:22px;font-weight:700;color:${degradInfo.netAfterDegradCost>=0?'var(--green)':'var(--red)'}">${money(degradInfo.netAfterDegradCost)}</div>
+          <div class="muted" style="font-size:11px;margin-top:4px">毛收益 ${money(benefit.net)} − 衰退 ${money(degradInfo.degradCost)} − 風險 ${money(degradInfo.riskCost)}</div>
+        </div>
+        <div style="padding:12px 14px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border-soft)">
+          <div class="muted" style="font-size:11px;margin-bottom:6px">Rack 健康降載狀態</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${RACK_HEALTH.map(r=>`<span title="${r.id}: SoH ${r.soh}% · ${RISK_LEVELS[r.riskLevel].action}" style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:${RISK_LEVELS[r.riskLevel].bg};color:${RISK_LEVELS[r.riskLevel].color};border:1px solid ${RISK_LEVELS[r.riskLevel].color}50;cursor:default">${r.id.replace('RACK-','R')}${r.riskLevel!=='normal'?' ↓':''}</span>`).join("")}
+          </div>
+          <div class="muted" style="font-size:11px;margin-top:6px">${RACK_HEALTH.filter(r=>r.riskLevel!=='normal').length} racks 已套用降載建議</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:rgba(0,194,168,0.06);border-left:3px solid var(--primary);border-radius:6px;font-size:12.5px;line-height:1.7;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <strong>EMS 調度建議：</strong>
+          <span class="muted">RACK-04 (SoH 94.8%，衰退偏快) 已限制放電至 ${RACK_HEALTH.find(r=>r.id==='RACK-04').maxDisKW} kW；RACK-07 (SoH 93.4%) 建議限制午後高溫段 C-rate。健康狀態較佳的 RACK-05、RACK-08 可提高調度優先級，讓退化中的 rack 降載休息。</span>
+        </div>
+        <a href="whitepaper.html" target="_blank" rel="noopener" class="btn" style="flex-shrink:0;font-size:12px;padding:5px 12px;white-space:nowrap">技術白皮書 ↗</a>
       </div>
     </div>
 
@@ -1891,6 +1934,7 @@ function viewSchedule() {
   const s = STRATEGIES[state.strategy];
   const plan = Array.from({length:24}, (_,h) => ({ h, ...planFor(state.strategy, h) }));
   const benefit = estimateBenefit(state.strategy);
+  const degradInfo = estimateDegradationCost(state.strategy);
 
   $("#view").innerHTML = `
     <div class="page-header">
@@ -2013,7 +2057,10 @@ function viewSchedule() {
           <tr><td>充電電量</td><td class="num right">${fmt(benefit.chargeKWh)} kWh</td><td class="num right">支出 ${money(benefit.chargeCost)}</td></tr>
           <tr><td>放電電量 (含 ${effSurface(29.4, 0.42).toFixed(1)}% 動態效率)</td><td class="num right">${fmt(benefit.dischargeKWh)} kWh</td><td class="num right">收益 ${money(benefit.dischargeRev)}</td></tr>
           <tr><td>循環次數</td><td class="num right">${(benefit.dischargeKWh/476).toFixed(2)} 次</td><td class="num right">-</td></tr>
-          <tr><td><strong>淨益</strong></td><td colspan="2" class="num right"><strong style="color:${benefit.net>=0?"var(--green)":"var(--red)"};font-size:16px">${money(benefit.net)}</strong></td></tr>
+          <tr style="border-top:1px solid var(--border-soft)"><td><strong>毛收益</strong></td><td colspan="2" class="num right"><strong style="color:${benefit.net>=0?"var(--green)":"var(--red)"};">${money(benefit.net)}</strong></td></tr>
+          <tr style="background:rgba(239,68,68,0.04)"><td><span class="muted" style="font-size:12px">− 電池衰退成本</span><span class="tag warn" style="font-size:10px;margin-left:6px">${degradInfo.cycleCostPerKWh} NT$/kWh</span></td><td colspan="2" class="num right" style="color:var(--red);font-size:13px">-${money(degradInfo.degradCost)}</td></tr>
+          <tr style="background:rgba(239,68,68,0.04)"><td><span class="muted" style="font-size:12px">− 故障風險成本</span><span class="tag" style="font-size:10px;margin-left:6px;color:var(--amber)">avg risk ${(degradInfo.avgFaultRisk*100).toFixed(0)}%</span></td><td colspan="2" class="num right" style="color:var(--red);font-size:13px">-${money(degradInfo.riskCost)}</td></tr>
+          <tr style="background:rgba(0,194,168,0.04);border-top:1px solid var(--border-soft)"><td><strong>衰退後真實淨收益</strong></td><td colspan="2" class="num right"><strong style="color:${degradInfo.netAfterDegradCost>=0?"var(--green)":"var(--red)"};font-size:16px">${money(degradInfo.netAfterDegradCost)}</strong></td></tr>
         </table>
 
         <!-- η AI 動態效率 surface -->
@@ -2042,9 +2089,44 @@ function viewSchedule() {
           <div class="muted mt-8" style="font-size:11px">效率隨溫度 + C-rate 非線性變化；綠=高/紅=低；白框=當前工況</div>
         </div>
 
-        <div class="muted mt-8" style="font-size:11.5px">※ 模擬試算，未含輔助服務 / 容量費收入</div>
+        <div class="muted mt-8" style="font-size:11.5px">※ 毛收益為傳統 EMS 視角；衰退後淨收益才是 lifetime value optimization 的真實目標。</div>
       </div>
     </div>
+
+    <!-- Health-aware operating envelope -->
+    <div class="card mt-16">
+      <div class="card-head">
+        <h3>健康感知操作包絡 (Health-Aware Operating Envelope)</h3>
+        <span class="tag" style="background:rgba(0,194,168,0.12);color:var(--primary);font-size:11px">Layer 2 · 軟約束</span>
+      </div>
+      <div class="muted mb-12" style="font-size:12px">BMS 硬限制確保即時安全邊界；EMS 軟約束依 SoH / 衰退率 / 風險分數動態調整，保護長期資產價值。</div>
+      <div style="overflow-x:auto">
+        <table class="data" style="font-size:12px;min-width:700px">
+          <thead><tr>
+            <th>Rack</th><th>系統</th><th>SoH</th><th>風險等級</th><th>建議最大充電</th><th>建議最大放電</th><th>建議 SoC 視窗</th><th>衰退率</th>
+          </tr></thead>
+          <tbody>
+            ${RACK_HEALTH.map(r=>{
+              const rl = RISK_LEVELS[r.riskLevel];
+              const degradLabel = {normal:"正常",aboveAvg:"略偏高",high:"偏高"}[r.degradRate] || r.degradRate;
+              const degradColor = {normal:"var(--green)",aboveAvg:"var(--amber)",high:"var(--red)"}[r.degradRate] || "var(--text)";
+              return `<tr>
+                <td><strong>${r.id}</strong></td>
+                <td>${r.sys}</td>
+                <td><strong style="color:${r.soh>=97?'var(--green)':r.soh>=95?'var(--amber)':'var(--red)'}">${r.soh}%</strong></td>
+                <td><span style="padding:2px 8px;border-radius:4px;font-size:10.5px;font-weight:600;background:${rl.bg};color:${rl.color}">${rl.label}</span></td>
+                <td class="num">${r.maxChgKW} kW</td>
+                <td class="num">${r.maxDisKW} kW</td>
+                <td class="num">${r.socMin}%–${r.socMax}%</td>
+                <td style="color:${degradColor}">${degradLabel}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="muted mt-8" style="font-size:11.5px">※ 健康狀態較差的 rack 自動降載，健康狀態好的 rack 可提高調度優先級。BMS 硬限制仍為最終安全防線。</div>
+    </div>
+
   `;
 
   // Rollback button (only present in AI advisory mode)
@@ -2678,6 +2760,10 @@ function viewTariff() {
 
 // ────────── 5. Finance ──────────
 function viewFinance() {
+  const finDegradInfo = estimateDegradationCost("arbitrage");
+  const annualDegradCost = finDegradInfo.degradCost * 365;
+  const annualRiskCost   = finDegradInfo.riskCost   * 365;
+  const annualNetAfter   = 1541000 - annualDegradCost - annualRiskCost;
   $("#view").innerHTML = `
     <div class="page-header">
       <div>
@@ -2769,11 +2855,11 @@ function viewFinance() {
         </div>
         <div>
           <table class="data">
-            <tr><td>年節費預估</td><td class="num right" style="color:var(--green)">${money(1541000)}</td></tr>
+            <tr><td>年節費預估（毛）</td><td class="num right" style="color:var(--green)">${money(1541000)}</td></tr>
+            <tr><td>年電池衰退成本</td><td class="num right" style="color:var(--red)">-${money(annualDegradCost)}</td></tr>
+            <tr><td>年故障風險成本</td><td class="num right" style="color:var(--red)">-${money(annualRiskCost)}</td></tr>
             <tr><td>每年維運成本</td><td class="num right">${money(95000)}</td></tr>
-            <tr><td>電池衰退率</td><td class="num right">2.5% / 年</td></tr>
-            <tr><td>殘值率 (15 年)</td><td class="num right">8%</td></tr>
-            <tr><td><strong>IRR</strong></td><td class="num right strong" style="color:var(--primary)">11.8%</td></tr>
+            <tr><td><strong>年淨收益（衰退後）</strong></td><td class="num right strong" style="color:var(--primary)">${money(annualNetAfter)}</td></tr>
           </table>
         </div>
         <div>
@@ -2785,6 +2871,62 @@ function viewFinance() {
             <tr><td>參與 sReg 額外收益</td><td class="num right">~${money(230000)}/年</td></tr>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- Battery Lifetime Asset Value -->
+    <div class="card mt-16" style="border-left:3px solid var(--primary)">
+      <div class="card-head">
+        <h3>Battery Lifetime Asset Value · 衰退成本追蹤</h3>
+        <span class="tag" style="background:rgba(0,194,168,0.12);color:var(--primary);font-size:11px">Battery-Lifetime-Aware EMS</span>
+      </div>
+      <div class="muted mb-12" style="font-size:12px">
+        傳統 EMS 只看毛收益；Battery-Lifetime-Aware EMS 將循環衰退成本、故障風險成本納入調度目標，真正優化長期資產 ROI。
+      </div>
+      <div class="grid g-3" style="gap:14px">
+        <div>
+          <div class="muted" style="font-size:11.5px;margin-bottom:8px">衰退成本組成</div>
+          <table class="data" style="font-size:12.5px">
+            <tr><td>循環替換成本基準</td><td class="num right">3.33 NT$/kWh</td></tr>
+            <tr><td>溫度修正係數</td><td class="num right">${finDegradInfo.tempFactor}×</td></tr>
+            <tr><td>C-rate 修正係數</td><td class="num right">${finDegradInfo.cRateFactor}×</td></tr>
+            <tr><td>SoH 修正係數</td><td class="num right">${finDegradInfo.sohFactor.toFixed(3)}×</td></tr>
+            <tr><td><strong>實際衰退成本</strong></td><td class="num right strong" style="color:var(--red)">${finDegradInfo.cycleCostPerKWh} NT$/kWh</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="muted" style="font-size:11.5px;margin-bottom:8px">艦隊 SoH 分布</div>
+          ${RACK_HEALTH.map(r => `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px">
+              <span style="width:58px;color:var(--muted)">${r.id}</span>
+              <div style="flex:1;height:8px;background:var(--border-soft);border-radius:4px;overflow:hidden">
+                <div style="width:${r.soh}%;height:100%;background:${r.soh>=97?'var(--green)':r.soh>=94?'var(--amber)':'var(--red)'};border-radius:4px"></div>
+              </div>
+              <span style="width:42px;text-align:right;color:${r.soh>=97?'var(--green)':r.soh>=94?'var(--amber)':'var(--red)'};font-weight:600">${r.soh}%</span>
+            </div>
+          `).join("")}
+        </div>
+        <div>
+          <div class="muted" style="font-size:11.5px;margin-bottom:8px">Lifetime Value 決策框架</div>
+          <div style="font-size:12px;line-height:1.8;padding:10px 12px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border-soft)">
+            <div style="margin-bottom:6px"><strong>傳統 EMS 問：</strong></div>
+            <div class="muted" style="font-style:italic;margin-bottom:10px;padding-left:10px">現在放電有沒有錢賺？</div>
+            <div style="margin-bottom:6px"><strong style="color:var(--primary)">Battery-Aware EMS 問：</strong></div>
+            <div class="muted" style="font-style:italic;padding-left:10px">現在放電的收益，是否大於這次放電造成的循環老化、熱應力、RUL 損失和故障風險？</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Whitepaper CTA -->
+    <div class="card mt-16" style="border-left:3px solid var(--purple);background:linear-gradient(90deg,rgba(139,92,246,0.05),transparent)">
+      <div class="row" style="gap:16px;align-items:center;flex-wrap:wrap">
+        <div style="font-size:32px;flex-shrink:0">📄</div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">Battery Lifetime-Aware EMS 技術白皮書</div>
+          <div class="muted" style="font-size:12.5px;line-height:1.6">完整的衰退成本模型推導、四層驗證方法論、Rack 級調度框架與三階段導入路徑，適合技術評估與商業決策參考。</div>
+        </div>
+        <a href="whitepaper.html" target="_blank" rel="noopener" class="btn btn-primary" style="white-space:nowrap;flex-shrink:0">閱讀白皮書 ↗</a>
       </div>
     </div>
   `;
@@ -2916,6 +3058,44 @@ function viewAlarms() {
           `).join("")}
         </tbody>
       </table>
+    </div>
+
+    <!-- 🩺 Health-aware risk derating matrix -->
+    <div class="card mb-16" style="border-left:3px solid var(--primary)">
+      <div class="card-head">
+        <h3>健康感知降載矩陣 · Risk-Aware Derating</h3>
+        <span class="tag" style="background:rgba(0,194,168,0.12);color:var(--primary);font-size:11px">EMS 主動控制 · BMS 最終防線</span>
+      </div>
+      <div class="muted mb-12" style="font-size:12px">EMS 依 Battery Intelligence 層輸出的風險等級，主動採取分級降載動作。BMS 仍為最後一道安全防線，不可被 EMS 邏輯覆蓋。</div>
+      <div class="grid g-2" style="gap:14px">
+        <div>
+          <div class="muted" style="font-size:11.5px;margin-bottom:8px">五級風險矩陣</div>
+          <table class="data" style="font-size:12.5px">
+            <thead><tr><th>風險等級</th><th>EMS 主動動作</th></tr></thead>
+            <tbody>
+              ${Object.entries(RISK_LEVELS).map(([k, v])=>`
+                <tr>
+                  <td><span style="padding:2px 8px;border-radius:4px;font-weight:600;font-size:11.5px;background:${v.bg};color:${v.color}">${v.label}</span></td>
+                  <td class="muted" style="font-size:12px">${v.action}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="muted" style="font-size:11.5px;margin-bottom:8px">Rack 即時風險狀態</div>
+          ${RACK_HEALTH.map(r=>{
+            const rl = RISK_LEVELS[r.riskLevel];
+            return `
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;margin-bottom:5px;background:${rl.bg};border-radius:6px;border:1px solid ${rl.color}30;font-size:12px">
+              <strong style="min-width:64px">${r.id}</strong>
+              <span style="color:${rl.color};font-weight:600;min-width:28px">${rl.label}</span>
+              <span class="muted" style="flex:1">SoH ${r.soh}% · 風險分數 ${(r.faultRisk*100).toFixed(0)}%</span>
+              <span style="color:var(--muted);font-size:11px">${r.riskLevel!=='normal'?`限制放電 ${r.maxDisKW}kW`:''}</span>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
     </div>
 
     <!-- 🔗 Interlock rules editor -->

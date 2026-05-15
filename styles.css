@@ -95,6 +95,28 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
 }
 .side-footer { padding: 10px 20px; border-top: 1px solid var(--border-soft); }
 .side-meta { font-size: 11px; color: var(--text-dim); line-height: 1.7; }
+
+/* ── Sidebar Docs ── */
+.side-docs { padding: 4px 10px 6px; border-top: 1px solid var(--border-soft); }
+.side-docs-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim); padding: 8px 12px 4px; font-weight: 600;
+}
+.side-doc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 8px;
+  color: var(--text-muted); font-size: 12.5px; text-decoration: none;
+  transition: all 0.15s;
+}
+.side-doc-item:hover { background: rgba(255,255,255,0.04); color: var(--primary); }
+.side-doc-item .ic { width: 18px; text-align: center; font-size: 13px; flex-shrink: 0; }
+.doc-new {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 8px;
+  background: rgba(0,194,168,0.15); color: var(--primary);
+  border: 1px solid rgba(0,194,168,0.3);
+}
 .side-affiliate {
   margin-top: 12px; padding-top: 10px;
   border-top: 1px dashed var(--border-soft);
@@ -953,6 +975,7 @@ table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
 @media (max-width: 900px) and (min-width: 769px) {
   #app { grid-template-columns: 68px 1fr; }
   .brand-text, .nav-item span:not(.ic):not(.badge), .side-meta { display: none; }
+  .side-docs-label, .side-doc-item span:not(.ic), .doc-new { display: none; }
   .brand { justify-content: center; padding: 4px 0 22px; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .g-3 { grid-template-columns: 1fr; }

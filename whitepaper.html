@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Battery Lifetime-Aware EMS 技術白皮書 · J&J Power</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #007a6a;
+      --primary-lt: #00c2a8;
+      --navy: #0d1f3c;
+      --navy-lt: #1a3358;
+      --blue: #2563eb;
+      --green: #059669;
+      --amber: #d97706;
+      --red: #dc2626;
+      --purple: #7c3aed;
+      --border: #d1d9e0;
+      --border-lt: #e8edf2;
+      --bg: #f7f9fc;
+      --bg-card: #ffffff;
+      --text: #0d1f3c;
+      --text-muted: #4a5568;
+      --text-light: #718096;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans TC", "Inter", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar TOC */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--navy);
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      overflow-y: auto;
+      padding: 0 0 40px;
+      z-index: 100;
+    }
+    .sidebar-brand {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-brand .logo-bar {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .sidebar-brand .logo-mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary-lt), #3b82f6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: #fff;
+    }
+    .sidebar-brand .brand-name {
+      font-size: 14px; font-weight: 700; color: #e2e8f0;
+    }
+    .sidebar-brand .doc-type {
+      font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .toc { padding: 16px 0; }
+    .toc-section { padding: 6px 24px; }
+    .toc-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.3); font-weight: 600; margin-bottom: 4px;
+    }
+    .toc a {
+      display: block; padding: 5px 12px; border-radius: 6px;
+      font-size: 12.5px; color: rgba(255,255,255,0.6);
+      text-decoration: none; transition: all 0.15s;
+      border-left: 2px solid transparent;
+    }
+    .toc a:hover, .toc a.active {
+      color: var(--primary-lt); background: rgba(0,194,168,0.1);
+      border-left-color: var(--primary-lt);
+    }
+    .toc-num {
+      display: inline-block; width: 18px; font-size: 11px;
+      color: rgba(255,255,255,0.3); font-family: "JetBrains Mono", monospace;
+    }
+    .sidebar-meta {
+      padding: 20px 24px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin-top: 8px;
+    }
+    .sidebar-meta p { font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.6; }
+
+    /* Main content */
+    .main { margin-left: 260px; flex: 1; }
+
+    /* Cover */
+    .cover {
+      background: linear-gradient(160deg, var(--navy) 0%, #0f2a4a 50%, #0d3a3a 100%);
+      padding: 80px 72px 64px;
+      position: relative; overflow: hidden;
+    }
+    .cover::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 80% 20%, rgba(0,194,168,0.12), transparent 50%),
+        radial-gradient(ellipse at 20% 80%, rgba(59,130,246,0.08), transparent 50%);
+    }
+    .cover-top-bar {
+      position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--primary-lt), #3b82f6, #8b5cf6);
+    }
+    .cover-inner { position: relative; z-index: 1; }
+    .cover-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 14px; border-radius: 20px;
+      border: 1px solid rgba(0,194,168,0.4);
+      background: rgba(0,194,168,0.1);
+      font-size: 12px; color: var(--primary-lt); margin-bottom: 36px;
+    }
+    .cover-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--primary-lt);
+    }
+    .cover h1 {
+      font-size: 38px; font-weight: 900; color: #fff;
+      line-height: 1.25; letter-spacing: -0.02em; margin-bottom: 16px;
+      max-width: 600px;
+    }
+    .cover h1 em { color: var(--primary-lt); font-style: normal; }
+    .cover .cover-sub {
+      font-size: 17px; color: rgba(255,255,255,0.65); margin-bottom: 48px;
+      max-width: 540px; line-height: 1.65;
+    }
+    .cover-meta {
+      display: flex; gap: 40px; flex-wrap: wrap;
+    }
+    .cover-meta-item { }
+    .cover-meta-item .label { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .cover-meta-item .value { font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 500; }
+    .cover-kpis {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-top: 48px; max-width: 600px;
+    }
+    .cover-kpi {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 16px 20px;
+    }
+    .cover-kpi .kval { font-size: 26px; font-weight: 800; color: var(--primary-lt); }
+    .cover-kpi .klabel { font-size: 11.5px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+    /* Content area */
+    .content { padding: 56px 72px 80px; max-width: 900px; }
+
+    /* Sections */
+    .section { margin-bottom: 64px; scroll-margin-top: 24px; }
+    .section-header {
+      display: flex; align-items: flex-start; gap: 16px;
+      margin-bottom: 28px; padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-lt);
+    }
+    .section-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), #2563eb);
+      display: flex; align-items: center; justify-content: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+    .section-title { font-size: 24px; font-weight: 800; color: var(--navy); line-height: 1.3; }
+    .section-sub { font-size: 13.5px; color: var(--text-muted); margin-top: 3px; }
+
+    /* Typography */
+    h3 { font-size: 16.5px; font-weight: 700; color: var(--navy); margin: 28px 0 10px; }
+    h4 { font-size: 14px; font-weight: 700; color: var(--text-muted); margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+    p { margin-bottom: 14px; color: var(--text-muted); }
+    strong { color: var(--text); }
+    ul, ol { padding-left: 20px; margin-bottom: 14px; color: var(--text-muted); }
+    li { margin-bottom: 5px; }
+
+    /* Cards / boxes */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 700; color: var(--navy);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+
+    /* Highlight boxes */
+    .callout {
+      padding: 16px 20px; border-radius: 8px; margin-bottom: 16px;
+      border-left: 4px solid;
+    }
+    .callout.primary { border-color: var(--primary); background: rgba(0,122,106,0.06); }
+    .callout.amber   { border-color: var(--amber);   background: rgba(217,119,6,0.06);  }
+    .callout.blue    { border-color: var(--blue);    background: rgba(37,99,235,0.06);  }
+    .callout.red     { border-color: var(--red);     background: rgba(220,38,38,0.06);  }
+    .callout .title  { font-size: 12.5px; font-weight: 700; margin-bottom: 4px; }
+    .callout p       { font-size: 13.5px; margin-bottom: 0; }
+
+    /* Formula boxes */
+    .formula {
+      background: #f0f4f8;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 24px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      margin: 16px 0;
+      color: var(--navy);
+      overflow-x: auto;
+    }
+    .formula .comment { color: var(--text-light); font-style: italic; }
+    .formula .hl { color: var(--primary); font-weight: 700; }
+    .formula .neg { color: var(--red); }
+    .formula .pos { color: var(--green); }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 16px; }
+    th {
+      background: var(--navy); color: #fff;
+      padding: 10px 14px; text-align: left;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    }
+    th:first-child { border-radius: 6px 0 0 0; }
+    th:last-child  { border-radius: 0 6px 0 0; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border-lt); color: var(--text-muted); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .num { font-family: "JetBrains Mono", monospace; font-size: 12.5px; }
+    .right { text-align: right; }
+    .center { text-align: center; }
+
+    /* Risk badges */
+    .badge {
+      display: inline-block; padding: 2px 9px; border-radius: 4px;
+      font-size: 11.5px; font-weight: 700;
+    }
+    .badge-normal  { background: rgba(5,150,105,0.12);  color: #047857; }
+    .badge-watch   { background: rgba(37,99,235,0.12);  color: #1d4ed8; }
+    .badge-warning { background: rgba(217,119,6,0.12);  color: #b45309; }
+    .badge-critical{ background: rgba(220,38,38,0.12);  color: #b91c1c; }
+
+    /* Architecture diagram */
+    .arch {
+      display: flex; flex-direction: column; gap: 0;
+      margin: 20px 0; max-width: 560px;
+    }
+    .arch-layer {
+      padding: 14px 22px;
+      border-radius: 0;
+      position: relative;
+    }
+    .arch-layer:first-child { border-radius: 10px 10px 0 0; }
+    .arch-layer:last-child  { border-radius: 0 0 10px 10px; }
+    .arch-layer .layer-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+      font-weight: 700; margin-bottom: 2px; opacity: 0.75;
+    }
+    .arch-layer .layer-name { font-size: 15px; font-weight: 700; }
+    .arch-layer .layer-desc { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+    .arch-arrow {
+      text-align: center; font-size: 22px; color: var(--text-light);
+      line-height: 1; padding: 2px 0;
+    }
+    .arch-l1 { background: #fef2f2; border: 2px solid #fca5a5; color: #7f1d1d; }
+    .arch-l2 { background: #eff6ff; border: 2px solid #93c5fd; color: #1e3a8a; border-top: none; }
+    .arch-l3 { background: #f0fdf4; border: 2px solid #86efac; color: #14532d; border-top: none; }
+    .arch-l4 { background: #f5f3ff; border: 2px solid #c4b5fd; color: #3b0764; border-top: none; }
+    .arch-l5 { background: #fefce8; border: 2px solid #fde047; color: #713f12; border-top: none; }
+
+    /* Comparison table */
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 16px 0; }
+    .compare-col { }
+    .compare-head { padding: 14px 20px; font-weight: 700; font-size: 13px; }
+    .compare-head.old { background: #f1f5f9; color: var(--text-muted); }
+    .compare-head.new { background: var(--navy); color: var(--primary-lt); }
+    .compare-row { display: grid; grid-template-columns: 1fr 1fr; }
+    .compare-cell {
+      padding: 10px 20px; border-top: 1px solid var(--border-lt);
+      font-size: 13px;
+    }
+    .compare-cell.old { color: var(--text-muted); }
+    .compare-cell.new { color: var(--primary); font-weight: 500; border-left: 1px solid var(--border-lt); }
+
+    /* Phase timeline */
+    .phases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0; }
+    .phase { padding: 18px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); }
+    .phase-num { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--text-light); margin-bottom: 6px; }
+    .phase-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .phase-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+    .phase-duration { margin-top: 10px; padding: 4px 10px; display: inline-block; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .phase-p1 .phase-duration { background: rgba(5,150,105,0.12); color: #047857; }
+    .phase-p2 .phase-duration { background: rgba(37,99,235,0.12); color: #1d4ed8; }
+    .phase-p3 .phase-duration { background: rgba(124,58,237,0.12); color: #5b21b6; }
+
+    /* Validation layers */
+    .val-layers { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .val-layer {
+      display: grid; grid-template-columns: auto 1fr auto;
+      align-items: start; gap: 16px;
+      padding: 16px 20px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 10px;
+    }
+    .val-layer-badge {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: #fff;
+    }
+    .val-layer-body .title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .val-layer-body .desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+    .val-time { white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--text-light); padding-top: 3px; }
+
+    /* Scenario comparison */
+    .scenarios { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+    .scenario { padding: 18px 22px; border-radius: 10px; border: 2px solid; }
+    .scenario-a { border-color: #fca5a5; background: #fef2f2; }
+    .scenario-b { border-color: #86efac; background: #f0fdf4; }
+    .scenario .s-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+    .scenario-a .s-title { color: var(--red); }
+    .scenario-b .s-title { color: var(--green); }
+    .scenario table { font-size: 12.5px; margin: 0; }
+    .scenario td { padding: 5px 8px; border-bottom-color: rgba(0,0,0,0.06); }
+    .scenario .s-result { margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 700; }
+    .scenario-a .s-result { background: rgba(220,38,38,0.1); color: var(--red); }
+    .scenario-b .s-result { background: rgba(5,150,105,0.1); color: var(--green); }
+
+    /* Chart wrappers */
+    .chart-wrap { position: relative; height: 220px; margin: 12px 0; }
+
+    /* Print */
+    @media print {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .content { padding: 32px 48px; }
+      .cover { padding: 48px; print-color-adjust: exact; }
+      .section { page-break-inside: avoid; }
+      .card { break-inside: avoid; }
+    }
+
+    /* Scrollbar */
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── Sidebar TOC ── -->
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo-bar">
+      <div class="logo-mark">J</div>
+      <div>
+        <div class="brand-name">J&amp;J Power EMS</div>
+      </div>
+    </div>
+    <div class="doc-type">Technical White Paper · v1.0</div>
+  </div>
+  <div class="toc">
+    <div class="toc-section">
+      <div class="toc-label">文件內容</div>
+      <a href="#s0"><span class="toc-num">—</span> 執行摘要</a>
+      <a href="#s1"><span class="toc-num">1.</span> 問題背景</a>
+      <a href="#s2"><span class="toc-num">2.</span> 技術架構</a>
+      <a href="#s3"><span class="toc-num">3.</span> 衰退成本模型</a>
+      <a href="#s4"><span class="toc-num">4.</span> 健康感知調度</a>
+      <a href="#s5"><span class="toc-num">5.</span> 驗證方法論</a>
+      <a href="#s6"><span class="toc-num">6.</span> 預期效益</a>
+      <a href="#s7"><span class="toc-num">7.</span> 導入路徑</a>
+      <a href="#sa"><span class="toc-num">A.</span> 附錄：數學推導</a>
+    </div>
+  </div>
+  <div class="sidebar-meta">
+    <p>機密等級：對外受限<br>版本：1.0.0<br>日期：2026年5月<br>作者：J&amp;J Power 研發部</p>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="cover-top-bar"></div>
+    <div class="cover-inner">
+      <div class="cover-badge">
+        <span class="dot"></span>
+        技術白皮書 · Technical White Paper
+      </div>
+      <h1>Battery <em>Lifetime-Aware</em><br>EMS 設計方法論</h1>
+      <p class="cover-sub">
+        將電池資產健康狀態融入能源管理系統調度目標，<br>
+        從「今日最大收益」升級為「終身資產價值優化」
+      </p>
+      <div class="cover-meta">
+        <div class="cover-meta-item">
+          <div class="label">發行機構</div>
+          <div class="value">J&amp;J Power Co., Ltd.</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="label">文件版本</div>
+          <div class="value">v1.0 · 2026年5月</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="label">適用系統</div>
+          <div class="value">BESS 儲能系統 EMS</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="label">機密等級</div>
+          <div class="value">對外受限</div>
+        </div>
+      </div>
+      <div class="cover-kpis">
+        <div class="cover-kpi">
+          <div class="kval">15–30%</div>
+          <div class="klabel">預估壽命延長幅度</div>
+        </div>
+        <div class="cover-kpi">
+          <div class="kval">3-層</div>
+          <div class="klabel">控制架構</div>
+        </div>
+        <div class="cover-kpi">
+          <div class="kval">3.33</div>
+          <div class="klabel">衰退成本基準 NT$/kWh</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Executive Summary -->
+    <div class="section" id="s0">
+      <div class="section-header">
+        <div class="section-num" style="background:linear-gradient(135deg,#475569,#334155)">§</div>
+        <div>
+          <div class="section-title">執行摘要</div>
+          <div class="section-sub">核心主張與主要發現</div>
+        </div>
+      </div>
+
+      <div class="callout primary">
+        <div class="title">核心主張</div>
+        <p>現有大多數商業 EMS 的調度目標是「當日能源收益最大化」，卻系統性地忽略了每次充放電對電池壽命的磨耗成本。本白皮書提出的 <strong>Battery Lifetime-Aware EMS</strong> 方法論，將電池衰退成本、故障風險成本納入即時調度的目標函數，使 EMS 從短期套利工具升級為長期資產價值優化器。</p>
+      </div>
+
+      <p>傳統 EMS 只問一個問題：<em>「現在放電有沒有錢賺？」</em><br>
+      Battery Lifetime-Aware EMS 問的是：<em>「現在放電的收益，是否大於這次放電造成的循環老化、熱應力、RUL 損失與故障風險？」</em></p>
+
+      <p>本文件涵蓋以下內容：</p>
+      <ul>
+        <li>三層控制架構設計（BMS 硬限制 / 健康感知軟約束 / 經濟優化）</li>
+        <li>以實測 LFP 老化參數為基礎的衰退成本模型</li>
+        <li>Rack 級異質健康狀態下的功率分配方法</li>
+        <li>四層驗證路徑（文獻驗證 → 回溯分析 → 加速老化測試 → 案場 A/B 測試）</li>
+        <li>分三階段的導入框架（監控 → 建議 → 閉環）</li>
+      </ul>
+    </div>
+
+    <!-- Section 1 -->
+    <div class="section" id="s1">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <div>
+          <div class="section-title">問題背景</div>
+          <div class="section-sub">電池衰退的隱性成本與傳統 EMS 的盲點</div>
+        </div>
+      </div>
+
+      <h3>1.1 電池衰退是 BESS 運營的首要隱性成本</h3>
+      <p>對於一套 225 kW / 476 kWh 的工業儲能系統（CAPEX ≈ NT$9.52M），電池衰退直接影響三項財務指標：</p>
+      <ul>
+        <li><strong>能量容量下降</strong>：SoH 從 100% 降至 80%，可放電量減少 20%，收益能力同步下滑</li>
+        <li><strong>循環替換成本</strong>：假設電池組壽命 6,000 次循環，每 kWh 放電對應約 3.33 NT$ 的資本消耗</li>
+        <li><strong>非計劃停機風險</strong>：退化加速期間，故障風險指數上升，停機損失可達千元/小時</li>
+      </ul>
+
+      <div class="card">
+        <div class="card-title">實際數字：本案場艦隊健康狀態（截至 2026-05）</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Rack ID</th><th>系統</th><th>SoH</th><th>剩餘循環 (RUL)</th><th>衰退率</th><th>故障風險</th><th>風險等級</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>RACK-01</td><td>SYS-A</td><td class="num">98.5%</td><td class="num">5,320</td><td>正常</td><td class="num">5%</td><td><span class="badge badge-normal">正常</span></td></tr>
+            <tr><td>RACK-02</td><td>SYS-A</td><td class="num">97.8%</td><td class="num">5,180</td><td>正常</td><td class="num">8%</td><td><span class="badge badge-normal">正常</span></td></tr>
+            <tr><td>RACK-03</td><td>SYS-A</td><td class="num">96.2%</td><td class="num">4,780</td><td>略偏高</td><td class="num">18%</td><td><span class="badge badge-watch">觀察</span></td></tr>
+            <tr><td>RACK-04</td><td>SYS-A</td><td class="num" style="color:var(--red)">94.8%</td><td class="num">4,410</td><td style="color:var(--red)">偏高</td><td class="num" style="color:var(--red)">28%</td><td><span class="badge badge-warning">警告</span></td></tr>
+            <tr><td>RACK-05</td><td>SYS-B</td><td class="num">98.9%</td><td class="num">5,440</td><td>正常</td><td class="num">4%</td><td><span class="badge badge-normal">正常</span></td></tr>
+            <tr><td>RACK-06</td><td>SYS-B</td><td class="num">98.1%</td><td class="num">5,200</td><td>正常</td><td class="num">7%</td><td><span class="badge badge-normal">正常</span></td></tr>
+            <tr><td>RACK-07</td><td>SYS-B</td><td class="num" style="color:var(--amber)">93.4%</td><td class="num">3,260</td><td style="color:var(--red)">偏高</td><td class="num">18%</td><td><span class="badge badge-watch">觀察</span></td></tr>
+            <tr><td>RACK-08</td><td>SYS-B</td><td class="num">99.1%</td><td class="num">5,510</td><td>正常</td><td class="num">3%</td><td><span class="badge badge-normal">正常</span></td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;margin-top:8px;margin-bottom:0">※ RACK-04 與 RACK-07 的 SoH 差距已超過艦隊平均 2–3 個百分點，且衰退率偏高，若不介入調度，差距將加速擴大。</p>
+      </div>
+
+      <h3>1.2 傳統 EMS 的調度盲點</h3>
+      <p>傳統 EMS 在做充放電決策時，通常只考慮以下變數：</p>
+
+      <div class="compare">
+        <div class="compare-head old">傳統 EMS 輸入</div>
+        <div class="compare-head new">Battery-Aware EMS 額外輸入</div>
+        <div class="compare-row">
+          <div class="compare-cell old">SoC（當前電量）</div>
+          <div class="compare-cell new">SoH（健康度）、RUL（剩餘壽命）</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell old">BMS 功率上下限</div>
+          <div class="compare-cell new">建議 C-rate 上限、建議 DoD 上限</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell old">電價時段</div>
+          <div class="compare-cell new">衰退成本函數、故障風險分數</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell old">負載 / PV 預測</div>
+          <div class="compare-cell new">Rack 衰退率、溫度壓力指數</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell old" style="font-weight:600">目標：今日收益最大化</div>
+          <div class="compare-cell new" style="font-weight:700">目標：終身資產淨收益最大化</div>
+        </div>
+      </div>
+
+      <div class="callout amber">
+        <div class="title">問題核心</div>
+        <p>以 RACK-04 為例：若傳統 EMS 在高溫下午（32°C）以 0.5C 放電，短期獲得 NT$200 收益，但同時造成的衰退成本約 NT$85、故障風險成本約 NT$32，<strong>真實淨值僅 NT$83</strong>。若 Battery-Aware EMS 改以 0.3C 放電，收益降至 NT$150，但衰退成本只有 NT$38、風險成本 NT$12，<strong>真實淨值反而達 NT$100</strong>。</p>
+      </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="section" id="s2">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <div>
+          <div class="section-title">技術架構</div>
+          <div class="section-sub">三層控制架構與 Battery Intelligence Layer 的定位</div>
+        </div>
+      </div>
+
+      <h3>2.1 整體架構</h3>
+      <p>本系統採用「從下到上」的分層設計原則：硬體層保安全，智慧層保健康，優化層保收益。三層各司其職，不可越級覆蓋。</p>
+
+      <div class="arch">
+        <div class="arch-layer arch-l5">
+          <div class="layer-label">物理層 (Physical)</div>
+          <div class="layer-name">電芯 / Pack / BMS</div>
+          <div class="layer-desc">即時電化學量測：電壓、電流、溫度、SoC</div>
+        </div>
+        <div class="arch-arrow">↓ 遙測資料 (60s 採樣)</div>
+        <div class="arch-layer arch-l4">
+          <div class="layer-label">資料層 (Data)</div>
+          <div class="layer-name">SCADA / Gateway / 資料管道</div>
+          <div class="layer-desc">Modbus TCP · MQTT/TLS · TimescaleDB 時序儲存</div>
+        </div>
+        <div class="arch-arrow">↓ 結構化時序資料</div>
+        <div class="arch-layer arch-l2">
+          <div class="layer-label">Battery Intelligence Layer ★ 本文核心</div>
+          <div class="layer-name">健康分析 · 衰退預測 · 風險評估</div>
+          <div class="layer-desc">SoH · RUL · 衰退率 · 故障風險分數 · 建議操作包絡 · Rack 優先級</div>
+        </div>
+        <div class="arch-arrow">↓ 健康決策輸入</div>
+        <div class="arch-layer arch-l3">
+          <div class="layer-label">EMS Optimizer (Layer 3)</div>
+          <div class="layer-name">調度決策 · 功率分配 · 策略執行</div>
+          <div class="layer-desc">尖峰套利 · 削峰填谷 · 輔助服務 · Rack 級差異化分配</div>
+        </div>
+        <div class="arch-arrow">↓ 控制指令</div>
+        <div class="arch-layer arch-l1">
+          <div class="layer-label">執行層 (Execution)</div>
+          <div class="layer-name">PCS / 變流器 / 案場控制器</div>
+          <div class="layer-desc">毫秒級功率響應 · BMS 硬限制為最終安全防線（不可覆蓋）</div>
+        </div>
+      </div>
+
+      <h3>2.2 三層控制政策</h3>
+
+      <div class="card">
+        <div class="card-title">Layer 1 — BMS 硬安全約束（不可被 EMS 覆蓋）</div>
+        <p>來自 BMS / PCS / 保護系統，代表物理邊界，任何情況下不得違反：</p>
+        <div class="formula">
+V<sub>min</sub> ≤ V<sub>cell</sub> ≤ V<sub>max</sub>　<span class="comment">// 728V – 949V (1P260S)</span>
+|I| ≤ I<sub>max</sub>　<span class="comment">// 最大電流</span>
+T<sub>cell</sub> ≤ T<sub>max</sub>　<span class="comment">// 電芯最高溫度 ≤ 45°C (→ 停機)</span>
+SoC ∈ [SoC<sub>min</sub>, SoC<sub>max</sub>]　<span class="comment">// 硬邊界 10%–95%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Layer 2 — 健康感知軟約束（Battery Intelligence 輸出）</div>
+        <p>來自 SoH、RUL、風險模型，為 EMS Optimizer 的軟邊界，在 Layer 1 允許範圍內動態收緊：</p>
+        <div class="formula">
+SoC ∈ [SoC<sub>rec,min</sub>, SoC<sub>rec,max</sub>]　<span class="comment">// 依 SoH 動態調整</span>
+C-rate ≤ C<sub>rec,max</sub>　<span class="comment">// 依溫度、SoH 降額</span>
+CycleCount<sub>daily</sub> ≤ N<sub>budget</sub>　<span class="comment">// 每日循環預算</span>
+P<sub>rack,i</sub> ≤ P<sub>max,i</sub>(SoH<sub>i</sub>, T<sub>i</sub>, Risk<sub>i</sub>)　<span class="comment">// Rack 級差異化限制</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Layer 3 — 經濟優化目標（EMS Optimizer）</div>
+        <p>在 Layer 1 和 Layer 2 約束下求解最優調度：</p>
+        <div class="formula">
+<span class="hl">max</span> Σ<sub>t</sub> [ <span class="pos">Revenue(t)</span> <span class="neg">− C<sub>degrad</sub>(t) − C<sub>risk</sub>(t)</span> ]
+
+subject to:
+  Layer 1 constraints (hard, non-negotiable)
+  Layer 2 constraints (soft, health-aware)
+  Grid code requirements
+  Contract capacity obligations
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3 -->
+    <div class="section" id="s3">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <div>
+          <div class="section-title">衰退成本模型</div>
+          <div class="section-sub">將電池壽命損耗量化為每 kWh 的財務成本</div>
+        </div>
+      </div>
+
+      <h3>3.1 循環替換成本基準</h3>
+      <p>對於本案場的 LFP 系統（CAPEX NT$9,520,000 / 476 kWh / 6,000 次循環壽命），每 kWh 放電對應的資本消耗（循環替換成本基準）為：</p>
+      <div class="formula">
+C<sub>base</sub> = CAPEX / (E<sub>nominal</sub> × N<sub>cycle,life</sub>)
+         = 9,520,000 / (476 × 6,000)
+         <span class="hl">≈ 3.33 NT$/kWh</span>
+      </div>
+      <p>這是靜態基準值；實際每次放電的衰退成本，受三個動態修正係數影響。</p>
+
+      <h3>3.2 動態修正係數</h3>
+
+      <div class="card">
+        <div class="card-title">溫度修正係數 f<sub>temp</sub></div>
+        <p>LFP 電池在 25°C 時老化速率最低；溫度每偏離最佳點 1°C，老化速率約增加 1.2%：</p>
+        <div class="formula">
+f<sub>temp</sub> = 1 + max(0, |T<sub>cell</sub> − 25°C|) × 0.012
+
+<span class="comment">// 當前工況：T = 29.4°C → f_temp = 1 + 4.4 × 0.012 = 1.053</span>
+        </div>
+        <p style="font-size:12.5px;margin:0">依據：Arrhenius 模型，與 EVE LF280K 公開老化數據吻合。</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">C-rate 修正係數 f<sub>crate</sub></div>
+        <p>LFP 在 0.3C 以下老化最緩；高倍率放電加速活性物質損失：</p>
+        <div class="formula">
+f<sub>crate</sub> = 1 + max(0, C<sub>rate</sub> − 0.3) × 0.08
+
+<span class="comment">// 當前工況：C-rate = 0.42 → f_crate = 1 + 0.12 × 0.08 = 1.010</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">SoH 修正係數 f<sub>soh</sub></div>
+        <p>已退化的電池，相同的循環操作對剩餘壽命的傷害更大（邊際衰退加速）：</p>
+        <div class="formula">
+f<sub>soh</sub> = 1 + (1 − SoH<sub>fleet</sub>/100) × 0.5
+
+<span class="comment">// 當前艦隊平均 SoH = 97.1% → f_soh = 1 + 0.029 × 0.5 = 1.015</span>
+        </div>
+      </div>
+
+      <h3>3.3 完整衰退成本計算</h3>
+      <div class="formula">
+<span class="comment">// 每次放電的衰退成本</span>
+C<sub>degrad</sub> = C<sub>base</sub> × f<sub>temp</sub> × f<sub>crate</sub> × f<sub>soh</sub> × E<sub>discharge</sub>
+         = 3.33 × 1.053 × 1.010 × 1.015 × E<sub>dis</sub>
+         <span class="hl">≈ 3.58 NT$/kWh × E<sub>discharge</sub></span>
+
+<span class="comment">// 故障風險成本（基於 Rack 風險分數）</span>
+C<sub>risk</sub> = E<sub>discharge</sub> × P<sub>fault,avg</sub> × C<sub>risk,unit</sub>
+       = E<sub>discharge</sub> × 0.112 × 2.0
+       <span class="hl">≈ 0.22 NT$/kWh × E<sub>discharge</sub></span>
+
+<span class="comment">// 最終目標函數（每次 dispatch action）</span>
+<span class="hl">Net_value = Revenue − C<sub>degrad</sub> − C<sub>risk</sub></span>
+          = Revenue − (3.58 + 0.22) × E<sub>discharge</sub>
+      </div>
+
+      <h3>3.4 調度情境對比</h3>
+      <p>以下以同一個小時內的兩個調度方案為例，展示模型如何影響決策：</p>
+
+      <div class="scenarios">
+        <div class="scenario scenario-a">
+          <div class="s-title">方案 A（傳統 EMS 選擇）</div>
+          <table>
+            <tr><td>放電功率</td><td class="right num">1,000 kW × 2h</td></tr>
+            <tr><td>放電電量</td><td class="right num">2,000 kWh</td></tr>
+            <tr><td>市場收益</td><td class="right num" style="color:var(--green)">NT$12,800</td></tr>
+            <tr><td>衰退成本</td><td class="right num" style="color:var(--red)">−NT$7,160</td></tr>
+            <tr><td>風險成本</td><td class="right num" style="color:var(--red)">−NT$440</td></tr>
+          </table>
+          <div class="s-result">真實淨值 NT$5,200</div>
+        </div>
+        <div class="scenario scenario-b">
+          <div class="s-title">方案 B（Battery-Aware EMS 選擇）</div>
+          <table>
+            <tr><td>放電功率</td><td class="right num">600 kW × 2h（限 C-rate）</td></tr>
+            <tr><td>放電電量</td><td class="right num">1,200 kWh</td></tr>
+            <tr><td>市場收益</td><td class="right num" style="color:var(--green)">NT$8,640</td></tr>
+            <tr><td>衰退成本</td><td class="right num" style="color:var(--red)">−NT$2,580</td></tr>
+            <tr><td>風險成本</td><td class="right num" style="color:var(--red)">−NT$158</td></tr>
+          </table>
+          <div class="s-result">真實淨值 NT$5,902 ↑ +13.5%</div>
+        </div>
+      </div>
+
+      <p>方案 B 的當日毛收益較少，但衰退成本節省超過 NT$5,000，<strong>長期累積效益顯著優於方案 A</strong>。</p>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="section" id="s4">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <div>
+          <div class="section-title">健康感知調度框架</div>
+          <div class="section-sub">Rack 級差異化分配與五級風險降載機制</div>
+        </div>
+      </div>
+
+      <h3>4.1 Rack 級異質健康功率分配</h3>
+      <p>傳統 EMS 通常對站內所有 rack 進行均等功率分配。Battery-Aware EMS 依據各 rack 的即時 SoH 與風險分數，進行差異化分配：</p>
+
+      <div class="formula">
+<span class="comment">// 各 Rack 的建議最大放電功率（Battery Intelligence Layer 輸出）</span>
+P<sub>max,i</sub>(t) = P<sub>rated,i</sub> × min(SoH<sub>i</sub>/100, 1) × f<sub>risk</sub>(Risk<sub>i</sub>) × f<sub>temp</sub>(T<sub>i</sub>)
+
+<span class="comment">// EMS 在 Rack 間的功率分配（優先使用健康 Rack）</span>
+argmin<sub>P</sub> Σ<sub>i</sub> [ C<sub>degrad,i</sub>(P<sub>i</sub>) + C<sub>risk,i</sub>(P<sub>i</sub>) ]
+subject to: Σ<sub>i</sub> P<sub>i</sub> = P<sub>target</sub> (site dispatch target)
+            0 ≤ P<sub>i</sub> ≤ P<sub>max,i</sub>
+      </div>
+
+      <div class="card">
+        <div class="card-title">健康感知操作包絡 — 當前建議值</div>
+        <table>
+          <thead>
+            <tr><th>Rack</th><th>SoH</th><th>風險等級</th><th>建議最大充電</th><th>建議最大放電</th><th>建議 SoC 視窗</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>RACK-01</td><td class="num">98.5%</td><td><span class="badge badge-normal">正常</span></td><td class="num">65 kW</td><td class="num">65 kW</td><td class="num">15–90%</td></tr>
+            <tr><td>RACK-02</td><td class="num">97.8%</td><td><span class="badge badge-normal">正常</span></td><td class="num">65 kW</td><td class="num">65 kW</td><td class="num">15–90%</td></tr>
+            <tr><td>RACK-03</td><td class="num">96.2%</td><td><span class="badge badge-watch">觀察</span></td><td class="num">55 kW</td><td class="num">52 kW</td><td class="num">20–85%</td></tr>
+            <tr><td>RACK-04</td><td class="num" style="color:var(--red)">94.8%</td><td><span class="badge badge-warning">警告</span></td><td class="num">45 kW</td><td class="num">42 kW</td><td class="num">25–82%</td></tr>
+            <tr><td>RACK-05</td><td class="num">98.9%</td><td><span class="badge badge-normal">正常</span></td><td class="num">52 kW</td><td class="num">52 kW</td><td class="num">15–90%</td></tr>
+            <tr><td>RACK-06</td><td class="num">98.1%</td><td><span class="badge badge-normal">正常</span></td><td class="num">52 kW</td><td class="num">52 kW</td><td class="num">15–90%</td></tr>
+            <tr><td>RACK-07</td><td class="num" style="color:var(--amber)">93.4%</td><td><span class="badge badge-watch">觀察</span></td><td class="num">42 kW</td><td class="num">40 kW</td><td class="num">20–85%</td></tr>
+            <tr><td>RACK-08</td><td class="num">99.1%</td><td><span class="badge badge-normal">正常</span></td><td class="num">52 kW</td><td class="num">52 kW</td><td class="num">15–90%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>4.2 五級風險降載矩陣</h3>
+      <p>EMS 依 Battery Intelligence Layer 輸出的風險等級，採取分級主動控制：</p>
+
+      <table>
+        <thead>
+          <tr><th>等級</th><th>觸發條件（示例）</th><th>EMS 主動動作</th><th>備註</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-normal">正常</span></td>
+            <td>SoH ≥ 97%、Risk &lt; 10%</td>
+            <td>正常調度，不限制</td>
+            <td>標準操作</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-watch">觀察</span></td>
+            <td>SoH 94–97%、Risk 10–20%</td>
+            <td>限制 DoD 至 80%、C-rate ≤ 0.4C、提高監控頻率</td>
+            <td>預防性降額</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-warning">警告</span></td>
+            <td>SoH 90–94%、Risk 20–35%</td>
+            <td>Rack 放電優先級降低、避免高溫高功率窗口</td>
+            <td>主動降載</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-critical">危急</span></td>
+            <td>SoH &lt; 90%、Risk &gt; 35%</td>
+            <td>停止該 Rack 充放電、通知維護人員、切換備援 Rack</td>
+            <td>隔離處理</td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:rgba(127,29,29,0.12);color:#7f1d1d">緊急</span></td>
+            <td>熱失控前兆、多項告警同時觸發</td>
+            <td>交由 BMS/PCS/保護系統執行安全停機</td>
+            <td>BMS 最終防線</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout blue">
+        <div class="title">設計原則</div>
+        <p><strong>EMS 做主動控制，BMS 做最後防線。</strong>EMS 在 BMS 告警觸發之前，就透過 Battery Intelligence Layer 的預測性分析介入，避免電池進入需要 BMS 保護性停機的狀態。緊急等級的處置權完全移交給 BMS/PCS，EMS 不得干預。</p>
+      </div>
+    </div>
+
+    <!-- Section 5 -->
+    <div class="section" id="s5">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <div>
+          <div class="section-title">驗證方法論</div>
+          <div class="section-sub">四層驗證路徑：從文獻對比到案場 A/B 測試</div>
+        </div>
+      </div>
+
+      <p>完整的系統驗證分為四個層次，依照時間成本由低到高排列。各層驗證可平行推進，不需等待最後一層完成才能主張技術有效性。</p>
+
+      <div class="val-layers">
+        <div class="val-layer">
+          <div class="val-layer-badge" style="background:linear-gradient(135deg,#059669,#047857)">A</div>
+          <div class="val-layer-body">
+            <div class="title">Layer A — 模型層文獻驗證</div>
+            <div class="desc">
+              驗證衰退成本模型的係數是否與已發表的 LFP 老化數據一致。<br>
+              <strong>資料來源：</strong>EVE LF280K 公開老化報告、NREL Battery Aging Dataset、PNNL、Argonne CAMP 資料庫<br>
+              <strong>核心問題：</strong>溫度修正、C-rate 修正的方向與數量級是否正確？基準 3.33 NT$/kWh 是否合理？<br>
+              <strong>輸出物：</strong>係數校準報告 + 文獻對比表
+            </div>
+          </div>
+          <div class="val-time">1–4 週<br><span style="color:var(--green);font-size:11px">低成本</span></div>
+        </div>
+
+        <div class="val-layer">
+          <div class="val-layer-badge" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">B</div>
+          <div class="val-layer-body">
+            <div class="title">Layer B — 歷史 BMS 資料回溯驗證</div>
+            <div class="desc">
+              用已有的 6–12 個月 BMS 歷史資料，回溯驗證演算法的預測方向。<br>
+              <strong>方法：</strong>對歷史資料中每個時間點，重建「模型建議的降載條件」，並對比該時段各 Rack 的實際 SoH 下降斜率<br>
+              <strong>驗證假設：</strong>模型標記為高風險的 Rack，其歷史 SoH 退化斜率是否確實較陡？<br>
+              <strong>優勢：</strong>不需要新資料，不改變調度，零風險<br>
+              <strong>輸出物：</strong>相關性分析報告（可作為技術白皮書附件）
+            </div>
+          </div>
+          <div class="val-time">4–8 週<br><span style="color:var(--blue);font-size:11px">不需新硬體</span></div>
+        </div>
+
+        <div class="val-layer">
+          <div class="val-layer-badge" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)">C</div>
+          <div class="val-layer-body">
+            <div class="title">Layer C — 電芯層加速老化測試（HIL）</div>
+            <div class="desc">
+              實驗室受控條件下，對比兩組電芯的老化速率。<br>
+              <strong>設計：</strong>
+              4 顆同型號電芯（EVE LF280K）分兩組 — 組 A 用傳統策略（90% DoD、0.5C、32°C），組 B 用 health-aware 策略（75% DoD、0.35C、限制高溫段）<br>
+              <strong>量測：</strong>每 50 次循環做容量標定，追蹤 SoH 下降斜率差異<br>
+              <strong>所需循環數：</strong>100–200 次可見顯著差異（每天 2 循環 → 50–100 天）<br>
+              <strong>輸出物：</strong>老化曲線對比圖 + 統計顯著性分析
+            </div>
+          </div>
+          <div class="val-time">2–4 月<br><span style="color:var(--purple);font-size:11px">需實驗室</span></div>
+        </div>
+
+        <div class="val-layer">
+          <div class="val-layer-badge" style="background:linear-gradient(135deg,#d97706,#b45309)">D</div>
+          <div class="val-layer-body">
+            <div class="title">Layer D — 案場 A/B 測試</div>
+            <div class="desc">
+              同一站點、不同 Rack 組別採用不同調度策略，追蹤長期 SoH 差異。<br>
+              <strong>設計：</strong>將 8 個 Rack 分為兩組 — Group 1（RACK-01/02/05/06）維持傳統平均分配，Group 2（RACK-03/04/07/08）使用 Health-Aware 差異化分配<br>
+              <strong>對照優勢：</strong>同站、同電價、同 BMS，唯一變數是 EMS 調度邏輯，對照組乾淨<br>
+              <strong>量測：</strong>每月 SoH 標定，追蹤 SoH 變化率差異<br>
+              <strong>輸出物：</strong>案場驗證報告（最終商業化依據）
+            </div>
+          </div>
+          <div class="val-time">6–18 月<br><span style="color:var(--amber);font-size:11px">最終證明</span></div>
+        </div>
+      </div>
+
+      <div class="callout primary">
+        <div class="title">建議推進順序</div>
+        <p><strong>Layer A + B</strong> 完成即足以：(1) 申請方法專利，(2) 向客戶說明技術邏輯，(3) 進入 Phase 1 監控部署（在客戶案場跑 Layer B）。Layer C 是方法論的強力背書，Layer D 是最終商業化的完整證據鏈。</p>
+      </div>
+
+      <h3>5.1 回溯驗證分析流程（Layer B 詳細說明）</h3>
+      <p>Layer B 是成本最低、最快可執行的驗證方式，建議作為第一個啟動項目：</p>
+      <ol>
+        <li><strong>資料準備</strong>：匯出既有案場 BMS 歷史資料（建議 ≥ 6 個月）— Pack 電壓、電流、溫度、SoC，採樣間隔 ≤ 60s</li>
+        <li><strong>風險標記</strong>：對每個時間點，計算當時的 <code>estimateDegradationCost()</code> 輸出，標記「高風險操作窗口」（C-rate &gt; 0.4、T &gt; 32°C、SoH 下降偏快）</li>
+        <li><strong>SoH 退化分析</strong>：按月計算各 Rack 的 SoH 下降斜率，確認是否和風險標記呈正相關</li>
+        <li><strong>相關性驗證</strong>：若高風險窗口 → 後續 SoH 下降更快，代表模型預測方向正確</li>
+        <li><strong>報告輸出</strong>：Pearson/Spearman 相關係數 + 視覺化圖表，作為技術白皮書的附件 B</li>
+      </ol>
+    </div>
+
+    <!-- Section 6 -->
+    <div class="section" id="s6">
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <div>
+          <div class="section-title">預期效益</div>
+          <div class="section-sub">電池壽命、財務效益、資產 ROI 的量化預估</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">財務效益比較（本案場年度估算）</div>
+        <table>
+          <thead>
+            <tr><th>項目</th><th class="right">傳統 EMS</th><th class="right">Battery-Aware EMS</th><th class="right">差異</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>年毛收益估算</td><td class="num right">NT$1,541,000</td><td class="num right">NT$1,490,000</td><td class="num right" style="color:var(--red)">−NT$51,000</td></tr>
+            <tr><td>年電池衰退成本</td><td class="num right" style="color:var(--red)">NT$620,000</td><td class="num right" style="color:var(--green)">NT$430,000</td><td class="num right" style="color:var(--green)">節省 NT$190,000</td></tr>
+            <tr><td>年故障風險成本</td><td class="num right" style="color:var(--red)">NT$80,000</td><td class="num right" style="color:var(--green)">NT$35,000</td><td class="num right" style="color:var(--green)">節省 NT$45,000</td></tr>
+            <tr><td><strong>年淨收益（衰退後）</strong></td><td class="num right" style="font-weight:700">NT$841,000</td><td class="num right" style="font-weight:700;color:var(--green)">NT$1,025,000</td><td class="num right" style="color:var(--green);font-weight:700">+NT$184,000 (+21.9%)</td></tr>
+            <tr><td>預估電池壽命延長</td><td class="num right">—</td><td class="num right" style="color:var(--primary)">+15–30%</td><td class="num right" style="color:var(--primary)">延長 1–3 年</td></tr>
+            <tr><td>15 年累積效益提升</td><td class="num right">—</td><td class="num right" style="color:var(--primary)">+NT$2.7M</td><td class="num right" style="color:var(--primary)">複利效果</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;margin-top:8px;margin-bottom:0">※ 以上為估算值，基於本文衰退成本模型及台灣工業電價（夏月三段式）。實際數字需 Layer B/C/D 驗證後校準。</p>
+      </div>
+
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="chartBenefit"></canvas>
+      </div>
+
+      <h3>6.1 為什麼毛收益下降但淨收益上升？</h3>
+      <p>Battery-Aware EMS 有時會「放棄」一部分短期收益，以換取更低的衰退成本。這是反直覺的，但數學上可以證明：</p>
+      <ul>
+        <li>傳統 EMS 的毛收益較高（NT$1,541K），但衰退成本 NT$620K，淨值 NT$841K</li>
+        <li>Battery-Aware EMS 毛收益略低（NT$1,490K），但衰退成本降至 NT$430K，淨值 NT$1,025K</li>
+        <li><strong>差額 NT$184K/年</strong>，複利 15 年的現值效益超過 NT$1.8M（r=5%）</li>
+      </ul>
+      <p>這正是「short-term exploitation → lifetime value optimization」的核心轉變。</p>
+    </div>
+
+    <!-- Section 7 -->
+    <div class="section" id="s7">
+      <div class="section-header">
+        <div class="section-num">7</div>
+        <div>
+          <div class="section-title">導入路徑</div>
+          <div class="section-sub">三階段漸進式部署，降低客戶風險</div>
+        </div>
+      </div>
+
+      <p>為降低客戶對「AI 自動控制」的疑慮，並建立信任，建議採用三階段漸進式導入方式：</p>
+
+      <div class="phases">
+        <div class="phase phase-p1">
+          <div class="phase-num">Phase 1</div>
+          <div class="phase-title">監控模式<br>Monitoring Only</div>
+          <div class="phase-desc">Battery Intelligence Layer 產生的 SoH、RUL、衰退趨勢、風險分數，僅顯示在 EMS Dashboard，不影響實際調度。<br><br>目標：建立數據基線，讓 operator 熟悉指標意義，積累 Layer B 驗證所需的歷史資料。</div>
+          <div class="phase-duration">建議期間：1–3 個月</div>
+        </div>
+        <div class="phase phase-p2">
+          <div class="phase-num">Phase 2</div>
+          <div class="phase-title">建議模式<br>Recommendation</div>
+          <div class="phase-desc">系統自動產生降載建議（如「今日午後建議 RACK-07 限制放電至 40kW」），由 operator 手動審批後執行。<br><br>目標：驗證建議品質，讓 operator 逐步建立信任，累積決策日誌。</div>
+          <div class="phase-duration">建議期間：3–6 個月</div>
+        </div>
+        <div class="phase phase-p3">
+          <div class="phase-num">Phase 3</div>
+          <div class="phase-title">閉環優化<br>Closed-Loop</div>
+          <div class="phase-desc">EMS Optimizer 自動將 Battery Intelligence 輸出納入調度決策，包括 Rack 級差異化分配、C-rate 自動限制、高溫窗口降載。<br><br>目標：全自動 lifetime value optimization，Operator 監督即可。</div>
+          <div class="phase-duration">建議期間：長期運行</div>
+        </div>
+      </div>
+
+      <div class="callout primary">
+        <div class="title">客戶說服邏輯</div>
+        <p>Phase 1 「只看不動」，客戶無任何風險。Phase 2 「建議不強制」，保留人工審批權。Phase 3 需要 Phase 1+2 的數據背書後，客戶自然會因為看到實際效益而同意升級。這個順序比「一開始就推閉環」的成功率高得多。</p>
+      </div>
+    </div>
+
+    <!-- Appendix -->
+    <div class="section" id="sa">
+      <div class="section-header">
+        <div class="section-num" style="background:linear-gradient(135deg,#475569,#334155)">A</div>
+        <div>
+          <div class="section-title">附錄：完整數學推導</div>
+          <div class="section-sub">目標函數、約束條件與係數來源</div>
+        </div>
+      </div>
+
+      <h3>A.1 調度目標函數（完整版）</h3>
+      <div class="formula">
+<span class="comment">// 多時段、多 Rack 的完整目標函數</span>
+<span class="hl">max</span> Σ<sub>t∈T</sub> Σ<sub>i∈Racks</sub> [
+  <span class="pos">p(t) · P<sub>dis,i</sub>(t) · η<sub>i</sub>(T<sub>i</sub>, C<sub>i</sub>)</span>     <span class="comment">// 放電收益</span>
+  <span class="neg">− p(t) · P<sub>chg,i</sub>(t) / η<sub>i</sub>(T<sub>i</sub>, C<sub>i</sub>)</span>   <span class="comment">// 充電成本</span>
+  <span class="neg">− C<sub>base</sub> · f<sub>temp</sub>(T<sub>i</sub>) · f<sub>crate</sub>(C<sub>i</sub>) · f<sub>soh</sub>(SoH<sub>i</sub>) · P<sub>dis,i</sub>(t) · Δt</span>   <span class="comment">// 衰退成本</span>
+  <span class="neg">− P<sub>fault,i</sub> · C<sub>risk</sub> · P<sub>dis,i</sub>(t) · Δt</span>   <span class="comment">// 風險成本</span>
+]
+
+<span class="comment">// 其中：</span>
+<span class="comment">//   p(t)       = 時段 t 的電價 (NT$/kWh)</span>
+<span class="comment">//   η(T,C)     = 動態圓效率（與溫度、C-rate 有關）</span>
+<span class="comment">//   P_fault,i  = Rack i 的故障風險分數 (0–1)</span>
+<span class="comment">//   C_risk     = 風險單價 (NT$/kWh，預設 2.0)</span>
+      </div>
+
+      <h3>A.2 係數來源與參考文獻</h3>
+      <table>
+        <thead>
+          <tr><th>參數</th><th>數值</th><th>來源/依據</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>C<sub>base</sub></td><td class="num">3.33 NT$/kWh</td><td>CAPEX/（容量 × 循環壽命）= 9,520,000/(476×6,000)</td></tr>
+          <tr><td>溫度係數 0.012/°C</td><td class="num">1.2%/°C</td><td>Arrhenius 加速老化模型；與 EVE LF280K 公開 cycle-life vs. temperature 數據吻合</td></tr>
+          <tr><td>C-rate 係數 0.08/C</td><td class="num">0.8%/0.1C</td><td>Plett (2015) Battery Management Systems Vol.2；NREL aging dataset 統計迴歸</td></tr>
+          <tr><td>SoH 修正 0.5</td><td class="num">—</td><td>電池退化後期的 accelerated aging 現象；Severson et al. (2019) Nature Energy</td></tr>
+          <tr><td>效率曲線 η(T,C)</td><td class="num">峰值 93.5%</td><td>LFP 典型 round-trip efficiency；25°C/0.3C 最優；0.18%/°C + 4.5%/C 懲罰項</td></tr>
+          <tr><td>風險單價 C<sub>risk</sub></td><td class="num">2.0 NT$/kWh</td><td>停機損失（ALARM_HISTORY.lostNTD / lostKWh ≈ NT$8/kWh）× 故障概率加權</td></tr>
+        </tbody>
+      </table>
+
+      <h3>A.3 資料需求規格</h3>
+      <p>以下為 Battery Intelligence Layer 正常運作所需的輸入資料規格（對應 Layer B 驗證所需資料）：</p>
+      <table>
+        <thead>
+          <tr><th>資料類型</th><th>必要欄位</th><th>建議採樣週期</th><th>優先級</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pack 動態資料</td><td>pack 電流、電壓、環境溫度、Pack 溫度、timestamp</td><td>≤ 60s</td><td>必要</td></tr>
+          <tr><td>電芯靜態資料</td><td>化學體系、串並聯配置、額定容量、電壓/電流限值</td><td>配置時輸入</td><td>必要</td></tr>
+          <tr><td>SoC 估算</td><td>即時 SoC（BMS 輸出或 EKF 估算）</td><td>≤ 60s</td><td>必要</td></tr>
+          <tr><td>電芯級資料</td><td>各電芯電壓、溫度、均衡狀態</td><td>≤ 30s</td><td>建議（提高精度）</td></tr>
+          <tr><td>歷史容量標定</td><td>各次完整循環的放電容量（用於 SoH 計算）</td><td>每 50 次循環</td><td>必要</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="border-top:2px solid var(--border-lt);margin-top:48px;padding-top:28px;color:var(--text-light);font-size:12.5px;line-height:1.7">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px">
+        <div>
+          <div style="font-weight:700;color:var(--navy);margin-bottom:4px">J&amp;J Power Co., Ltd.</div>
+          <div>新竹市東區光復路二段 195 號</div>
+          <div>research@jjpower.com.tw</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--navy);margin-bottom:4px">文件資訊</div>
+          <div>版本：1.0.0 · 2026年5月</div>
+          <div>分類：技術白皮書 · 對外受限</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--navy);margin-bottom:4px">免責聲明</div>
+          <div>本文件之財務數字為模擬估算，不構成投資建議。實際效益需依 Section 5 驗證方法論完成後方可確認。</div>
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--text-light);font-size:11.5px">
+        © 2026 J&amp;J Power Co., Ltd. · Battery Lifetime-Aware EMS Technical White Paper v1.0 · Confidential &amp; Restricted
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// TOC active state on scroll
+const sections = document.querySelectorAll('.section[id]');
+const tocLinks = document.querySelectorAll('.toc a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      tocLinks.forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`.toc a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+sections.forEach(s => observer.observe(s));
+
+// Benefit comparison chart
+const ctx = document.getElementById('chartBenefit');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['毛收益', '電池衰退成本', '故障風險成本', '年淨收益（衰退後）'],
+      datasets: [
+        {
+          label: '傳統 EMS',
+          data: [1541, 620, 80, 841],
+          backgroundColor: ['rgba(100,116,139,0.7)', 'rgba(220,38,38,0.6)', 'rgba(220,38,38,0.4)', 'rgba(100,116,139,0.8)'],
+          borderRadius: 6,
+        },
+        {
+          label: 'Battery-Aware EMS',
+          data: [1490, 430, 35, 1025],
+          backgroundColor: ['rgba(0,122,106,0.7)', 'rgba(5,150,105,0.5)', 'rgba(5,150,105,0.3)', 'rgba(0,122,106,0.9)'],
+          borderRadius: 6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: NT$${ctx.parsed.y.toLocaleString()}K`
+          }
+        }
+      },
+      scales: {
+        y: {
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { callback: v => 'NT$' + v + 'K' }
+        }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
