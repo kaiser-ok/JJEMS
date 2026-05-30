@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JJEMS 投資人簡報 · J&J Power</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0d1f3c;
+      --muted: #4b5563;
+      --soft: #718096;
+      --line: #d7dee7;
+      --line-soft: #e8edf3;
+      --paper: #ffffff;
+      --bg: #f6f8fb;
+      --teal: #007a6a;
+      --teal-2: #00b89d;
+      --blue: #2563eb;
+      --amber: #d97706;
+      --green: #059669;
+      --purple: #6d28d9;
+      --red: #dc2626;
+      --fill-bg: #fff3cd;
+      --fill-ink: #8a6100;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Inter", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.72;
+    }
+    a { color: inherit; }
+
+    .layout { display: grid; grid-template-columns: 268px minmax(0, 1fr); min-height: 100vh; }
+    .toc {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      background: #0b1d36;
+      color: #dce7f5;
+      padding: 26px 20px;
+      overflow-y: auto;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--teal-2), var(--blue));
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .brand-name { font-size: 14px; font-weight: 800; line-height: 1.2; }
+    .brand-sub { font-size: 11px; color: rgba(220,231,245,.55); margin-top: 2px; }
+    .toc-label {
+      font-size: 10px;
+      letter-spacing: .12em;
+      color: rgba(220,231,245,.38);
+      text-transform: uppercase;
+      font-weight: 700;
+      margin: 18px 8px 8px;
+    }
+    .toc a:not(.brand) {
+      display: block;
+      padding: 7px 10px;
+      border-radius: 7px;
+      color: rgba(220,231,245,.7);
+      text-decoration: none;
+      font-size: 12.5px;
+      transition: .15s ease;
+    }
+    .toc a:not(.brand):hover {
+      color: var(--teal-2);
+      background: rgba(0,184,157,.1);
+    }
+    .toc-num {
+      display: inline-block;
+      width: 22px;
+      color: rgba(220,231,245,.34);
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .toc-meta {
+      margin-top: 24px;
+      padding: 14px 12px 0;
+      border-top: 1px solid rgba(255,255,255,.1);
+      color: rgba(220,231,245,.42);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+    .toc-meta a { color: var(--teal-2); text-decoration: none; }
+
+    .main { min-width: 0; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(145deg, rgba(13,31,60,.97), rgba(13,49,75,.96) 52%, rgba(0,94,84,.94)),
+        radial-gradient(circle at 80% 10%, rgba(0,184,157,.22), transparent 35%);
+      color: #fff;
+      padding: 78px clamp(28px, 7vw, 82px) 66px;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--teal-2), var(--blue), var(--purple));
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,184,157,.45);
+      background: rgba(0,184,157,.12);
+      color: #79f0df;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 26px;
+    }
+    .eyebrow i {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #79f0df;
+      display: inline-block;
+    }
+    .hero h1 {
+      max-width: 820px;
+      font-size: clamp(32px, 4.6vw, 52px);
+      line-height: 1.16;
+      letter-spacing: 0;
+      font-weight: 900;
+      margin-bottom: 18px;
+    }
+    .hero h1 span { color: #79f0df; }
+    .hero-lead {
+      max-width: 780px;
+      font-size: 18px;
+      color: rgba(255,255,255,.72);
+      margin-bottom: 34px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      max-width: 680px;
+    }
+    .hero-stat {
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .hero-stat strong {
+      display: block;
+      color: #79f0df;
+      font-size: 22px;
+      line-height: 1.18;
+      margin-bottom: 4px;
+    }
+    .hero-stat span {
+      display: block;
+      color: rgba(255,255,255,.6);
+      font-size: 12px;
+    }
+
+    /* placeholder convention */
+    .fill {
+      background: var(--fill-bg);
+      color: var(--fill-ink);
+      border-radius: 4px;
+      padding: 0 5px;
+      font-weight: 700;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+    .hero-stat .fill { background: rgba(255,243,205,.92); }
+    .legend {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 14px clamp(26px, 7vw, 82px) 0;
+    }
+    .legend-inner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fffbeb;
+      border: 1px solid #f4dd9a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12.5px;
+      color: var(--fill-ink);
+    }
+
+    .content {
+      max-width: 1080px;
+      padding: 30px clamp(26px, 7vw, 82px) 84px;
+    }
+    section {
+      scroll-margin-top: 24px;
+      margin-bottom: 56px;
+    }
+    .section-head {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 15px;
+      align-items: start;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--line-soft);
+      margin-bottom: 24px;
+    }
+    .section-no {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    h2 { font-size: 25px; line-height: 1.3; margin-bottom: 3px; }
+    .sub { color: var(--soft); font-size: 13.5px; }
+    h3 { font-size: 17px; line-height: 1.35; margin: 26px 0 10px; color: var(--ink); }
+    p { color: var(--muted); margin-bottom: 14px; }
+    strong { color: var(--ink); }
+    ul, ol { padding-left: 20px; color: var(--muted); margin: 8px 0 14px; }
+    li { margin-bottom: 6px; }
+
+    .callout {
+      background: rgba(0,122,106,.06);
+      border-left: 4px solid var(--teal);
+      border-radius: 8px;
+      padding: 17px 20px;
+      margin: 18px 0;
+    }
+    .callout > strong { display: block; margin-bottom: 4px; }
+    .callout p { margin: 0; font-size: 13.8px; }
+    .callout.amber { background: rgba(217,119,6,.07); border-left-color: var(--amber); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px 22px;
+    }
+    .card-kicker {
+      color: var(--teal);
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-weight: 800;
+      margin-bottom: 7px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 16px; }
+    .card p { font-size: 13.5px; margin-bottom: 0; }
+
+    /* in-content KPI metrics */
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+    .metric { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; background: var(--paper); }
+    .metric strong { display: block; font-size: 23px; color: var(--teal); line-height: 1.15; margin-bottom: 4px; }
+    .metric span { display: block; font-size: 12px; color: var(--soft); }
+
+    /* moat pillars */
+    .moat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }
+    .moat { background: var(--paper); border: 1px solid var(--line); border-top: 3px solid var(--teal); border-radius: 10px; padding: 20px 22px; }
+    .moat .mn { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: rgba(0,122,106,.12); color: var(--teal); font-weight: 900; font-size: 13px; margin-bottom: 10px; }
+    .moat h3 { margin: 0 0 8px; font-size: 16px; }
+    .moat p { font-size: 13.3px; margin: 0; }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--paper);
+      margin: 16px 0;
+    }
+    .matrix-head { padding: 13px 18px; font-weight: 800; font-size: 13px; color: #fff; background: var(--teal); }
+    .matrix-head.old { background: #64748b; }
+    .matrix-cell { padding: 11px 18px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 13.5px; }
+    .matrix-cell.new { border-left: 1px solid var(--line-soft); color: var(--teal); font-weight: 700; background: rgba(0,122,106,.025); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 13.2px;
+      margin: 16px 0;
+    }
+    th { text-align: left; background: var(--ink); color: #fff; padding: 11px 13px; font-size: 12px; letter-spacing: .03em; }
+    td { padding: 11px 13px; border-top: 1px solid var(--line-soft); color: var(--muted); vertical-align: top; }
+    tr:hover td { background: #f9fbfd; }
+    .tag { display: inline-block; border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .tag.green { color: #047857; background: rgba(5,150,105,.12); }
+    .tag.blue { color: #1d4ed8; background: rgba(37,99,235,.12); }
+    .tag.amber { color: #b45309; background: rgba(217,119,6,.12); }
+    .tag.purple { color: #5b21b6; background: rgba(109,40,217,.12); }
+    .tag.red { color: #b91c1c; background: rgba(220,38,38,.12); }
+    .tag.gray { color: #475569; background: rgba(100,116,139,.14); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--paper);
+      margin: 18px 0;
+    }
+    .flow-step { padding: 18px 20px; border-right: 1px solid var(--line-soft); min-height: 140px; }
+    .flow-step:last-child { border-right: 0; }
+    .flow-step .num { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; background: rgba(0,122,106,.12); color: var(--teal); font-size: 11px; font-weight: 900; margin-bottom: 10px; }
+    .flow-step h3 { margin: 0 0 7px; font-size: 15px; }
+    .flow-step p { font-size: 13px; margin: 0; }
+
+    .roadmap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .roadmap-item { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+    .roadmap-item .phase { color: var(--soft); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+    .roadmap-item strong { display: block; font-size: 14px; margin-bottom: 6px; }
+    .roadmap-item p { font-size: 12.8px; margin: 0 0 8px; }
+
+    /* chart */
+    .chart-wrap { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px 14px; margin: 16px 0; }
+    .chart-cap { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
+    .chart-cap h3 { margin: 0; font-size: 15px; }
+    .chart-cap .note { font-size: 11.5px; color: var(--amber); font-weight: 700; }
+    .chart-wrap svg { width: 100%; height: auto; display: block; }
+
+    /* use of funds bars */
+    .uof { margin: 16px 0; }
+    .uof-row { display: grid; grid-template-columns: 150px 1fr 56px; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .uof-label { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .uof-bar { height: 14px; background: var(--line-soft); border-radius: 999px; overflow: hidden; }
+    .uof-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), var(--teal-2)); border-radius: 999px; }
+    .uof-pct { font-size: 12.5px; color: var(--soft); text-align: right; }
+
+    /* Q&A */
+    .qa-item { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; background: var(--paper); }
+    .qa-q { font-weight: 800; color: var(--ink); margin-bottom: 6px; font-size: 14.5px; }
+    .qa-a { color: var(--muted); font-size: 13.5px; margin: 0; }
+
+    .footer { color: var(--soft); font-size: 12px; border-top: 1px solid var(--line-soft); padding-top: 22px; margin-top: 26px; }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc { position: static; height: auto; }
+      .hero-grid, .grid-3, .roadmap, .metrics, .moat-grid { grid-template-columns: 1fr 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow-step { border-right: 0; border-bottom: 1px solid var(--line-soft); min-height: 0; }
+      .flow-step:last-child { border-bottom: 0; }
+    }
+    @media (max-width: 680px) {
+      body { font-size: 14px; }
+      .toc { display: none; }
+      .hero { padding: 48px 22px 46px; }
+      .content { padding: 26px 20px 56px; }
+      .hero-grid, .grid-2, .grid-3, .roadmap, .matrix, .metrics, .moat-grid { grid-template-columns: 1fr; }
+      .matrix-head:not(.old), .matrix-cell.new { border-left: 0; }
+      .section-head { grid-template-columns: 1fr; }
+      .uof-row { grid-template-columns: 110px 1fr 44px; }
+      table { display: block; overflow-x: auto; }
+    }
+    @media print {
+      .toc { display: none; }
+      .layout { display: block; }
+      .hero { padding: 44px; print-color-adjust: exact; }
+      .content { max-width: none; padding: 30px 44px; }
+      section, .card, .roadmap-item, .moat, .qa-item, .chart-wrap { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="toc">
+      <a class="brand" href="index.html">
+        <div class="brand-mark">J&amp;J</div>
+        <div>
+          <div class="brand-name">J&amp;J Power EMS</div>
+          <div class="brand-sub">投資人簡報 · Investor Brief</div>
+        </div>
+      </a>
+      <div class="toc-label">Contents</div>
+      <a href="#summary"><span class="toc-num">00</span>執行摘要</a>
+      <a href="#market"><span class="toc-num">01</span>市場機會</a>
+      <a href="#problem"><span class="toc-num">02</span>痛點與買方</a>
+      <a href="#solution"><span class="toc-num">03</span>解法:EMS Factory</a>
+      <a href="#moat"><span class="toc-num">04</span>三大護城河</a>
+      <a href="#model"><span class="toc-num">05</span>商業模式與單位經濟</a>
+      <a href="#traction"><span class="toc-num">06</span>現況與里程碑</a>
+      <a href="#risk"><span class="toc-num">07</span>競品與依賴風險</a>
+      <a href="#team"><span class="toc-num">08</span>團隊與夥伴</a>
+      <a href="#ask"><span class="toc-num">09</span>下一步與展望</a>
+      <a href="#qa"><span class="toc-num">A</span>投資人關鍵問答</a>
+      <div class="toc-meta">
+        版本 2026.05 · 草稿<br />
+        產品技術論述見 <a href="competitive-advantage.html">競爭優勢說明</a>。<br />
+        黃底為待填數據欄位。
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="hero">
+        <div class="eyebrow"><i></i>JJEMS Investor Brief · 草稿</div>
+        <h1>從儲能硬體到能源智慧，<br />打造可量產的<span> EMS 戰略層</span></h1>
+        <p class="hero-lead">
+          台灣表後工商業儲能正在大量出貨,每座案場都需要一套能正式營運的 EMS。憑藉自有儲能櫃通路與電芯級資料,JJEMS 從硬體向上整合,把 EMS 變成可複製、可規模化的能源智慧層,也是業主搶市場的戰略核心。
+        </p>
+        <div class="hero-grid">
+          <div class="hero-stat">
+            <strong>≈ NT$ 15–30 億</strong>
+            <span>表後 C&amp;I EMS 市場 (SAM,2030 累計,估)</span>
+          </div>
+          <div class="hero-stat">
+            <strong>2 個月 → 2 週</strong>
+            <span>單站 EMS 交付時間(目標)</span>
+          </div>
+          <div class="hero-stat">
+            <strong>20 座</strong>
+            <span>24 個月內導入目標</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="legend">
+        <div class="legend-inner">
+          <span style="font-weight:800">填寫說明</span>
+          <span>—— 凡 <span class="fill">黃底欄位</span> 皆為待補的真實數據(市場規模、交付時間、站數、價格、毛利等);其餘為論述草稿,可依實際情況調整。圖表標示「示意」者為概念圖,需以實際案場數據替換。</span>
+        </div>
+      </div>
+
+      <article class="content">
+
+        <!-- 00 執行摘要 -->
+        <section id="summary">
+          <div class="section-head">
+            <div class="section-no">00</div>
+            <div>
+              <h2>執行摘要</h2>
+              <div class="sub">投資主張一句話</div>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>投資主張</strong>
+            <p>傳統 EMS 是「一次性、靠人重寫」的工程專案;JJEMS 把它變成「靠配置複製、隨案場複利、具重複性營收」的 EMS 產品。<strong>速度是我們的優勢,真正的護城河是讓速度持久的三項資產</strong>:① 愈做愈快的配置 / 模板 / 調機資料資產;② 自有儲能櫃通路向上整合(賣櫃延伸到賣 EMS);③ 對業主真正省到錢的在地電價與電池資產優化。</p>
+          </div>
+          <p>短期重點:完成資料接入與 Studio 配置引擎、落地首批 3 座商轉案場,建立可重複的交付與營收模型。</p>
+          <h3>投資亮點</h3>
+          <ul>
+            <li><strong>非從零起步:</strong>我們是既有儲能櫃通路商(GBGtek)向上擴張到 EMS,有既有業務、客戶與出貨管道托底。</li>
+            <li><strong>順風市場:</strong>儲能櫃大量出貨,EMS 是出貨後「必須且重複」發生的配套需求。</li>
+            <li><strong>商業模式升級:</strong>從賣硬體(一次性)延伸到產品 + SaaS(重複性營收),估值邏輯由硬體/服務轉為軟體。</li>
+            <li><strong>可防禦:</strong>配置資產複利 + 自有硬體通路 + 在地深度,三者疊加,單純模仿前端追不上。</li>
+            <li><strong>差異化價值:</strong>我們能取得電芯級(cell-level)資料,才做得出 Battery-Aware 調度、把「電池壽命」換算成業主的真實現金流——這是拿不到電芯資料的一般 EMS 廠商做不到的。</li>
+          </ul>
+        </section>
+
+        <!-- 01 市場機會 -->
+        <section id="market">
+          <div class="section-head">
+            <div class="section-no">01</div>
+            <div>
+              <h2>市場機會</h2>
+              <div class="sub">為什麼是現在、為什麼是台灣 C&amp;I 儲能</div>
+            </div>
+          </div>
+          <p>
+            台灣工商業(C&amp;I)儲能的需求由多重政策與電價結構同時驅動:高壓三段式<strong>時間電價</strong>價差擴大、<strong>契約容量與超約罰款</strong>管理、台電<strong>需量反應與輔助服務(sReg / AFC)</strong>收益、以及 2050 淨零下企業的用電韌性需求。儲能櫃正在快速出貨——而<strong>每一座出貨的案場都需要一套能正式營運的 EMS</strong>。
+          </p>
+          <div class="metrics">
+            <div class="metric"><strong>≈ NT$ 60–100 億</strong><span>TAM · 台灣儲能 EMS 整體(2030 累計,估)</span></div>
+            <div class="metric"><strong>≈ NT$ 15–30 億</strong><span>SAM · 表後 C&amp;I EMS(2030 累計,估)</span></div>
+            <div class="metric"><strong><span class="fill">___</span> 座/年</strong><span>新增可服務案場數</span></div>
+            <div class="metric"><strong><span class="fill">___</span>%</strong><span>3 年目標市佔 (SOM)</span></div>
+          </div>
+          <div class="callout amber">
+            <strong>Why now</strong>
+            <p>儲能硬體出貨的速度,遠快於「好用且在地」的 EMS 供給速度。先用可量產的交付模式吃下這段時間差,就能在對手還在逐案接案時建立案場基數與資料資產。</p>
+          </div>
+          <p style="font-size:12.5px;color:var(--soft)">※ 市場數字為初估:依 InfoLink「2030 台灣儲能累計規模約 NT$2,000 億」,取 EMS/能源管理軟體層約占系統 3–5% 推得 TAM;表後 C&amp;I 為其中子集得 SAM。建議再以「年新增案場數 × 每站 EMS 合約金額(整合費 + 年費)」由下而上交叉驗證。來源:InfoLink、EY 安永、經濟部能源署。</p>
+        </section>
+
+        <!-- 02 痛點與買方 -->
+        <section id="problem">
+          <div class="section-head">
+            <div class="section-no">02</div>
+            <div>
+              <h2>痛點與買方</h2>
+              <div class="sub">EMS 客製化時間長,卡在資料與場域差異;而買方要的是效益</div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-kicker">Pain 01</div>
+              <h3>每個案場都像重新開發</h3>
+              <p>單線圖、設備階層、控制策略、電價方案、報表欄位、告警分類都因案場而異,EMS 專案難以複製,交付週期長。</p>
+            </div>
+            <div class="card">
+              <div class="card-kicker">Pain 02</div>
+              <h3>點位與協定是最大摩擦</h3>
+              <p>PCS、BMS、電錶、液冷、消防、站控與雲端 MQTT 的欄位定義不一致,工程師需逐案手動整理、測試、修正。</p>
+            </div>
+            <div class="card">
+              <div class="card-kicker">Pain 03</div>
+              <h3>展示很快,真實接入卻卡在「人」</h3>
+              <p>Demo 容易,但正式上線需資料驗證、斷線處理、控制回覆、稽核與告警——高度依賴少數懂現場的專業工程師。人力有限,無法同時全力支援多個案場,案場一多、交付就塞住,規模化受限於人。</p>
+            </div>
+            <div class="card">
+              <div class="card-kicker">Pain 04</div>
+              <h3>買方買的是效益,不是圖表</h3>
+              <p>業主/EPC 關心節費、需量控制、停機風險、電池壽命與合規,EMS 必須把資料轉成可決策的營運價值。</p>
+            </div>
+          </div>
+          <h3>誰買單、買什麼</h3>
+          <table>
+            <thead><tr><th>買方</th><th>採購動機</th><th>JJEMS 提供的價值</th></tr></thead>
+            <tbody>
+              <tr><td>儲能櫃廠 / 系統商(如 J&amp;J Power)</td><td>出貨需配套 EMS,且要快</td><td>可隨櫃綑綁、快速生成的 EMS,提升整案競爭力</td></tr>
+              <tr><td>EPC / 系統整合商</td><td>降低逐案客製工時與驗收風險</td><td>點位匯入 + 模板 + Commissioning Report</td></tr>
+              <tr><td>終端業主 / 資產持有方</td><td>節費、需量控制、資產壽命</td><td>在地策略 + Battery-Aware,量化到現金流</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 03 解法 -->
+        <section id="solution">
+          <div class="section-head">
+            <div class="section-no">03</div>
+            <div>
+              <h2>解法:EMS Factory</h2>
+              <div class="sub">把客製從「重寫」變「配置」——速度被產品化</div>
+            </div>
+          </div>
+          <p>同一套產品,三層架構:配置(Studio)生成、執行(Runtime)接入與控制、智慧(Intelligence)優化。每座案場仍可高度客製,但客製來自設定與模板,而非重寫程式——<strong>關鍵是讓交付不再綁定少數懂現場的專家</strong>,把專業人力從「每案到場」的瓶頸中釋放出來。</p>
+          <div class="callout">
+            <strong>定位:把 EMS 從「配角」提升到「戰略高度」</strong>
+            <p>一般 EMS 只是配角——讓業主「看得到數據」。JJEMS 透過模組化 + AI 輔助大幅縮短建置期,把 EMS 變成業主搶市場的戰略工具:更快上線、更快取得效益、在競爭中卡位。EMS 不再只是監控儀表板,而是決定一個案場多快開始賺錢的關鍵。</p>
+          </div>
+          <div class="flow">
+            <div class="flow-step">
+              <span class="num">1</span>
+              <h3>EMS Studio</h3>
+              <p>建立案場、匯入點位、配置設備階層、電價、策略、告警、單線圖與客戶 dashboard。</p>
+            </div>
+            <div class="flow-step">
+              <span class="num">2</span>
+              <h3>EMS Runtime</h3>
+              <p>邊緣或雲端執行資料採集、MQTT/Modbus 對接、時序儲存、控制下發、告警與稽核。</p>
+            </div>
+            <div class="flow-step">
+              <span class="num">3</span>
+              <h3>EMS Intelligence</h3>
+              <p>負載/PV 預測、Battery-Aware 調度、AI Copilot、跨站比較與自動報表。</p>
+            </div>
+          </div>
+
+          <div class="chart-wrap">
+            <div class="chart-cap">
+              <h3>每座案場所需工程人時(隨案場數遞減)</h3>
+              <span class="note">示意 — 待以實際案場數據替換</span>
+            </div>
+            <!-- Illustrative declining-effort curve -->
+            <svg viewBox="0 0 720 240" role="img" aria-label="工程人時隨案場數遞減示意圖">
+              <!-- axes -->
+              <line x1="56" y1="20" x2="56" y2="195" stroke="#cbd5e1" stroke-width="1"/>
+              <line x1="56" y1="195" x2="700" y2="195" stroke="#cbd5e1" stroke-width="1"/>
+              <!-- y labels -->
+              <text x="48" y="32" text-anchor="end" font-size="11" fill="#94a3b8">高</text>
+              <text x="48" y="160" text-anchor="end" font-size="11" fill="#94a3b8">低</text>
+              <text x="20" y="112" text-anchor="middle" font-size="11" fill="#64748b" transform="rotate(-90 20 112)">工程人時 / 站</text>
+              <!-- bars (illustrative, declining) -->
+              <g fill="#bfe7df">
+                <rect x="78"  y="40"  width="56" height="155" rx="4"/>
+                <rect x="170" y="78"  width="56" height="117" rx="4"/>
+                <rect x="262" y="108" width="56" height="87"  rx="4"/>
+                <rect x="354" y="130" width="56" height="65"  rx="4"/>
+                <rect x="446" y="146" width="56" height="49"  rx="4"/>
+                <rect x="538" y="158" width="56" height="37"  rx="4"/>
+                <rect x="630" y="166" width="56" height="29"  rx="4"/>
+              </g>
+              <!-- trend line -->
+              <polyline points="106,40 198,78 290,108 382,130 474,146 566,158 658,166"
+                        fill="none" stroke="#007a6a" stroke-width="2.5"/>
+              <g fill="#007a6a">
+                <circle cx="106" cy="40" r="3.5"/><circle cx="198" cy="78" r="3.5"/>
+                <circle cx="290" cy="108" r="3.5"/><circle cx="382" cy="130" r="3.5"/>
+                <circle cx="474" cy="146" r="3.5"/><circle cx="566" cy="158" r="3.5"/>
+                <circle cx="658" cy="166" r="3.5"/>
+              </g>
+              <!-- x labels -->
+              <g font-size="11" fill="#64748b" text-anchor="middle">
+                <text x="106" y="212">站 1</text><text x="198" y="212">站 2</text>
+                <text x="290" y="212">站 3</text><text x="382" y="212">站 4</text>
+                <text x="474" y="212">站 5</text><text x="566" y="212">站 6</text>
+                <text x="658" y="212">站 7</text>
+              </g>
+              <text x="378" y="232" text-anchor="middle" font-size="11" fill="#94a3b8">累計案場數 →</text>
+            </svg>
+          </div>
+          <p style="font-size:12.5px;color:var(--soft)">這條曲線是整個故事的核心:當配置庫與模板複利累積,新增案場的邊際工程成本下降,毛利隨規模上升。<strong>填入真實的「站 1 vs 站 N」工時對比,是最有說服力的一張投影片。</strong></p>
+        </section>
+
+        <!-- 04 護城河 -->
+        <section id="moat">
+          <div class="section-head">
+            <div class="section-no">04</div>
+            <div>
+              <h2>三大護城河</h2>
+              <div class="sub">速度是起點;讓對手難以追上的,是這三項會累積的資產</div>
+            </div>
+          </div>
+          <div class="callout amber">
+            <strong>速度是真優勢,護城河讓它持久</strong>
+            <p>前端結合 AI 帶來的交付速度,是我們現階段實打實的優勢——許多傳統廠商內部尚未能快速擁抱 AI,短期內追不上這個落差。而且<strong>快不等於廉價</strong>:更快交付代表客戶更早拿到效益、更低的導入成本與更快的 ROI,對我們則是更高的週轉與毛利。要把這份領先變成長期護城河,再疊上以下三項會隨時間與案場數複利累積的資產:</p>
+          </div>
+          <div class="moat-grid">
+            <div class="moat">
+              <span class="mn">1</span>
+              <h3>複利配置資產</h3>
+              <p>設備/協定/點位對照庫、策略模板、告警規則與調機(commissioning)know-how 隨每座案場累積——把少數專家的現場經驗沉澱成可複用資產,交付不再被人力卡住。第 N 座的邊際成本遠低於第 1 座,這是規模經濟,對手得從頭累積。</p>
+            </div>
+            <div class="moat">
+              <span class="mn">2</span>
+              <h3>自有通路向上整合<br/>(從賣櫃到賣 EMS)</h3>
+              <p>我們(GBGtek)原本就在銷售儲能櫃,已握有出貨通路與業主關係。EMS 是沿既有客戶往上加的高毛利、重複性軟體層——是<strong>通路自己長出軟體</strong>,而非軟體新創去「談」通路。相對於「軟體商去買櫃湊整套」,我們是<strong>從硬體端向上整合</strong>:垂直整合更深、拿得到電芯級資料、毛利不外流。這條進入路徑與成案率,純軟體對手拿不到。</p>
+            </div>
+            <div class="moat">
+              <span class="mn">3</span>
+              <h3>在地深度 + 資產優化</h3>
+              <p>內建台灣電價/契約/sReg/AFC 等在地策略;更關鍵的是,憑藉與電芯/櫃廠的關係,我們能取得<strong>電芯級(cell-level)資料</strong>,才做得出 Battery-Aware(SoH/RUL/衰退成本)、把電池壽命換算成現金流——這是一般 EMS 廠商拿不到資料、做不到的。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 商業模式 -->
+        <section id="model">
+          <div class="section-head">
+            <div class="section-no">05</div>
+            <div>
+              <h2>商業模式與單位經濟</h2>
+              <div class="sub">從一次性專案,轉為可重複的產品營收</div>
+            </div>
+          </div>
+          <div class="matrix">
+            <div class="matrix-head old">過去:專案模式</div>
+            <div class="matrix-head">JJEMS:產品模式</div>
+            <div class="matrix-cell">一次性整合收入,做完即結束</div>
+            <div class="matrix-cell new">整合費 + 每站軟體年費(重複營收)</div>
+            <div class="matrix-cell">毛利受逐案人力成本壓縮</div>
+            <div class="matrix-cell new">配置複用,邊際成本下降、毛利隨規模上升</div>
+            <div class="matrix-cell">營收不可預測</div>
+            <div class="matrix-cell new">ARR 可預測,且可跨站、跨加值模組擴張</div>
+          </div>
+          <h3>收入結構</h3>
+          <ul>
+            <li><strong>導入費(一次性):</strong>點位接入、配置、調機與驗收報告。</li>
+            <li><strong>軟體授權 / SaaS(重複):</strong>每站年費,涵蓋 Runtime、監控、更新與支援。</li>
+            <li><strong>Intelligence 加值(重複):</strong>預測、調度優化、Battery-Aware、跨站比較、自動報表。</li>
+            <li><strong>硬體綑綁分潤:</strong>隨櫃出貨的綁定授權。</li>
+          </ul>
+          <h3>單位經濟(待填)</h3>
+          <div class="metrics">
+            <div class="metric"><strong>NT$ <span class="fill">___</span></strong><span>每站 ACV(年合約值)</span></div>
+            <div class="metric"><strong><span class="fill">__</span>%</strong><span>軟體毛利率(成熟期)</span></div>
+            <div class="metric"><strong><span class="fill">__</span> 個月</strong><span>CAC 回收期</span></div>
+            <div class="metric"><strong><span class="fill">__</span>x</strong><span>LTV / CAC</span></div>
+          </div>
+        </section>
+
+        <!-- 06 現況與里程碑 -->
+        <section id="traction">
+          <div class="section-head">
+            <div class="section-no">06</div>
+            <div>
+              <h2>現況與里程碑</h2>
+              <div class="sub">誠實切分「今天已驗證」與「Roadmap」</div>
+            </div>
+          </div>
+          <div class="matrix">
+            <div class="matrix-head old">今天已驗證</div>
+            <div class="matrix-head">12 個月內(進行中 / Roadmap)</div>
+            <div class="matrix-cell">完整前端產品雛形與 UX(11 個營運視圖)</div>
+            <div class="matrix-cell new">點位表匯入器(xlsx → 設定)</div>
+            <div class="matrix-cell">資料庫設計(PostgreSQL 16 + TimescaleDB)</div>
+            <div class="matrix-cell new">MQTT V1.4 即時接入與原始資料保存</div>
+            <div class="matrix-cell">海辰數能 MQTT V1.4 協定已掌握</div>
+            <div class="matrix-cell new">Modbus poller(PCS/BMS/電錶/液冷)</div>
+            <div class="matrix-cell">Battery-Aware 衰退成本模型設計</div>
+            <div class="matrix-cell new">EMS Studio 配置 wizard + 自動生成 dashboard</div>
+            <div class="matrix-cell">高雄路竹示範站場景與單線圖</div>
+            <div class="matrix-cell new">首批 3 座商轉案場 + Commissioning Report</div>
+          </div>
+          <div class="callout amber">
+            <strong>誠實聲明</strong>
+            <p>目前 JJEMS 為功能完整的前端雛形,資料為模擬;後端資料接入與控制下發為下一階段重點。把「已驗證 / 進行中」講清楚,反而能在盡職調查中建立信任。</p>
+          </div>
+          <h3>Traction(待填)</h3>
+          <ul>
+            <li>示範 / 商轉案場:<span class="fill">________</span>(站名、容量、上線時間)</li>
+            <li>客戶承諾:<span class="fill">________</span>(LOI / 試點 / 訂單)</li>
+            <li>合作備忘:<span class="fill">________</span>(櫃廠 / EPC / 通路)</li>
+          </ul>
+          <h3>里程碑</h3>
+          <div class="roadmap">
+            <div class="roadmap-item"><div class="phase">Q<span class="fill">_</span></div><strong>資料接入</strong><p>MQTT ingestion + Modbus poller + 點位匯入器。</p><span class="tag blue">進行中</span></div>
+            <div class="roadmap-item"><div class="phase">Q<span class="fill">_</span></div><strong>首站商轉</strong><p>第 1 座真實案場端到端上線並驗收。</p><span class="tag amber">下一步</span></div>
+            <div class="roadmap-item"><div class="phase">Q<span class="fill">_</span></div><strong>Studio 配置引擎</strong><p>wizard 化、模板庫成形,複用率提升。</p><span class="tag gray">規劃</span></div>
+            <div class="roadmap-item"><div class="phase">Q<span class="fill">_</span></div><strong>規模化</strong><p>達 20 座,單站工時明顯下降。</p><span class="tag gray">規劃</span></div>
+          </div>
+        </section>
+
+        <!-- 07 競品與風險 -->
+        <section id="risk">
+          <div class="section-head">
+            <div class="section-no">07</div>
+            <div>
+              <h2>競品與依賴風險</h2>
+              <div class="sub">不正面拚 SCADA 功能清單,聚焦速度 × 在地 × 資產優化</div>
+            </div>
+          </div>
+          <p>多數傳統 EMS / SCADA 廠功能成熟,但<strong>內部尚未能快速導入 AI、迭代與交付偏慢</strong>。這給我們一個現階段的時間窗:用 AI 加持的交付速度先把案場與資料資產做起來,再以在地策略與 Battery-Aware 拉開差距,而非和對手比功能清單。</p>
+          <table>
+            <thead><tr><th>對手類型</th><th>強項</th><th>JJEMS 的差異</th></tr></thead>
+            <tbody>
+              <tr><td>大型 EMS / SCADA(如 Inavitas 類)</td><td>功能成熟、多協定、預測</td><td>導入重、迭代慢(內部尚未快速導入 AI);我方以 AI 加持的交付速度與在地貼合切入</td></tr>
+              <tr><td>電力電子 / 設備廠 EMS<span class="fill"> (待確認名單)</span></td><td>與自家硬體整合</td><td>我方多廠牌中立 + Battery-Aware 深度</td></tr>
+              <tr><td>儲能櫃廠自帶雲端 EMS(含海辰雲)</td><td>原廠數據、成本低</td><td>在地策略、邊緣自主、業主關係與服務</td></tr>
+              <tr><td>在地系統整合商</td><td>客戶關係、現場熟悉</td><td>把他們的逐案客製產品化(可成為通路而非對手)</td></tr>
+              <tr><td>EMS / 軟體商買櫃做整套交付</td><td>一站式整包、單一窗口</td><td>對方軟體外掛採購硬體、整合淺;我方從硬體端(自有櫃 + 上游電芯)向上整合,垂直整合更深、有電芯級資料、毛利不外流</td></tr>
+            </tbody>
+          </table>
+          <h3>關鍵依賴風險與因應</h3>
+          <table>
+            <thead><tr><th>風險</th><th>說明</th><th>因應</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag red">去中介化</span></td><td>櫃廠/海辰自有雲端 EMS 可能直接服務客戶</td><td>多廠牌中立、邊緣自主運行、掌握業主關係與資料層、提供原廠雲做不到的在地策略與服務</td></tr>
+              <tr><td><span class="tag amber">法規</span></td><td>台電電價 / 需量 / 輔助服務規則變動</td><td>策略資料化,規則改版即配置更新,不需改程式</td></tr>
+              <tr><td><span class="tag amber">控制責任</span></td><td>控制動作的安全與資料品質責任</td><td>硬保護留在 BMS/PCS/站控;EMS 軟約束 + 資料驗證 + 稽核</td></tr>
+              <tr><td><span class="tag gray">規模化</span></td><td>模板庫能否跨異質案場複用</td><td>以站數驗證複用率,Studio 將 know-how 沉澱為資產</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 08 團隊 -->
+        <section id="team">
+          <div class="section-head">
+            <div class="section-no">08</div>
+            <div>
+              <h2>團隊與夥伴</h2>
+              <div class="sub">投資人投的是人與關係</div>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>核心優勢:我們不是從零起步的軟體新創</strong>
+            <p>JJEMS 是<strong>既有儲能櫃業務向上的延伸</strong>。GBGtek 原本就在銷售儲能櫃、握有出貨通路與業主關係;EMS 是沿著既有客戶往上做的高毛利、重複性軟體層——代表有既有業務與通路托底,而非純概念。</p>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-kicker">公司背景</div>
+              <h3>我們是誰</h3>
+              <p><strong>GBGtek 竑瑞科技</strong>:既有儲能櫃銷售業務(自有通路 / 客戶),向上擴張到 EMS。<br/><strong>J&amp;J Power</strong>:儲能系統 / EMS 產品線。<br/><strong>HiTHIUM 海辰數能</strong>:上游電芯 / 櫃體 / MQTT 協定。<br/><span class="fill"> 三者關係與持股結構待補 </span>。</p>
+            </div>
+            <div class="card">
+              <div class="card-kicker">Team</div>
+              <h3>核心團隊(待填)</h3>
+              <p>創辦人 / 工程 / 儲能領域專家:<span class="fill"> 姓名 · 經歷 · 為何是對的團隊 </span>。建議補充:儲能櫃銷售實績、EMS / IoT 交付經驗、在地案場關係。</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 09 下一步與展望 -->
+        <section id="ask">
+          <div class="section-head">
+            <div class="section-no">09</div>
+            <div>
+              <h2>下一步與展望</h2>
+              <div class="sub">短期要把什麼風險拆掉</div>
+            </div>
+          </div>
+          <p>未來 <span class="fill">__</span> 個月的重點:完成資料接入與 Studio 配置引擎、落地首批 3 座商轉案場、驗證單站工時下降與重複營收模型。</p>
+          <div class="callout">
+            <strong>為什麼是我們</strong>
+            <p>我們本身就是儲能櫃通路商(GBGtek)、正向上擴張到 EMS——有既有業務與客戶托底;加上市場順風、商業模式升級為重複性營收、護城河隨案場複利累積。接下來會先把「資料接入 + 首批商轉 + 可複製交付」這三個風險拆掉。</p>
+          </div>
+        </section>
+
+        <!-- A 投資人問答 -->
+        <section id="qa">
+          <div class="section-head">
+            <div class="section-no">A</div>
+            <div>
+              <h2>投資人關鍵問答</h2>
+              <div class="sub">先準備好這些尖銳問題的答案</div>
+            </div>
+          </div>
+          <div class="qa-item">
+            <div class="qa-q">Q1. AI 已能快速生成前端,你的「快」還值錢嗎?</div>
+            <p class="qa-a">值錢的不是打字速度,而是配置庫、點位對照與調機 know-how 的複利累積,加上硬體出貨通路。AI 讓我們自己更快,但複製不了我們累積的資產與關係。</p>
+          </div>
+          <div class="qa-item">
+            <div class="qa-q">Q2. 這跟接案公司差在哪?毛利與重複營收在哪?</div>
+            <p class="qa-a">接案是一次性、毛利被人力壓縮;我們是整合費 + 每站年費 + 加值模組,配置複用讓邊際成本下降、ARR 可預測。詳見第 05 節。</p>
+          </div>
+          <div class="qa-item">
+            <div class="qa-q">Q3. 做了幾個真實案場?模板真能跨異質案場複用?</div>
+            <p class="qa-a">現況見第 06 節(已驗證 vs Roadmap)。複用率以站數驗證,工時下降曲線是核心 KPI;<span class="fill">填入站 1 vs 站 N 的真實工時</span>。</p>
+          </div>
+          <div class="qa-item">
+            <div class="qa-q">Q4. 海辰 / 櫃廠自己做雲端 EMS,你怎麼辦?</div>
+            <p class="qa-a">多廠牌中立、邊緣自主、掌握業主關係與資料層,提供原廠雲做不到的在地策略與在地服務。視為合作(隨櫃綁定)而非純競爭。</p>
+          </div>
+          <div class="qa-item">
+            <div class="qa-q">Q5. 市場多大?</div>
+            <p class="qa-a">見第 01 節,由下而上(年新增案場 × 每站合約值)推估,附來源。<span class="fill">待填 TAM/SAM/SOM</span>。</p>
+          </div>
+          <div class="qa-item">
+            <div class="qa-q">Q6. 錢怎麼賺、單站經濟、里程碑?</div>
+            <p class="qa-a">收入結構與單位經濟見第 05 節,里程碑見第 06、09 節。</p>
+          </div>
+          <div class="footer">
+            J&amp;J Power EMS · Investor Brief(草稿) · 2026 ·
+            技術論述見 <a href="competitive-advantage.html" style="color:var(--teal)">競爭優勢說明</a>
+          </div>
+        </section>
+
+      </article>
+    </main>
+  </div>
+</body>
+</html>
