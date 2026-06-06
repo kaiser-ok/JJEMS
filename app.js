@@ -30,8 +30,94 @@ const state = {
   strategy: "arbitrage",
   scheduleOverride: {},   // hour (0-23) -> { mode, kw, label }
   editTool: "auto",       // "auto" | "charge" | "discharge" | "idle"
+  liveSnapshot: null,
+  telemetryHistory: null,
+  bmsTemperature: null,
+  gatewayOnboarding: null,
+  selectedCabinetControllerId: null,
   lang: (() => { try { return localStorage.getItem("ems-lang") || "zh-TW"; } catch { return "zh-TW"; } })(),
 };
+
+// ────────── Live Cabinet Controller snapshot ──────────
+function liveSnapshot(maxAgeSec = 180) {
+  const snap = state.liveSnapshot;
+  if (!snap || !snap.ts) return null;
+  const age = (Date.now() - Date.parse(snap.ts)) / 1000;
+  return Number.isFinite(age) && age <= maxAgeSec ? snap : null;
+}
+function liveNumber(key) {
+  const snap = liveSnapshot();
+  const value = snap ? snap[key] : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+function currentSiteHasPV() {
+  const snap = liveSnapshot(600);
+  return snap ? snap.siteHasPV !== false : true;
+}
+function currentSiteHasEV() {
+  const snap = liveSnapshot(600);
+  return snap ? snap.siteHasEV === true : false;
+}
+async function loadLiveSnapshot() {
+  try {
+    const res = await fetch(`live/hiems_latest.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) state.liveSnapshot = await res.json();
+  } catch {}
+  try {
+    const res = await fetch(`live/hiems_history_24h.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) state.telemetryHistory = await res.json();
+  } catch {}
+  try {
+    const res = await fetch(`live/hiems_bms_temperature.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) state.bmsTemperature = await res.json();
+  } catch {}
+  try {
+    const res = await fetch(`live/hiems_gateway_onboarding.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) state.gatewayOnboarding = await res.json();
+  } catch {}
+  renderTopbar();
+  if (document.getElementById("flowmini")) drawFlowMini();
+}
+function applyLiveToPowerSeries(pts) {
+  const snap = liveSnapshot();
+  if (!snap) return pts;
+  const idx = Math.min(pts.length - 1, Math.max(0, new Date().getHours() * 4 + Math.floor(new Date().getMinutes() / 15)));
+  if (snap.siteHasPV === false) pts.forEach(p => { p.pv = 0; });
+  if (snap.powerVerified === true) {
+    const p = pts[idx];
+    if (typeof snap.gridKW === "number") p.grid = snap.gridKW;
+    if (typeof snap.essKW === "number") p.ess = snap.essKW;
+    if (typeof snap.loadKW === "number") p.load = snap.loadKW;
+    else if (typeof p.grid === "number" && typeof p.pv === "number" && typeof p.ess === "number") p.load = +(p.grid + p.pv + p.ess).toFixed(1);
+  }
+  return pts;
+}
+function applyLiveToSocSeries(series) {
+  const soc = liveNumber("socPct");
+  if (soc == null) return series;
+  const idx = Math.min(series.length - 1, Math.max(0, new Date().getHours() * 4 + Math.floor(new Date().getMinutes() / 15)));
+  series[idx] = +soc.toFixed(1);
+  return series;
+}
+
+function telemetrySamples(maxAgeHours = 24) {
+  const samples = state.telemetryHistory?.samples;
+  if (!Array.isArray(samples)) return [];
+  const cutoff = Date.now() - maxAgeHours * 3600 * 1000;
+  return samples
+    .filter(s => s?.ts && Date.parse(s.ts) >= cutoff)
+    .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
+}
+function sampleNumber(sample, key) {
+  const value = sample ? sample[key] : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+function liveHistoryAvailable(minSamples = 2) {
+  return telemetrySamples().length >= minSamples;
+}
+function historyLabels(samples) {
+  return samples.map(s => new Date(s.ts).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false }));
+}
 
 // ────────── Toast notifications ──────────
 function showToast(msg, type = "info", duration = 3000) {
@@ -255,18 +341,35 @@ function renderTopbar() {
   const plan = planFor(state.strategy, hr);
   const benefit = estimateBenefit(state.strategy);
   const rand = (min, max) => +(min + Math.random() * (max - min)).toFixed(0);
-  const pv = hr >= 6 && hr <= 18 ? rand(160, 340) : 0;
-  const load = rand(1500, 1950);
-  const ess = +(plan.kw + (Math.random() - 0.5) * 6).toFixed(0);
-  const grid = load - pv - ess;
-  const soc = genSoc(state.strategy)[Math.min(95, hr * 4)];
+  const snap = liveSnapshot();
+  const siteHasPV = currentSiteHasPV();
+
+  let pv = siteHasPV ? (hr >= 6 && hr <= 18 ? rand(160, 340) : 0) : 0;
+  let load = rand(1500, 1950);
+  let ess = +(plan.kw + (Math.random() - 0.5) * 6).toFixed(0);
+  let grid = load - pv - ess;
+  let soc = genSoc(state.strategy)[Math.min(95, hr * 4)];
+
+  if (snap) {
+    if (typeof snap.socPct === "number") soc = snap.socPct;
+    if (snap.powerVerified === true) {
+      if (typeof snap.pvKW === "number") pv = snap.pvKW;
+      if (typeof snap.essKW === "number") ess = snap.essKW;
+      if (typeof snap.gridKW === "number") grid = snap.gridKW;
+      if (typeof snap.loadKW === "number") load = snap.loadKW;
+      else load = grid + pv + ess;
+    }
+  }
+
   const essLabel = ess > 0 ? t("tstat.essDis") : ess < 0 ? t("tstat.essChg") : t("tstat.essIdle");
+  const liveTag = snap ? `<div class="tstat"><span class="tlabel">櫃控</span><span class="tvalue" style="font-size:13px;color:var(--green)">192.168.1.100</span></div>` : "";
   $("#topbar-stats").innerHTML = `
     <div class="tstat"><span class="tlabel">${t("tstat.grid")}</span><span class="tvalue">${fmt(grid)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">PV</span><span class="tvalue" style="color:var(--pv-yellow)">${fmt(pv)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">${essLabel}</span><span class="tvalue" style="color:var(--ess-teal)">${fmt(Math.abs(ess))}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">${t("tstat.load")}</span><span class="tvalue" style="color:var(--load-purple)">${fmt(load)}</span><span class="tunit">kW</span></div>
-    <div class="tstat"><span class="tlabel">SoC</span><span class="tvalue" style="color:var(--green)">${soc.toFixed(0)}</span><span class="tunit">%</span></div>
+    <div class="tstat"><span class="tlabel">SoC</span><span class="tvalue" style="color:var(--green)">${(+soc).toFixed(0)}</span><span class="tunit">%</span></div>
+    ${liveTag}
     <div class="tstat"><span class="tlabel">${t("tstat.savings")}</span><span class="tvalue" style="color:${benefit.net>=0?'var(--green)':'var(--red)'}">${money(benefit.net)}</span></div>
   `;
 }
@@ -285,6 +388,7 @@ const routes = {
   finance: viewFinance,
   alarms: viewAlarms,
   settings: viewSettings,
+  "gateway-map": viewGatewayMap,
 };
 function router() {
   const hash = (location.hash || "#/dashboard").replace("#/", "");
@@ -305,8 +409,9 @@ function viewDashboard() {
   const benefit = estimateBenefit(state.strategy);
   const degradInfo = estimateDegradationCost(state.strategy);
   const bal = dailyBalance(state.strategy);
-  const socSeries = genSoc(state.strategy);
-  const avgSoc = (socSeries.reduce((a,b)=>a+b,0) / socSeries.length).toFixed(0);
+  const socSeries = applyLiveToSocSeries(genSoc(state.strategy));
+  const liveSoc = liveNumber("socPct");
+  const avgSoc = (liveSoc ?? (socSeries.reduce((a,b)=>a+b,0) / socSeries.length)).toFixed(0);
   const cycles = (benefit.dischargeKWh / 476).toFixed(2);
   const monthFactor = +cycles >= 0.8 ? 1 : +cycles >= 0.4 ? 0.7 : 0.3;
   const monthSavings = Math.round(benefit.net * 22 * monthFactor); // 約 22 個工作日
@@ -437,6 +542,7 @@ function viewDashboard() {
         <div class="card-head">
           <h3>${t("card.chart24h")}</h3>
           <div class="row">
+            <span class="tag ${liveHistoryAvailable() ? 'ok' : 'warn'}">${liveHistoryAvailable() ? 'DB 實測' : '即時點實測 / 歷史模擬'}</span>
             <span class="tag mute">◼ ${t("tstat.grid")}</span>
             <span class="tag" style="color:var(--pv-yellow);background:rgba(250,204,21,0.1)">◼ PV</span>
             <span class="tag" style="color:var(--ess-teal);background:rgba(20,184,166,0.1)">◼ ESS</span>
@@ -448,7 +554,7 @@ function viewDashboard() {
       <div class="card">
         <div class="card-head">
           <h3>${t("card.socCurve")}</h3>
-          <span class="tag ok">${t("tag.normal")}</span>
+          <span class="tag ${liveHistoryAvailable() ? 'ok' : 'warn'}">${liveHistoryAvailable() ? 'DB 實測' : t("tag.normal")}</span>
         </div>
         <div class="chart-wrap tall"><canvas id="chartSoc"></canvas></div>
       </div>
@@ -567,19 +673,28 @@ function drawFlowMini() {
   const hr = new Date().getHours();
   const plan = planFor(state.strategy, hr);
   const bal = dailyBalance(state.strategy);
-  const socSeries = genSoc(state.strategy);
+  const snap = liveSnapshot();
+  const socSeries = applyLiveToSocSeries(genSoc(state.strategy));
   const soc = socSeries[Math.min(95, hr*4)].toFixed(0);
-  const pv = hr >= 6 && hr <= 18 ? Math.round(160 + Math.random()*180) : 0;
-  const load = Math.round(1500 + Math.random()*450);
-  const ess = Math.round(plan.kw + (Math.random()-0.5)*6);
-  const grid = load - pv - ess;
+  const siteHasPV = currentSiteHasPV();
+  let pv = siteHasPV && hr >= 6 && hr <= 18 ? Math.round(160 + Math.random()*180) : 0;
+  let load = Math.round(1500 + Math.random()*450);
+  let ess = Math.round(plan.kw + (Math.random()-0.5)*6);
+  let grid = load - pv - ess;
+  if (snap && snap.powerVerified === true) {
+    if (typeof snap.pvKW === "number") pv = snap.pvKW;
+    if (typeof snap.essKW === "number") ess = snap.essKW;
+    if (typeof snap.gridKW === "number") grid = snap.gridKW;
+    if (typeof snap.loadKW === "number") load = snap.loadKW;
+    else load = grid + pv + ess;
+  }
   const essLabel = ess > 0 ? "儲能放電" : ess < 0 ? "儲能充電" : "儲能待機";
   const essDir = ess > 0 ? `SoC ${soc}% · 放電中` : ess < 0 ? `SoC ${soc}% · 充電中` : `SoC ${soc}% · 待機`;
   const data = [
     { cls:"grid",  label:"台電市電",  val: grid, unit:"kW", sub: grid>0 ? "流入" : "回饋" },
-    { cls:"pv",    label:"太陽能發電", val: pv,   unit:"kW", sub: pv>0 ? "發電中" : "夜間休息" },
+    { cls:"pv",    label:"太陽能發電", val: pv,   unit:"kW", sub: siteHasPV ? (pv>0 ? "發電中" : "夜間休息") : "本站未配置" },
     { cls:"ess",   label: essLabel,   val: Math.abs(ess), unit:"kW", sub: essDir },
-    { cls:"load",  label:"廠區負載",   val: load, unit:"kW", sub:"運轉中" },
+    { cls:"load",  label:"廠區負載",   val: load, unit:"kW", sub: snap?.powerVerified ? "櫃控實測" : "待功率點位校正" },
     { cls:"meter", label:"用電表",     val: bal.load/1000, unit:"MWh", sub:"今日累積" },
   ];
   $("#flowmini").innerHTML = data.map(d => `
@@ -592,18 +707,20 @@ function drawFlowMini() {
 }
 
 function drawChart24h() {
-  const pts = gen24h(state.strategy);
-  const labels = pts.map(p => p.time);
+  const hist = telemetrySamples();
+  const hasHist = hist.length >= 2;
+  const pts = hasHist ? null : applyLiveToPowerSeries(gen24h(state.strategy));
+  const labels = hasHist ? historyLabels(hist) : pts.map(p => p.time);
   const ctx = $("#chart24h");
   addChart(new Chart(ctx, {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label:"負載",  data: pts.map(p=>p.load), borderColor:"#a78bfa", backgroundColor:"rgba(167,139,250,0.12)", fill:true, tension:.3, pointRadius:0, borderWidth:1.5 },
-        { label:"市電",  data: pts.map(p=>p.grid), borderColor:"#fbbf24", backgroundColor:"rgba(251,191,36,0.1)",  fill:false,tension:.3, pointRadius:0, borderWidth:1.5, borderDash:[4,3] },
-        { label:"太陽能",data: pts.map(p=>p.pv),   borderColor:"#facc15", backgroundColor:"rgba(250,204,21,0.25)", fill:true, tension:.35,pointRadius:0, borderWidth:1.5 },
-        { label:"儲能",  data: pts.map(p=>p.ess),  borderColor:"#14b8a6", backgroundColor:"rgba(20,184,166,0.25)", fill:true, tension:.25,pointRadius:0, borderWidth:1.5 },
+        { label:"負載",  data: hasHist ? hist.map(s=>sampleNumber(s,"loadKW")) : pts.map(p=>p.load), borderColor:"#a78bfa", backgroundColor:"rgba(167,139,250,0.12)", fill:true, tension:.3, pointRadius:hasHist?2:0, borderWidth:1.5 },
+        { label:"市電",  data: hasHist ? hist.map(s=>sampleNumber(s,"gridKW")) : pts.map(p=>p.grid), borderColor:"#fbbf24", backgroundColor:"rgba(251,191,36,0.1)",  fill:false,tension:.3, pointRadius:hasHist?2:0, borderWidth:1.5, borderDash:[4,3] },
+        { label:"太陽能",data: hasHist ? hist.map(s=>sampleNumber(s,"pvKW") ?? 0) : pts.map(p=>p.pv),   borderColor:"#facc15", backgroundColor:"rgba(250,204,21,0.25)", fill:true, tension:.35,pointRadius:hasHist?2:0, borderWidth:1.5 },
+        { label:"儲能",  data: hasHist ? hist.map(s=>sampleNumber(s,"essKW") ?? sampleNumber(s,"pcsKW")) : pts.map(p=>p.ess),  borderColor:"#14b8a6", backgroundColor:"rgba(20,184,166,0.25)", fill:true, tension:.25,pointRadius:hasHist?2:0, borderWidth:1.5 },
       ]
     },
     options: {
@@ -626,14 +743,16 @@ function drawChart24h() {
 }
 
 function drawChartSoc() {
-  const pts = gen24h(state.strategy);
-  const soc = genSoc(state.strategy);
+  const hist = telemetrySamples();
+  const hasHist = hist.length >= 2;
+  const pts = hasHist ? null : applyLiveToPowerSeries(gen24h(state.strategy));
+  const soc = hasHist ? hist.map(s => sampleNumber(s, "socPct")) : applyLiveToSocSeries(genSoc(state.strategy));
   addChart(new Chart($("#chartSoc"), {
     type: "line",
     data: {
-      labels: pts.map(p=>p.time),
+      labels: hasHist ? historyLabels(hist) : pts.map(p=>p.time),
       datasets: [
-        { label:"SoC", data: soc, borderColor:"#10b981", backgroundColor:"rgba(16,185,129,0.18)", fill:true, tension:.35, pointRadius:0, borderWidth:2 }
+        { label:"SoC", data: soc, borderColor:"#10b981", backgroundColor:"rgba(16,185,129,0.18)", fill:true, tension:.35, pointRadius:hasHist?2:0, borderWidth:2 }
       ]
     },
     options: {
@@ -1557,67 +1676,93 @@ function viewDevices() {
     </div>
   `;
 
-  // Render module-level temperature bars — honest representation of BMS data
-  // HiThium V1.4 BMS only exposes per-module max/min/avg, NOT per-cell temperature.
-  // 13 modules × (min, avg, max) → 39 real data points, not 208 fake ones.
+  // Render BMS temperature distribution. Prefer real SignalR 272_44606 data.
   const modHost = $("#mod-temp");
-  const N_MOD = 13;
-  const modules = [];
-  for (let m = 0; m < N_MOD; m++) {
-    const baseT = 29.4 + Math.sin(m * 0.7 + 0.4) * 0.4;
-    const spread = 0.9 + Math.abs(Math.cos(m * 1.3)) * 0.5;
-    modules.push({
-      id: m + 1,
-      min: +(baseT - spread / 2 + Math.sin(m * 2.1) * 0.1).toFixed(1),
-      avg: +(baseT + Math.sin(m * 2.1) * 0.08).toFixed(1),
-      max: +(baseT + spread / 2 + Math.cos(m * 1.7) * 0.2).toFixed(1),
-    });
-  }
-  // 一個發熱模組（液冷流道輕微堵塞示範）
-  modules[10] = { id: 11, min: 30.4, avg: 32.6, max: 35.4 };
+  const bmsTemp = state.bmsTemperature;
+  const realTemps = Array.isArray(bmsTemp?.cellTempC) ? bmsTemp.cellTempC.filter(v => typeof v === "number" && Number.isFinite(v)) : [];
+  const poleTemps = Array.isArray(bmsTemp?.poleTempC) ? bmsTemp.poleTempC.filter(v => typeof v === "number" && Number.isFinite(v)) : [];
+  const hasReal = realTemps.length > 0;
+  const temps = hasReal ? realTemps : Array.from({ length: 100 }, (_, i) => 27 + ((i * 17) % 9 >= 6 ? 1 : 0));
+  const allMin = Math.min(...temps);
+  const allMax = Math.max(...temps);
+  const avg = temps.reduce((a, b) => a + b, 0) / temps.length;
+  const spread = allMax - allMin;
+  const colorOf = (temp) => temp >= 45 ? "#ef4444" : temp >= 40 ? "#f59e0b" : temp >= 33 ? "#fbbf24" : "#10b981";
+  const cols = Math.ceil(Math.sqrt(temps.length));
+  const rows = Math.ceil(temps.length / cols);
+  const ageSec = bmsTemp?.ts ? Math.round((Date.now() - Date.parse(bmsTemp.ts)) / 1000) : null;
+  const ageText = Number.isFinite(ageSec) ? `${ageSec}s 前` : "未更新";
 
-  const allMin = Math.min(...modules.map(m => m.min));
-  const allMax = Math.max(...modules.map(m => m.max));
-  const range = allMax - allMin;
-  const colorOf = (t) => t >= 35 ? "#ef4444" : t >= 33 ? "#f59e0b" : "#10b981";
+  const cellBlocks = temps.map((temp, idx) => `
+    <div title="#${idx + 1} · ${temp.toFixed(1)} °C" style="
+      aspect-ratio:1/1;
+      min-width:0;
+      border-radius:3px;
+      background:${colorOf(temp)};
+      opacity:${0.62 + Math.min(0.35, Math.max(0, (temp - allMin) / Math.max(1, spread)) * 0.35)};
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);
+    "></div>`).join("");
 
-  let modHtml = '<div style="display:grid;gap:5px">';
-  for (const m of modules) {
-    const minPct = ((m.min - allMin) / range) * 100;
-    const maxPct = ((m.max - allMin) / range) * 100;
-    const avgPct = ((m.avg - allMin) / range) * 100;
-    const col = colorOf(m.max);
-    modHtml += `
-      <div style="display:grid;grid-template-columns:90px 1fr 200px;gap:14px;align-items:center;font-size:12.5px">
-        <div style="color:var(--text-muted);font-family:ui-monospace,monospace">Module #${String(m.id).padStart(2,'0')}</div>
-        <div style="position:relative;height:20px;background:rgba(139,152,176,0.06);border-radius:3px">
-          <div style="position:absolute;left:${minPct}%;width:${maxPct-minPct}%;top:8px;height:4px;background:${col};opacity:0.35;border-radius:2px"></div>
-          <div style="position:absolute;left:${minPct}%;top:3px;width:2px;height:14px;background:${col};opacity:0.85"></div>
-          <div style="position:absolute;left:${maxPct}%;top:3px;width:2px;height:14px;background:${col};opacity:0.85"></div>
-          <div style="position:absolute;left:${avgPct}%;top:5px;width:10px;height:10px;background:${col};border-radius:50%;transform:translateX(-50%);box-shadow:0 0 0 2px #0f1729" title="平均 ${m.avg}°C"></div>
-        </div>
-        <div style="font-family:ui-monospace,monospace;font-size:11.5px;text-align:right">
-          <span style="color:var(--text-muted)">${m.min.toFixed(1)}</span>
-          <span style="opacity:0.4;margin:0 4px">─</span>
-          <span style="color:${col};font-weight:700">${m.avg.toFixed(1)}</span>
-          <span style="opacity:0.4;margin:0 4px">─</span>
-          <span style="color:var(--text-muted)">${m.max.toFixed(1)}</span>
-          <span style="color:var(--text-muted);margin-left:4px">°C</span>
-        </div>
-      </div>`;
-  }
-  modHtml += '</div>';
-  modHtml += `
-    <div style="display:grid;grid-template-columns:90px 1fr 200px;gap:14px;font-size:10.5px;color:var(--text-muted);margin-top:8px">
-      <div></div>
-      <div style="display:flex;justify-content:space-between"><span>${allMin.toFixed(1)}°C</span><span>${((allMin+allMax)/2).toFixed(1)}°C</span><span>${allMax.toFixed(1)}°C</span></div>
-      <div style="text-align:right;font-size:10.5px">${t("dev.mod.axisHint")}</div>
+  const histBuckets = [
+    { label: "<28", count: temps.filter(v => v < 28).length, color: "#10b981" },
+    { label: "28-33", count: temps.filter(v => v >= 28 && v < 33).length, color: "#22c55e" },
+    { label: "33-40", count: temps.filter(v => v >= 33 && v < 40).length, color: "#fbbf24" },
+    { label: "40-45", count: temps.filter(v => v >= 40 && v < 45).length, color: "#f59e0b" },
+    { label: ">=45", count: temps.filter(v => v >= 45).length, color: "#ef4444" },
+  ];
+  const maxBucket = Math.max(1, ...histBuckets.map(b => b.count));
+
+  modHost.innerHTML = `
+    <div class="grid g-4" style="gap:12px;margin-bottom:12px">
+      <div style="padding:10px 12px;border:1px solid var(--border-soft);border-radius:8px;background:var(--bg-card)">
+        <div class="muted" style="font-size:11px">資料來源</div>
+        <div style="font-weight:700;margin-top:3px">${hasReal ? "SignalR 272_44606" : "Demo fallback"}</div>
+        <div class="muted" style="font-size:11px;margin-top:3px">${hasReal ? ageText : "尚未抓取真實分佈"}</div>
+      </div>
+      <div style="padding:10px 12px;border:1px solid var(--border-soft);border-radius:8px;background:var(--bg-card)">
+        <div class="muted" style="font-size:11px">點數</div>
+        <div style="font-size:22px;font-weight:700">${temps.length}</div>
+        <div class="muted" style="font-size:11px">Pole ${poleTemps.length || "-"} 點</div>
+      </div>
+      <div style="padding:10px 12px;border:1px solid var(--border-soft);border-radius:8px;background:var(--bg-card)">
+        <div class="muted" style="font-size:11px">平均溫度</div>
+        <div style="font-size:22px;font-weight:700;color:${colorOf(avg)}">${avg.toFixed(2)}<span style="font-size:12px;color:var(--muted)"> °C</span></div>
+        <div class="muted" style="font-size:11px">BMS avg ${bmsTemp?.tempAvgC ?? "-"} °C</div>
+      </div>
+      <div style="padding:10px 12px;border:1px solid var(--border-soft);border-radius:8px;background:var(--bg-card)">
+        <div class="muted" style="font-size:11px">最高 / 溫差</div>
+        <div style="font-size:22px;font-weight:700;color:${colorOf(allMax)}">${allMax.toFixed(1)}<span style="font-size:12px;color:var(--muted)"> °C</span></div>
+        <div class="muted" style="font-size:11px">spread ${spread.toFixed(1)} °C</div>
+      </div>
     </div>
-    <div class="row mt-12" style="padding:8px 12px;background:rgba(59,130,246,0.06);border-left:3px solid var(--blue);border-radius:6px;font-size:11.5px;line-height:1.6">
-      <span>${t("dev.mod.source")}</span>
+
+    <div style="display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(220px,.9fr);gap:14px;align-items:start">
+      <div>
+        <div style="display:grid;grid-template-columns:repeat(${cols}, minmax(8px, 1fr));grid-template-rows:repeat(${rows}, auto);gap:4px;max-width:520px">
+          ${cellBlocks}
+        </div>
+        <div style="display:flex;justify-content:space-between;max-width:520px;font-size:10.5px;color:var(--muted);margin-top:8px">
+          <span>${allMin.toFixed(1)} °C</span>
+          <span>${avg.toFixed(1)} °C avg</span>
+          <span>${allMax.toFixed(1)} °C</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${histBuckets.map(b => `
+          <div style="display:grid;grid-template-columns:52px 1fr 42px;gap:8px;align-items:center;font-size:12px">
+            <span class="muted">${b.label}</span>
+            <div style="height:10px;background:rgba(139,152,176,0.08);border-radius:999px;overflow:hidden">
+              <div style="width:${(b.count / maxBucket * 100).toFixed(1)}%;height:100%;background:${b.color}"></div>
+            </div>
+            <span class="num right">${b.count}</span>
+          </div>`).join("")}
+        <div class="muted" style="font-size:11.5px;line-height:1.6;margin-top:4px">
+          ${hasReal ? "真實來源：gateway SignalR `GetDataVueNew`，key `272_44606 Cell Temp`。" : "尚未產生 `live/hiems_bms_temperature.json`，目前顯示 fallback。"}
+        </div>
+      </div>
     </div>
   `;
-  modHost.innerHTML = modHtml;
+
 }
 
 // ────────── BMS Pro · Cell Analytics ──────────
@@ -3260,6 +3405,446 @@ function viewAlarms() {
 }
 
 // ────────── 7. Settings ──────────
+const CABINET_STORAGE_KEY = "jjems-cabinet-controllers";
+function htmlEscape(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+}
+function defaultCabinetControllers() {
+  const snap = state.liveSnapshot || {};
+  return [{
+    id: "cabinet-controller-1",
+    name: "櫃控一體機 1",
+    code: "CAB-001",
+    vendor: "HiEMS / Hithium",
+    model: "Zpower-AC-261L",
+    ip: snap.host || "192.168.1.100",
+    httpPort: 80,
+    modbusPort: 502,
+    mqttClientId: state.gatewayOnboarding?.mqtt?.wanted?.clientId || "jjems-cabinet-001",
+    ratedKW: snap.ratedKW || 125,
+    batteryKWh: 261.248,
+    status: "active",
+    notes: "PCS 271 / BMS 272 / OutMeter 276 / InMeter 277 / HIEMS 282 / Controller 283",
+    updatedAt: new Date().toISOString(),
+  }];
+}
+function loadCabinetControllers() {
+  try {
+    const rows = JSON.parse(localStorage.getItem(CABINET_STORAGE_KEY) || "null");
+    return Array.isArray(rows) && rows.length ? rows : defaultCabinetControllers();
+  } catch {
+    return defaultCabinetControllers();
+  }
+}
+function saveCabinetControllers(rows) {
+  localStorage.setItem(CABINET_STORAGE_KEY, JSON.stringify(rows));
+}
+function selectedCabinetController(rows = loadCabinetControllers()) {
+  if (!rows.length || !state.selectedCabinetControllerId) return null;
+  return rows.find(c => c.id === state.selectedCabinetControllerId) || null;
+}
+function cabinetManagementPanel() {
+  const rows = loadCabinetControllers();
+  const selected = selectedCabinetController(rows);
+  const body = rows.map(c => {
+    const active = selected && selected.id === c.id;
+    return `
+    <tr style="${active ? 'background:rgba(0,194,168,0.06)' : ''}">
+      <td><strong>${htmlEscape(c.name)}</strong><div class="muted" style="font-size:11px">${htmlEscape(c.code)}</div></td>
+      <td>${htmlEscape(c.vendor || "-")}</td>
+      <td><code>${htmlEscape(c.ip)}:${htmlEscape(c.httpPort || 80)}</code></td>
+      <td><code>${htmlEscape(c.modbusPort || 502)}</code></td>
+      <td><code>${htmlEscape(c.mqttClientId || "-")}</code></td>
+      <td class="num right">${fmt(+c.ratedKW || 0)} / ${fmt(+c.batteryKWh || 0, 1)}</td>
+      <td><span class="tag ${c.status === "active" ? "ok" : c.status === "maintenance" ? "warn" : "mute"}">${htmlEscape(c.status || "unknown")}</span></td>
+      <td class="right">
+        <button class="btn ${active ? 'btn-primary' : 'btn-ghost'} cabinet-choose" data-id="${htmlEscape(c.id)}">${active ? '已選取' : '選取'}</button>
+        <button class="btn btn-ghost cabinet-select" data-id="${htmlEscape(c.id)}">Gateway</button>
+        <button class="btn btn-ghost cabinet-edit" data-id="${htmlEscape(c.id)}">編輯</button>
+        <button class="btn btn-ghost cabinet-delete" data-id="${htmlEscape(c.id)}">刪除</button>
+      </td>
+    </tr>`;
+  }).join("");
+  return `
+    <div class="card mb-16">
+      <div class="card-head">
+        <div>
+          <h3>櫃控管理</h3>
+          <div class="muted" style="font-size:12px;margin-top:2px">點 Gateway 查看該櫃控的啟用狀態與通訊設定。</div>
+        </div>
+        <button class="btn btn-primary" id="cabinetAdd">新增櫃控</button>
+      </div>
+      <table class="data">
+        <thead><tr><th>櫃控</th><th>廠牌</th><th>HTTP</th><th>Modbus</th><th>MQTT Client</th><th class="right">kW / kWh</th><th>狀態</th><th class="right">操作</th></tr></thead>
+        <tbody>${body || '<tr><td colspan="8" class="muted">尚未建立櫃控資料。</td></tr>'}</tbody>
+      </table>
+      <div class="muted" style="margin-top:10px">目前先儲存在本機瀏覽器；接上 settings API 後會改寫入 PostgreSQL。</div>
+    </div>`;
+}
+function openCabinetEditor(id = null) {
+  const rows = loadCabinetControllers();
+  const existing = rows.find(c => c.id === id);
+  const c = existing || {
+    id: `cabinet-controller-${Date.now()}`,
+    name: "",
+    code: "",
+    vendor: "HiEMS / Hithium",
+    model: "Zpower-AC-261L",
+    ip: "192.168.1.100",
+    httpPort: 80,
+    modbusPort: 502,
+    mqttClientId: "jjems-cabinet-001",
+    ratedKW: 125,
+    batteryKWh: 261.248,
+    status: "active",
+    notes: "",
+  };
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">${existing ? "編輯櫃控" : "新增櫃控"}</div>
+          <div class="modal-sub">Cabinet Controller profile</div>
+        </div>
+        <button class="modal-close" id="cabinetClose" aria-label="關閉">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid g-2e" style="gap:12px">
+          <div class="form-row"><label>名稱</label><input class="inp" id="cabName" value="${htmlEscape(c.name)}" placeholder="例：櫃控一體機 1"></div>
+          <div class="form-row"><label>代碼</label><input class="inp" id="cabCode" value="${htmlEscape(c.code)}" placeholder="例：CAB-001"></div>
+          <div class="form-row"><label>廠牌</label><input class="inp" id="cabVendor" value="${htmlEscape(c.vendor)}"></div>
+          <div class="form-row"><label>型號</label><input class="inp" id="cabModel" value="${htmlEscape(c.model)}"></div>
+          <div class="form-row"><label>Gateway IP</label><input class="inp" id="cabIp" value="${htmlEscape(c.ip)}" placeholder="192.168.1.100"></div>
+          <div class="form-row"><label>HTTP Port</label><input class="inp" id="cabHttp" type="number" min="1" max="65535" value="${htmlEscape(c.httpPort || 80)}"></div>
+          <div class="form-row"><label>Modbus TCP Port</label><input class="inp" id="cabModbus" type="number" min="1" max="65535" value="${htmlEscape(c.modbusPort || 502)}"></div>
+          <div class="form-row"><label>MQTT Client ID</label><input class="inp" id="cabMqtt" value="${htmlEscape(c.mqttClientId)}"></div>
+          <div class="form-row"><label>額定功率 kW</label><input class="inp" id="cabRated" type="number" min="0" step="0.1" value="${htmlEscape(c.ratedKW || 0)}"></div>
+          <div class="form-row"><label>電池容量 kWh</label><input class="inp" id="cabKwh" type="number" min="0" step="0.001" value="${htmlEscape(c.batteryKWh || 0)}"></div>
+          <div class="form-row"><label>狀態</label><select class="inp" id="cabStatus">
+            ${["active","maintenance","disabled"].map(x => `<option value="${x}" ${c.status === x ? "selected" : ""}>${x}</option>`).join("")}
+          </select></div>
+          <div class="form-row"><label>備註</label><input class="inp" id="cabNotes" value="${htmlEscape(c.notes)}"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" id="cabinetCancel">取消</button>
+        <button class="btn btn-primary" id="cabinetSave">儲存</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => { overlay.remove(); document.removeEventListener("keydown", escHandler); };
+  function escHandler(e) { if (e.key === "Escape") close(); }
+  document.addEventListener("keydown", escHandler);
+  overlay.querySelector("#cabinetClose").addEventListener("click", close);
+  overlay.querySelector("#cabinetCancel").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+  overlay.querySelector("#cabinetSave").addEventListener("click", () => {
+    const next = {
+      id: c.id,
+      name: overlay.querySelector("#cabName").value.trim(),
+      code: overlay.querySelector("#cabCode").value.trim(),
+      vendor: overlay.querySelector("#cabVendor").value.trim(),
+      model: overlay.querySelector("#cabModel").value.trim(),
+      ip: overlay.querySelector("#cabIp").value.trim(),
+      httpPort: +(overlay.querySelector("#cabHttp").value || 80),
+      modbusPort: +(overlay.querySelector("#cabModbus").value || 502),
+      mqttClientId: overlay.querySelector("#cabMqtt").value.trim(),
+      ratedKW: +(overlay.querySelector("#cabRated").value || 0),
+      batteryKWh: +(overlay.querySelector("#cabKwh").value || 0),
+      status: overlay.querySelector("#cabStatus").value,
+      notes: overlay.querySelector("#cabNotes").value.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    if (!next.name || !next.ip) {
+      showToast("名稱與 Gateway IP 必填", "warn");
+      return;
+    }
+    const current = loadCabinetControllers();
+    const idx = current.findIndex(row => row.id === next.id);
+    if (idx >= 0) current[idx] = next; else current.push(next);
+    state.selectedCabinetControllerId = next.id;
+    saveCabinetControllers(current);
+    close();
+    showToast("櫃控資料已儲存", "ok");
+    viewSettings();
+  });
+}
+function openGatewayStatus(id) {
+  const rows = loadCabinetControllers();
+  const cabinet = rows.find(c => c.id === id);
+  if (!cabinet) return;
+  state.selectedCabinetControllerId = id;
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true" style="max-width:980px">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">${htmlEscape(cabinet.name)} · Gateway 啟用狀態</div>
+          <div class="modal-sub"><code>${htmlEscape(cabinet.ip)}:${htmlEscape(cabinet.httpPort || 80)}</code> · ${htmlEscape(cabinet.vendor || "-")}</div>
+        </div>
+        <button class="modal-close" id="gatewayStatusClose" aria-label="關閉">×</button>
+      </div>
+      <div class="modal-body">
+        ${gatewayOnboardingPanel(cabinet)}
+      </div>
+      <div class="modal-foot">
+        <button class="btn" id="gatewayStatusCancel">關閉</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => { overlay.remove(); document.removeEventListener("keydown", escHandler); viewSettings(); };
+  function escHandler(e) { if (e.key === "Escape") close(); }
+  document.addEventListener("keydown", escHandler);
+  overlay.querySelector("#gatewayStatusClose").addEventListener("click", close);
+  overlay.querySelector("#gatewayStatusCancel").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+}
+function bindCabinetManager() {
+  document.getElementById("cabinetAdd")?.addEventListener("click", () => openCabinetEditor());
+  document.querySelectorAll(".cabinet-choose").forEach(btn => btn.addEventListener("click", () => {
+    state.selectedCabinetControllerId = btn.dataset.id;
+    viewSettings();
+  }));
+  document.querySelectorAll(".cabinet-select").forEach(btn => btn.addEventListener("click", () => openGatewayStatus(btn.dataset.id)));
+  document.querySelectorAll(".cabinet-edit").forEach(btn => btn.addEventListener("click", () => openCabinetEditor(btn.dataset.id)));
+  document.querySelectorAll(".cabinet-delete").forEach(btn => btn.addEventListener("click", () => {
+    const rows = loadCabinetControllers();
+    const item = rows.find(c => c.id === btn.dataset.id);
+    if (!item) return;
+    if (!confirm(`刪除櫃控資料「${item.name}」？`)) return;
+    const nextRows = rows.filter(c => c.id !== btn.dataset.id);
+    if (state.selectedCabinetControllerId === btn.dataset.id) {
+      state.selectedCabinetControllerId = nextRows[0]?.id || null;
+    }
+    saveCabinetControllers(nextRows);
+    showToast("櫃控資料已刪除", "ok");
+    viewSettings();
+  }));
+}
+function defaultProtocolMapRows(cabinet) {
+  const cid = cabinet?.id || "unassigned";
+  return [
+    { id:`${cid}-bms-soc`, target:"soc", name:"BMS SOC", protocol:"mqtt", source:"BMS 272", key:"272_44568", path:"$ESS/272/data · rulekey 4", unit:"%", type:"float", direction:"read", status:"verified", note:"已由 MQTT 實測" },
+    { id:`${cid}-bms-soh`, target:"soh", name:"BMS SOH", protocol:"mqtt", source:"BMS 272", key:"272_44569", path:"$ESS/272/data · rulekey 5", unit:"%", type:"float", direction:"read", status:"verified", note:"已由 MQTT 實測" },
+    { id:`${cid}-dc-voltage`, target:"dc_voltage", name:"電池簇電壓", protocol:"mqtt", source:"BMS 272", key:"272_44566", path:"$ESS/272/data · rulekey 2", unit:"V", type:"float", direction:"read", status:"verified", note:"寫入 telemetry_cabinet_1s.dc_voltage" },
+    { id:`${cid}-dc-current`, target:"dc_current", name:"電池簇電流", protocol:"mqtt", source:"BMS 272", key:"272_44567", path:"$ESS/272/data · rulekey 3", unit:"A", type:"float", direction:"read", status:"verified", note:"寫入 telemetry_cabinet_1s.dc_current" },
+    { id:`${cid}-temp-avg`, target:"temp_avg", name:"平均電芯溫度", protocol:"mqtt", source:"BMS 272", key:"272_44579", path:"$ESS/272/data · rulekey 8", unit:"degC", type:"float", direction:"read", status:"verified", note:"平均溫度" },
+    { id:`${cid}-temp-max`, target:"temp_max", name:"最高電芯溫度", protocol:"mqtt", source:"BMS 272", key:"272_44573", path:"$ESS/272/data · rulekey 13", unit:"degC", type:"float", direction:"read", status:"verified", note:"最高溫度" },
+    { id:`${cid}-cell-temp-array`, target:"cell_temp_array", name:"電芯/模組溫度陣列", protocol:"signalr", source:"BMS 272", key:"272_44606", path:"/sinalr/datahub · SetInitVue", unit:"degC[]", type:"array", direction:"read", status:"verified", note:"100 筆 cell temperature；MQTT rulekey 待 vendor 確認" },
+    { id:`${cid}-pole-temp-array`, target:"pole_temp_array", name:"極柱溫度陣列", protocol:"signalr", source:"BMS 272", key:"272_44747", path:"/sinalr/datahub · SetInitVue", unit:"degC[]", type:"array", direction:"read", status:"verified", note:"40 筆 pole temperature，非 cell temp array" },
+    { id:`${cid}-pcs-p`, target:"pcs_p_kw", name:"PCS 有功功率", protocol:"mqtt", source:"PCS 271", key:"271_44760", path:"$ESS/271/data · rulekey 11", unit:"kW", type:"float", direction:"read", status:"verified", note:"正負方向需和調度邏輯保持一致" },
+    { id:`${cid}-pcs-q`, target:"pcs_q_kvar", name:"PCS 無功功率", protocol:"mqtt", source:"PCS 271", key:"271_44761", path:"$ESS/271/data · rulekey 12", unit:"kVar", type:"float", direction:"read", status:"verified", note:"PCS reactive power" },
+    { id:`${cid}-frequency`, target:"frequency", name:"電網頻率", protocol:"mqtt", source:"PCS 271", key:"271_44759", path:"$ESS/271/data · rulekey 3", unit:"Hz", type:"float", direction:"read", status:"verified", note:"約 60 Hz" },
+    { id:`${cid}-rated`, target:"rated_kw", name:"系統額定功率", protocol:"mqtt", source:"HIEMS 282", key:"282_44902", path:"$ESS/282/data · rated_kw", unit:"kW", type:"float", direction:"read", status:"verified", note:"目前 125 kW" },
+    { id:`${cid}-grid`, target:"grid_kw", name:"市電/關口表功率", protocol:"mqtt", source:"OutMeter 276 / HIEMS 282", key:"276_44889 / 282_44907", path:"$ESS/276/data rulekey 17 或 $ESS/282/data grid_kw", unit:"kW", type:"float", direction:"read", status:"missing", note:"OutMeter offline，grid/load 目前不可作 EMS 決策依據" },
+    { id:`${cid}-load`, target:"load_kw", name:"負載功率", protocol:"derived", source:"JJEMS", key:"grid + pv + ess", path:"derived after grid_kw verified", unit:"kW", type:"float", direction:"read", status:"blocked", note:"需先修復 grid_kw / OutMeter" },
+    { id:`${cid}-modbus-soc`, target:"soc", name:"SOC Modbus 備援", protocol:"modbus_tcp", source:"Gateway 192.168.1.100", key:"FC04 addr 88", path:`${cabinet?.ip || "192.168.1.100"}:502 · unit 1`, unit:"%", type:"u16 x0.1", direction:"read", status:"verified", note:"目前唯一已驗證 Modbus runtime point" },
+  ];
+}
+function protocolStatusTag(status) {
+  const cls = status === "verified" ? "ok" : status === "missing" || status === "blocked" ? "warn" : status === "candidate" ? "info" : "mute";
+  return `<span class="tag ${cls}">${htmlEscape(status)}</span>`;
+}
+function protocolMapRowsForCabinet(cabinet) {
+  if (!cabinet) return [];
+  return defaultProtocolMapRows(cabinet).map(row => ({ ...row, cabinetControllerId: cabinet.id }));
+}
+function protocolCabinetForMap() {
+  const rows = loadCabinetControllers();
+  if (rows.length === 1) return rows[0];
+  return selectedCabinetController(rows);
+}
+function protocolVisualMap(cabinet, rows) {
+  const count = (protocol) => rows.filter(r => r.protocol === protocol).length;
+  const totalVerified = rows.filter(r => r.status === "verified").length;
+  const totalIssues = rows.length - totalVerified;
+  const mqttCount = count("mqtt");
+  const signalrCount = count("signalr");
+  const modbusCount = count("modbus_tcp");
+  const missingCount = rows.filter(r => r.status === "missing" || r.status === "blocked").length;
+  const protoLine = (x1,y1,x2,y2,color,label,dash="6,4") => `
+    <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="2" stroke-dasharray="${dash}" marker-end="url(#pmArrow)"/>
+    <text x="${(x1+x2)/2}" y="${(y1+y2)/2 - 8}" text-anchor="middle" fill="${color}" font-size="12" font-weight="700">${htmlEscape(label)}</text>`;
+  return `
+    <div style="margin-bottom:14px;border:1px solid var(--border-soft);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.015)">
+      <svg viewBox="0 0 1100 390" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;min-height:280px">
+        <defs>
+          <marker id="pmArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+        </defs>
+        <rect x="0" y="0" width="1100" height="390" fill="#071016"/>
+
+        <rect x="42" y="104" width="270" height="132" rx="10" fill="#0a2024" stroke="#00c2a8" stroke-width="2"/>
+        <text x="177" y="145" text-anchor="middle" fill="#00c2a8" font-size="20" font-weight="900">JJEMS</text>
+        <text x="177" y="174" text-anchor="middle" fill="#cbd5e1" font-size="12.5">EMS server / telemetry normalization</text>
+        <text x="177" y="199" text-anchor="middle" fill="#8b98b0" font-size="11">verified ${totalVerified} · pending ${totalIssues}</text>
+
+        <rect x="420" y="74" width="300" height="176" rx="10" fill="#0a1d20" stroke="#00c2a8" stroke-width="1.6"/>
+        <text x="570" y="102" text-anchor="middle" fill="#00c2a8" font-size="14" font-weight="800">${htmlEscape(cabinet.name)}</text>
+        <text x="570" y="123" text-anchor="middle" fill="#e6edf5" font-size="11">${htmlEscape(cabinet.ip)} · Cabinet Controller</text>
+        <text x="570" y="142" text-anchor="middle" fill="#8b98b0" font-size="10.5">northbound interfaces</text>
+
+        <rect x="438" y="166" width="82" height="50" rx="7" fill="#160f2a" stroke="#8b5cf6" stroke-width="1.2"/>
+        <text x="479" y="187" text-anchor="middle" fill="#c4b5fd" font-size="11.5" font-weight="700">HCMQTT</text>
+        <text x="479" y="204" text-anchor="middle" fill="#8b98b0" font-size="10">${mqttCount} rows</text>
+        <rect x="532" y="166" width="112" height="50" rx="7" fill="#101a2e" stroke="#3b82f6" stroke-width="1.2"/>
+        <text x="588" y="187" text-anchor="middle" fill="#93c5fd" font-size="11.5" font-weight="700">HTTP / SignalR</text>
+        <text x="588" y="204" text-anchor="middle" fill="#8b98b0" font-size="10">${signalrCount} rows</text>
+        <rect x="656" y="166" width="48" height="50" rx="7" fill="#1a1505" stroke="#f59e0b" stroke-width="1.2"/>
+        <text x="680" y="187" text-anchor="middle" fill="#fbbf24" font-size="11.5" font-weight="700">FC04</text>
+        <text x="680" y="204" text-anchor="middle" fill="#8b98b0" font-size="10">${modbusCount}</text>
+
+
+        ${protoLine(312,170,420,170,"#00c2a8","northbound")}
+        <line x1="570" y1="250" x2="570" y2="292" stroke="#00c2a8" stroke-width="2" stroke-dasharray="4,3"/>
+        <text x="628" y="277" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">southbound</text>
+        <line x1="570" y1="292" x2="434" y2="316" stroke="#00c2a8" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="570" y1="292" x2="584" y2="316" stroke="#ec4899" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="570" y1="292" x2="755" y2="316" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <rect x="370" y="316" width="128" height="54" rx="7" fill="#0f1729" stroke="#00c2a8" stroke-width="1"/>
+        <text x="434" y="338" text-anchor="middle" fill="#e6edf5" font-size="12" font-weight="700">PCS 271</text>
+        <text x="434" y="356" text-anchor="middle" fill="#8b98b0" font-size="10.5">P/Q/Frequency</text>
+        <rect x="520" y="316" width="128" height="54" rx="7" fill="#1a0a14" stroke="#ec4899" stroke-width="1"/>
+        <text x="584" y="338" text-anchor="middle" fill="#fbcfe8" font-size="12" font-weight="700">BMS 272</text>
+        <text x="584" y="356" text-anchor="middle" fill="#8b98b0" font-size="10.5">SOC/SOH/Temp</text>
+        <rect x="670" y="316" width="170" height="54" rx="7" fill="#241706" stroke="${missingCount ? '#f59e0b' : '#10b981'}" stroke-width="1"/>
+        <text x="755" y="338" text-anchor="middle" fill="${missingCount ? '#fbbf24' : '#86efac'}" font-size="12" font-weight="700">OutMeter 276</text>
+        <text x="755" y="356" text-anchor="middle" fill="#8b98b0" font-size="10.5">grid/load source</text>
+      </svg>
+    </div>`;
+}
+function protocolSummaryCard(cabinet) {
+  if (!cabinet) {
+    return `
+      <div class="card">
+        <div class="card-head"><h3>協議摘要</h3></div>
+        <div class="muted">尚未選取櫃控。</div>
+      </div>`;
+  }
+  const rows = protocolMapRowsForCabinet(cabinet);
+  const protocols = [...new Set(rows.map(r => r.protocol))];
+  return `
+    <div class="card">
+      <div class="card-head"><h3>協議摘要</h3></div>
+      <table class="data">
+        ${protocols.map(proto => {
+          const items = rows.filter(r => r.protocol === proto);
+          const verified = items.filter(r => r.status === "verified").length;
+          const pending = items.length - verified;
+          return `<tr><td><span class="tag info">${htmlEscape(proto)}</span></td><td>${verified}/${items.length} verified</td><td>${pending ? `<span class="tag warn">${pending} pending</span>` : '<span class="tag ok">ready</span>'}</td></tr>`;
+        }).join("")}
+      </table>
+    </div>`;
+}
+function protocolMapPanel(cabinet) {
+  if (!cabinet) {
+    return `
+      <div class="card mb-16">
+        <div class="card-head"><h3>通訊協議地圖</h3><span class="tag mute">未選取櫃控</span></div>
+        <div class="muted">多台櫃控時，請先在「櫃控管理」點選一台櫃控；只有一台櫃控時會自動顯示對應的 mapping rows。</div>
+      </div>`;
+  }
+  const rows = protocolMapRowsForCabinet(cabinet);
+  const summary = rows.reduce((acc, r) => { acc[r.protocol] = (acc[r.protocol] || 0) + 1; return acc; }, {});
+  return `
+    <div class="card mb-16">
+      <div class="card-head">
+        <div>
+          <h3>通訊協議地圖</h3>
+          <div class="muted" style="font-size:12px;margin-top:2px">${htmlEscape(cabinet.name)} · <code>${htmlEscape(cabinet.id)}</code> · <code>${htmlEscape(cabinet.ip)}:${htmlEscape(cabinet.modbusPort || 502)}</code></div>
+        </div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          ${Object.entries(summary).map(([k,v]) => `<span class="tag">${htmlEscape(k)} ${v}</span>`).join("")}
+        </div>
+      </div>
+      ${protocolVisualMap(cabinet, rows)}
+      <table class="data">
+        <thead><tr><th>JJEMS 欄位</th><th>名稱</th><th>Protocol</th><th>來源</th><th>Key / Register</th><th>Topic / Path</th><th>型別</th><th>狀態</th><th>備註</th></tr></thead>
+        <tbody>
+          ${rows.map(r => `<tr>
+            <td><code>${htmlEscape(r.target)}</code></td>
+            <td>${htmlEscape(r.name)}</td>
+            <td><span class="tag info">${htmlEscape(r.protocol)}</span></td>
+            <td>${htmlEscape(r.source)}</td>
+            <td><code>${htmlEscape(r.key)}</code></td>
+            <td><code>${htmlEscape(r.path)}</code></td>
+            <td>${htmlEscape(r.type)} ${r.unit ? `· ${htmlEscape(r.unit)}` : ""}</td>
+            <td>${protocolStatusTag(r.status)}</td>
+            <td>${htmlEscape(r.note || "")}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+function gatewayStatusTag(enabled) {
+  return enabled ? '<span class="tag ok">enabled</span>' : '<span class="tag warn">needs setup</span>';
+}
+function gatewayValue(v) {
+  return v == null || v === "" ? "-" : String(v);
+}
+function gatewayOnboardingPanel(cabinet) {
+  if (!cabinet) {
+    return `
+      <div class="card mb-16">
+        <div class="card-head"><h3>Gateway 啟用狀態</h3><span class="tag mute">未選取櫃控</span></div>
+        <div class="muted">請先在「櫃控管理」選取一台櫃控。</div>
+      </div>`;
+  }
+  const g = state.gatewayOnboarding;
+  if (!g || g.error) {
+    return `
+      <div class="card mb-16">
+        <div class="card-head">
+          <h3>${htmlEscape(cabinet.name)} · Gateway 啟用狀態</h3>
+          <span class="tag warn">not loaded</span>
+        </div>
+        <div class="muted">尚未取得 gateway onboarding 狀態。請在 server 執行 <code>python3 scripts/hiems_gateway_onboard.py --ensure-mqtt --ensure-modbus --ensure-mqtt-rulemap</code> 產生狀態檔。</div>
+      </div>`;
+  }
+  const mqtt = g.mqtt || {};
+  const modbus = g.modbusTcp || {};
+  const actions = Array.isArray(g.actions) ? g.actions : [];
+  const manual = Array.isArray(g.manualActions) ? g.manualActions : [];
+  const actionRows = actions.length ? actions.map(a => `
+    <tr>
+      <td>${gatewayValue(a.action)}</td>
+      <td>${gatewayValue(a.entity)}</td>
+      <td>${gatewayValue(a.kind || a.rows || "-")}</td>
+      <td><code>${gatewayValue(a.payload ? JSON.stringify(a.payload) : "-")}</code></td>
+    </tr>`).join("") : '<tr><td colspan="4" class="muted">目前不需要變更 gateway 設定。</td></tr>';
+  const manualRows = manual.length ? manual.map(a => `
+    <tr><td>${gatewayValue(a.reason)}</td><td><code>${gatewayValue(JSON.stringify(a.payload || a.devices || {}))}</code></td></tr>`).join("") : '<tr><td colspan="2" class="muted">無需手動補設定。</td></tr>';
+  return `
+    <div class="card mb-16">
+      <div class="card-head">
+        <div>
+          <h3>${htmlEscape(cabinet.name)} · Gateway 啟用狀態</h3>
+          <div class="muted" style="font-size:12px;margin-top:2px"><code>${htmlEscape(cabinet.ip)}:${htmlEscape(cabinet.httpPort || 80)}</code> · ${htmlEscape(cabinet.vendor || "-")}</div>
+        </div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <span class="tag">${gatewayValue(g.mode)}</span>
+          <span class="tag">${gatewayValue(g.gatewayApi)}</span>
+        </div>
+      </div>
+      <div class="grid g-2 mb-16" style="gap:12px">
+        <div class="kpi green"><div class="kpi-label">HCMQTT</div><div class="kpi-value" style="font-size:22px">${mqtt.enabled ? "已啟用" : "未完成"}</div><div class="kpi-foot">${gatewayStatusTag(mqtt.enabled)} ${gatewayValue(mqtt.wanted?.brokerHost)}:${gatewayValue(mqtt.wanted?.brokerPort)}</div></div>
+        <div class="kpi blue"><div class="kpi-label">Modbus TCP</div><div class="kpi-value" style="font-size:22px">${modbus.enabled ? "已啟用" : "未完成"}</div><div class="kpi-foot">${gatewayStatusTag(modbus.enabled)} ${gatewayValue(modbus.wanted?.listenIp)}:${gatewayValue(modbus.wanted?.listenPort)}</div></div>
+      </div>
+      <table class="data mb-16">
+        <thead><tr><th>Action</th><th>Gateway API</th><th>目標</th><th>Payload / 說明</th></tr></thead>
+        <tbody>${actionRows}</tbody>
+      </table>
+      <table class="data mb-16">
+        <thead><tr><th>需要管理者手動處理</th><th>內容</th></tr></thead>
+        <tbody>${manualRows}</tbody>
+      </table>
+      <div class="muted">
+        套用這台櫃控的 gateway 設定請在 server 執行：<code>python3 scripts/hiems_gateway_onboard.py --gateway-api http://${htmlEscape(cabinet.ip)}/api --ensure-mqtt --ensure-modbus --ensure-mqtt-rulemap --apply</code>
+      </div>
+    </div>`;
+}
 function viewSettings() {
   $("#view").innerHTML = `
     <div class="page-header">
@@ -3273,6 +3858,8 @@ function viewSettings() {
       </div>
     </div>
 
+    ${cabinetManagementPanel()}
+
     <div class="grid g-2 mb-16">
       <div class="card">
         <div class="card-head"><h3>${t("set.site.title")}</h3></div>
@@ -3285,210 +3872,12 @@ function viewSettings() {
           <div class="form-row"><label>${t("set.site.pv")}</label><input class="inp" value="${SITE.pvKWp}" /></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-head"><h3>${t("set.spec.title")}</h3></div>
-        <table class="data">
-          <thead><tr><th>${t("set.spec.thSys")}</th><th class="right">${t("set.spec.thPcs")}</th><th class="right">${t("set.spec.thBat")}</th><th class="right">${t("set.spec.thSoc")}</th><th>${t("set.spec.thVendor")}</th></tr></thead>
-          <tbody>
-            ${SITE.systems.map(s=>`
-              <tr>
-                <td>${s.id}</td>
-                <td class="num right">${s.pcsKW}</td>
-                <td class="num right">${s.batteryKWh}</td>
-                <td class="num right">${s.soc}%</td>
-                <td>${s.vendor}</td>
-              </tr>
-            `).join("")}
-            <tr style="background:rgba(0,194,168,0.05)">
-              <td class="strong">${t("set.spec.total")}</td>
-              <td class="num right strong">${SITE.systems.reduce((s,x)=>s+x.pcsKW,0)}</td>
-              <td class="num right strong">${SITE.systems.reduce((s,x)=>s+x.batteryKWh,0)}</td>
-              <td class="num right strong">${(SITE.systems.reduce((s,x)=>s+x.soc,0)/SITE.systems.length).toFixed(0)}%</td>
-              <td>-</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
 
-    <!-- Protocol map -->
-    <div class="card mb-16">
-      <div class="card-head">
-        <h3>${t("set.proto.title")}</h3>
-        <div class="row" style="gap:6px;flex-wrap:wrap">
-          <span class="tag" style="background:rgba(139,92,246,0.12);color:var(--purple)">◼ MQTT/TLS</span>
-          <span class="tag" style="background:rgba(0,194,168,0.12);color:var(--primary)">◼ Modbus TCP</span>
-          <span class="tag" style="background:rgba(245,158,11,0.12);color:var(--amber)">◼ Modbus RTU / DLT645</span>
-          <span class="tag" style="background:rgba(236,72,153,0.12);color:var(--pink)">◼ CAN bus</span>
-          <span class="tag" style="background:rgba(59,130,246,0.12);color:var(--blue)">◼ IEC 104</span>
-        </div>
-      </div>
-      <div class="proto-map-wrap">
-      <svg viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg" class="proto-map">
-        <defs>
-          <marker id="pa-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M0 0 L10 5 L0 10 z" fill="#8b5cf6"/>
-          </marker>
-          <marker id="pa-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M0 0 L10 5 L0 10 z" fill="#00c2a8"/>
-          </marker>
-          <marker id="pa-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M0 0 L10 5 L0 10 z" fill="#f59e0b"/>
-          </marker>
-          <marker id="pa-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M0 0 L10 5 L0 10 z" fill="#ec4899"/>
-          </marker>
-          <marker id="pa-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M0 0 L10 5 L0 10 z" fill="#3b82f6"/>
-          </marker>
-        </defs>
+    ${protocolMapPanel(protocolCabinetForMap())}
 
-        <!-- Cloud layer (= this EMS system) -->
-        <g>
-          <rect x="380" y="14" width="440" height="80" rx="14" fill="#0a1d20" stroke="#00c2a8" stroke-width="2"/>
-          <text x="600" y="42" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">${t("set.proto.cloudTitle")}</text>
-          <text x="600" y="62" text-anchor="middle" fill="#cbd5e1" font-size="11.5">${t("set.proto.cloudDesc")}</text>
-          <text x="600" y="80" text-anchor="middle" fill="#94e0d2" font-size="10.5">${t("set.proto.topo")}</text>
-        </g>
-
-        <g>
-          <rect x="900" y="30" width="220" height="48" rx="8" fill="#0a1830" stroke="#3b82f6" stroke-width="1.2"/>
-          <text x="1010" y="50" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="600">${t("set.proto.tpcMkt")}</text>
-          <text x="1010" y="68" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.tpcMktSub")}</text>
-        </g>
-
-        <!-- MQTT line cloud↔站控 -->
-        <line x1="540" y1="94" x2="540" y2="160" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#pa-purple)">
-          <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.5s" repeatCount="indefinite"/>
-        </line>
-        <text x="552" y="118" fill="#a78bfa" font-size="11" font-weight="600">${t("set.proto.mqttUp")}</text>
-        <text x="552" y="132" fill="#8b98b0" font-size="10">$ESS/{dev}/data · FULL/VARY</text>
-        <line x1="660" y1="160" x2="660" y2="94" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#pa-purple)">
-          <animate attributeName="stroke-dashoffset" from="0" to="18" dur="1.5s" repeatCount="indefinite"/>
-        </line>
-        <text x="672" y="118" fill="#a78bfa" font-size="11" font-weight="600">${t("set.proto.mqttDown")}</text>
-        <text x="672" y="132" fill="#8b98b0" font-size="10">$ESC/{gw}/rpcreq</text>
-
-        <!-- IEC 104 line tpc→站控 -->
-        <path d="M 1010 78 Q 1010 130, 750 175" stroke="#3b82f6" stroke-width="2" fill="none" stroke-dasharray="5,3" marker-end="url(#pa-blue)">
-          <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.8s" repeatCount="indefinite"/>
-        </path>
-        <text x="900" y="130" fill="#60a5fa" font-size="11" font-weight="600">IEC 60870-5-104</text>
-
-        <g>
-          <rect x="450" y="160" width="300" height="74" rx="10" fill="#0a2024" stroke="#00c2a8" stroke-width="2"/>
-          <text x="600" y="188" text-anchor="middle" fill="#00c2a8" font-size="15" font-weight="800">${t("set.proto.scu")}</text>
-          <text x="600" y="208" text-anchor="middle" fill="#e6edf5" font-size="11.5">${t("set.proto.scuHw")}</text>
-          <text x="600" y="224" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.scuRole")}</text>
-        </g>
-
-        <line x1="450" y1="195" x2="280" y2="280" stroke="#f59e0b" stroke-width="2" marker-end="url(#pa-amber)">
-          <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.6s" repeatCount="indefinite"/>
-        </line>
-        <text x="280" y="240" fill="#fbbf24" font-size="11" font-weight="600">${t("set.proto.dlt645")}</text>
-        <text x="280" y="254" fill="#8b98b0" font-size="10">${t("set.proto.dlt645Sub")}</text>
-
-        <g>
-          <rect x="100" y="280" width="220" height="68" rx="8" fill="#1a1505" stroke="#f59e0b" stroke-width="1.2"/>
-          <text x="210" y="306" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="600">${t("set.proto.meter")}</text>
-          <text x="210" y="324" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.meterType")}</text>
-          <text x="210" y="340" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.meterFields")}</text>
-        </g>
-
-        <line x1="600" y1="234" x2="600" y2="290" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)"/>
-        <text x="612" y="270" fill="#00c2a8" font-size="11" font-weight="600">${t("set.proto.eth")}</text>
-
-        <g>
-          <rect x="490" y="290" width="220" height="42" rx="6" fill="#101a2e" stroke="#3b82f6" stroke-width="1.5"/>
-          <text x="600" y="312" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="700">${t("set.proto.switch")}</text>
-          <text x="600" y="326" text-anchor="middle" fill="#8b98b0" font-size="10">192.168.1.0/24</text>
-        </g>
-
-        <line x1="540" y1="332" x2="280" y2="400" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)">
-          <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.3s" repeatCount="indefinite"/>
-        </line>
-        <text x="320" y="370" fill="#00c2a8" font-size="11" font-weight="600">Modbus TCP</text>
-        <text x="320" y="384" fill="#8b98b0" font-size="10">${t("set.proto.modbusTcp1")}</text>
-
-        <line x1="660" y1="332" x2="920" y2="400" stroke="#00c2a8" stroke-width="2" marker-end="url(#pa-teal)">
-          <animate attributeName="stroke-dashoffset" from="0" to="-16" dur="1.4s" repeatCount="indefinite"/>
-        </line>
-        <text x="820" y="370" fill="#00c2a8" font-size="11" font-weight="600">Modbus TCP</text>
-        <text x="820" y="384" fill="#8b98b0" font-size="10">${t("set.proto.modbusTcp2")}</text>
-
-        <g>
-          <rect x="80" y="400" width="400" height="296" rx="10" fill="#0a0e1e" stroke="#1b2740" stroke-width="1.5" stroke-dasharray="4,3"/>
-          <text x="280" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">${t("set.proto.cabinet").replace("{sys}", "SYS-A")}</text>
-
-          <rect x="120" y="436" width="320" height="58" rx="8" fill="#0a2024" stroke="#00c2a8" stroke-width="1.5"/>
-          <text x="280" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">${t("set.proto.bcu")}</text>
-          <text x="280" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.bcuHw")}</text>
-
-          <!-- PCS -->
-          <line x1="180" y1="494" x2="180" y2="530" stroke="#00c2a8" stroke-width="1.5" marker-end="url(#pa-teal)"/>
-          <text x="125" y="514" fill="#00c2a8" font-size="10" font-weight="600">Modbus TCP</text>
-          <rect x="120" y="530" width="120" height="44" rx="6" fill="#0f1729" stroke="#00c2a8" stroke-width="1"/>
-          <text x="180" y="550" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">PCS</text>
-          <text x="180" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">125 kW · port 502</text>
-
-          <line x1="380" y1="494" x2="380" y2="530" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
-          <text x="392" y="514" fill="#f9a8d4" font-size="10" font-weight="600">CAN bus</text>
-          <rect x="320" y="530" width="120" height="44" rx="6" fill="#1a0a14" stroke="#ec4899" stroke-width="1"/>
-          <text x="380" y="550" text-anchor="middle" fill="#fbcfe8" font-size="11" font-weight="700">${t("set.proto.bcuCluster")}</text>
-          <text x="380" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">${t("set.proto.hvBox")}</text>
-
-          <line x1="380" y1="574" x2="380" y2="600" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
-          <text x="392" y="592" fill="#f9a8d4" font-size="9.5">CAN</text>
-          <rect x="290" y="600" width="60" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.8"/>
-          <text x="320" y="619" text-anchor="middle" fill="#fbcfe8" font-size="10" font-weight="600">BMU 1</text>
-          <rect x="354" y="600" width="60" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.8"/>
-          <text x="384" y="619" text-anchor="middle" fill="#fbcfe8" font-size="10" font-weight="600">BMU 2</text>
-          <rect x="418" y="600" width="20" height="34" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.5"/>
-          <text x="428" y="623" text-anchor="middle" fill="#fbcfe8" font-size="9">···</text>
-          <text x="380" y="654" text-anchor="middle" fill="#8b98b0" font-size="10">${t("set.proto.bmuPerPack")}</text>
-          <text x="380" y="670" text-anchor="middle" fill="#8b98b0" font-size="9.5">${t("set.proto.bmuFunc")}</text>
-
-          <rect x="120" y="595" width="120" height="44" rx="6" fill="#0f1729" stroke="#f59e0b" stroke-width="1"/>
-          <text x="180" y="615" text-anchor="middle" fill="#fbbf24" font-size="10.5" font-weight="700">${t("set.proto.io")}</text>
-          <text x="180" y="630" text-anchor="middle" fill="#8b98b0" font-size="9.5">${t("set.proto.ioFields")}</text>
-          <line x1="180" y1="595" x2="180" y2="574" stroke="#f59e0b" stroke-width="1.5"/>
-          <text x="125" y="588" fill="#fbbf24" font-size="9.5">DI/DO</text>
-        </g>
-
-        <g>
-          <rect x="720" y="400" width="400" height="200" rx="10" fill="#0a0e1e" stroke="#1b2740" stroke-width="1.5" stroke-dasharray="4,3"/>
-          <text x="920" y="421" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="700">${t("set.proto.cabinet").replace("{sys}", "SYS-B")}</text>
-          <rect x="760" y="436" width="320" height="58" rx="8" fill="#0a2024" stroke="#00c2a8" stroke-width="1.5"/>
-          <text x="920" y="458" text-anchor="middle" fill="#00c2a8" font-size="12" font-weight="700">${t("set.proto.bcuMirror")}</text>
-          <text x="920" y="476" text-anchor="middle" fill="#8b98b0" font-size="10.5">${t("set.proto.bcuMirrorSub")}</text>
-          <line x1="820" y1="494" x2="820" y2="530" stroke="#00c2a8" stroke-width="1.5" marker-end="url(#pa-teal)"/>
-          <rect x="760" y="530" width="120" height="44" rx="6" fill="#0f1729" stroke="#00c2a8" stroke-width="1"/>
-          <text x="820" y="550" text-anchor="middle" fill="#e6edf5" font-size="11" font-weight="700">PCS</text>
-          <text x="820" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">125 kW</text>
-          <line x1="1020" y1="494" x2="1020" y2="530" stroke="#ec4899" stroke-width="1.5" marker-end="url(#pa-pink)"/>
-          <rect x="960" y="530" width="120" height="44" rx="6" fill="#1a0a14" stroke="#ec4899" stroke-width="1"/>
-          <text x="1020" y="550" text-anchor="middle" fill="#fbcfe8" font-size="11" font-weight="700">BCU + BMU × 13</text>
-          <text x="1020" y="566" text-anchor="middle" fill="#8b98b0" font-size="9.5">261 kWh LFP</text>
-        </g>
-      </svg>
-      </div>
-      <div class="proto-foot">
-        ${t("set.proto.foot")}
-      </div>
-    </div>
-
-    <div class="grid g-3 mb-16">
-      <div class="card">
-        <div class="card-head"><h3>${t("set.protocols.title")}</h3></div>
-        <table class="data">
-          <tr><td>${t("set.protocols.pcs")}</td><td><span class="tag info">Modbus TCP</span></td></tr>
-          <tr><td>${t("set.protocols.bms")}</td><td><span class="tag info">Modbus RTU</span></td></tr>
-          <tr><td>${t("set.protocols.meter")}</td><td><span class="tag info">Modbus TCP</span></td></tr>
-          <tr><td>${t("set.protocols.hvac")}</td><td><span class="tag info">BACnet/IP</span></td></tr>
-          <tr><td>${t("set.protocols.tpc")}</td><td><span class="tag info">IEC 61850</span></td></tr>
-          <tr><td>${t("set.protocols.cloud")}</td><td><span class="tag info">MQTT (TLS)</span></td></tr>
-        </table>
-      </div>
+    <div class="grid g-2 mb-16">
+      ${protocolSummaryCard(protocolCabinetForMap())}
       <div class="card">
         <div class="card-head"><h3>${t("set.security.title")}</h3></div>
         <table class="data">
@@ -3500,20 +3889,9 @@ function viewSettings() {
           <tr><td>${t("set.security.audit")}</td><td>${t("set.security.years").replace("{n}", 3)}</td></tr>
         </table>
       </div>
-      <div class="card">
-        <div class="card-head"><h3>${t("set.users.title")}</h3></div>
-        <table class="data">
-          <thead><tr><th>${t("set.users.thRole")}</th><th class="right">${t("set.users.thCount")}</th></tr></thead>
-          <tbody>
-            <tr><td>${t("set.users.admin")}</td><td class="num right">2</td></tr>
-            <tr><td>${t("set.users.eng")}</td><td class="num right">5</td></tr>
-            <tr><td>${t("set.users.exec")}</td><td class="num right">3</td></tr>
-            <tr><td>${t("set.users.guest")}</td><td class="num right">8</td></tr>
-          </tbody>
-        </table>
-      </div>
     </div>
   `;
+  bindCabinetManager();
 }
 
 // ────────── 8. Battery Passport ──────────
@@ -4087,6 +4465,75 @@ function viewPassport() {
   }));
 }
 
+
+
+// ────────── Cabinet Controller register map ──────────
+function viewGatewayMap() {
+  const snap = liveSnapshot(600) || state.liveSnapshot || {};
+  const raw = snap.meta?.modbusRaw || {};
+  const status = snap.meta?.modbusStatus || {};
+  const rows = [
+    { field:"socPct", name:"Total SOC of Battery Cluster", source:"API StationInfo + FC04", unit:"%", addr:"88", fc:"04", type:"u16 x0.1", raw:raw.socPct, value:snap.socPct, state:"verified" },
+    { field:"sohPct", name:"Total SOH of Battery Cluster", source:"API StationInfo", unit:"%", addr:"89", fc:"04", type:"u16 x0.1", raw:raw.sohPct, value:snap.sohPct, state:"api verified" },
+    { field:"accuChargeKWh", name:"Cumulative Charging Energy", source:"API StationInfo", unit:"kWh", addr:"-", fc:"-", type:"double", raw:"-", value:snap.accuChargeKWh, state:"api verified" },
+    { field:"accuDischargeKWh", name:"Cumulative Discharging Energy", source:"API StationInfo", unit:"kWh", addr:"-", fc:"-", type:"double", raw:"-", value:snap.accuDischargeKWh, state:"api verified" },
+    { field:"dayChargeKWh", name:"Today Charging Energy", source:"API StationInfo", unit:"kWh", addr:"-", fc:"-", type:"double", raw:"-", value:snap.dayChargeKWh, state:"api verified" },
+    { field:"dayDischargeKWh", name:"Today Discharging Energy", source:"API StationInfo", unit:"kWh", addr:"-", fc:"-", type:"double", raw:"-", value:snap.dayDischargeKWh, state:"api verified" },
+    { field:"bmsVoltageV", name:"Battery Cluster Voltage", source:"Modbus candidate", unit:"V", addr:"86", fc:"04", type:"u16 x0.1", raw:raw.bmsVoltageV, value:snap.bmsVoltageV, state:status.bmsVoltageV || "candidate" },
+    { field:"bmsCurrentA", name:"Battery Cluster Current", source:"Modbus candidate", unit:"A", addr:"87", fc:"04", type:"i16 x0.1", raw:raw.bmsCurrentA, value:snap.bmsCurrentA, state:status.bmsCurrentA || "candidate" },
+    { field:"maxCellTempC", name:"Maximum Battery Temperature", source:"Modbus candidate", unit:"°C", addr:"93", fc:"04", type:"i16 x0.1", raw:raw.maxCellTempC, value:snap.maxCellTempC, state:status.maxCellTempC || "candidate" },
+    { field:"avgCellTempC", name:"Average Battery Temperature", source:"Modbus candidate", unit:"°C", addr:"99", fc:"04", type:"i16 x0.1", raw:raw.avgCellTempC, value:snap.avgCellTempC, state:status.avgCellTempC || "candidate" },
+    { field:"essKW", name:"PCS / ESS Active Power", source:"Modbus candidate", unit:"kW", addr:"424", fc:"04", type:"i16 x0.1", raw:raw.essKW, value:snap.essKW, state:status.essKW || "candidate" },
+    { field:"gridKW", name:"Grid Meter Active Power", source:"Modbus candidate", unit:"kW", addr:"427", fc:"04", type:"i16 x0.1", raw:raw.gridKW, value:snap.gridKW, state:status.gridKW || "candidate" },
+    { field:"pvKW", name:"PV Active Power", source:"Device list", unit:"kW", addr:"-", fc:"-", type:"not installed", raw:"-", value:0, state:"absent" },
+    { field:"ev", name:"EV Charger", source:"Device list", unit:"-", addr:"-", fc:"-", type:"not installed", raw:"-", value:"-", state:"hidden" },
+  ];
+  const stateClass = (x) => x.includes("verified") ? "ok" : x === "absent" || x === "hidden" ? "mute" : "warn";
+  const valueText = (v, unit) => typeof v === "number" ? `${fmt(v, unit === "kWh" ? 3 : 1)} ${unit}` : (v ?? "-");
+  const updated = snap.ts ? new Date(snap.ts).toLocaleString("zh-TW", { hour12:false }) : "尚未取得";
+  const v = $("#view");
+  v.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">櫃控一體機點位表</h1>
+        <p class="page-sub">Cabinet Controller · 192.168.1.100 · Modbus TCP :502 · HTTP :80</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn" id="refreshGatewayMap">刷新</button>
+        <a class="btn btn-primary" href="docs/ref/hiems-gateway-map.md" target="_blank" rel="noopener">參考文件</a>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-16" style="gap:12px">
+      <div class="kpi"><div class="kpi-label">SoC</div><div class="kpi-value">${valueText(snap.socPct, "%")}</div><div class="kpi-foot">verified</div></div>
+      <div class="kpi green"><div class="kpi-label">SoH</div><div class="kpi-value">${valueText(snap.sohPct, "%")}</div><div class="kpi-foot">API verified</div></div>
+      <div class="kpi amber"><div class="kpi-label">PV / EV</div><div class="kpi-value">0</div><div class="kpi-foot">本站未配置，已隱藏 EV</div></div>
+      <div class="kpi blue"><div class="kpi-label">更新時間</div><div class="kpi-value" style="font-size:18px">${updated}</div><div class="kpi-foot">cron 每分鐘更新</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Register / API Mapping</h3><span class="tag ${snap.powerVerified ? 'ok' : 'warn'}">功率點位 ${snap.powerVerified ? 'verified' : 'candidate'}</span></div>
+      <table class="data">
+        <thead><tr><th>JJEMS 欄位</th><th>名稱</th><th>來源</th><th>FC</th><th>PDU Addr</th><th>型別/倍率</th><th class="right">Raw</th><th class="right">目前值</th><th>狀態</th></tr></thead>
+        <tbody>
+          ${rows.map(r => `<tr>
+            <td><code>${r.field}</code></td>
+            <td>${r.name}</td>
+            <td>${r.source}</td>
+            <td>${r.fc}</td>
+            <td class="num">${r.addr}</td>
+            <td>${r.type}</td>
+            <td class="num right">${r.raw ?? '-'}</td>
+            <td class="num right">${valueText(r.value, r.unit)}</td>
+            <td><span class="tag ${stateClass(r.state)}">${r.state}</span></td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+  $("#refreshGatewayMap")?.addEventListener("click", async () => { await loadLiveSnapshot(); viewGatewayMap(); });
+}
+
 // ────────── Boot ──────────
 document.addEventListener("DOMContentLoaded", () => {
   // Mode pill dropdown
@@ -4141,7 +4588,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyI18nDom();
   renderModePill();
-  renderTopbar();
+  loadLiveSnapshot().then(() => {
+    renderTopbar();
+    router();
+  });
   setInterval(renderTopbar, 5000);
-  router();
+  setInterval(loadLiveSnapshot, 30000);
 });

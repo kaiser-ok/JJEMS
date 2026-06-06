@@ -8,3 +8,18 @@ node_modules/
 !.env.example
 *.log
 hi_doc/
+
+# Runtime/generated telemetry
+live/*.json
+state/*.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Vendor binary reference packages
+*.zip
+*.dwg
+*.xls
+*.xlsx
+*.docx

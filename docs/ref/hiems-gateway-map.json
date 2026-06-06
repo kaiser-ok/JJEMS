@@ -1,0 +1,162 @@
+{
+  "name": "HiEMS Gateway Runtime Modbus Map",
+  "host": "192.168.1.100",
+  "port": 502,
+  "protocol": "modbus-tcp",
+  "serverId": "LMB3.1.4",
+  "addressing": "zero-based-pdu",
+  "notes": [
+    "This map records field-observed gateway behavior for JJEMS integration.",
+    "Do not assume the vendor northbound xlsx is the active runtime map without verification.",
+    "Unit ID appears ignored or flattened in current gateway tests."
+  ],
+  "verified": {
+    "socPct": {
+      "description": "Battery cluster SOC",
+      "sourceProperty": "272_44568",
+      "sourceName": "Total SOC of Battery Cluster",
+      "modbus": {
+        "unitId": 1,
+        "functionCode": 4,
+        "address": 88,
+        "quantity": 1,
+        "dataType": "u16",
+        "scale": 0.1,
+        "unit": "%"
+      },
+      "verification": {
+        "apiEndpoint": "POST /api/Common/StationInfo?MapId=1",
+        "apiField": "data.soc",
+        "apiValue": 39.0,
+        "rawValue": 390,
+        "engineeringValue": 39.0,
+        "status": "verified"
+      }
+    }
+  },
+  "apiVerified": {
+    "sohPct": {
+      "apiEndpoint": "POST /api/Common/StationInfo?MapId=1",
+      "apiField": "data.soh",
+      "apiValue": 100.0,
+      "unit": "%",
+      "modbusStatus": "tbd"
+    },
+    "accuChargeKWh": {
+      "apiEndpoint": "POST /api/Common/StationInfo?MapId=1",
+      "apiField": "data.accuChargeQuantity",
+      "apiValue": 667.192,
+      "unit": "kWh",
+      "modbusStatus": "tbd"
+    },
+    "accuDischargeKWh": {
+      "apiEndpoint": "POST /api/Common/StationInfo?MapId=1",
+      "apiField": "data.accDischargeQuantity",
+      "apiValue": 705.39,
+      "unit": "kWh",
+      "modbusStatus": "tbd"
+    },
+    "dayChargeKWh": {
+      "apiEndpoint": "POST /api/Common/StationInfo?MapId=1",
+      "apiField": "data.dayChargeQuantity",
+      "apiValue": 0.0,
+      "unit": "kWh",
+      "modbusStatus": "tbd"
+    },
+    "dayDischargeKWh": {
+      "apiEndpoint": "POST /api/Common/StationInfo?MapId=1",
+      "apiField": "data.dayDischargeQuantity",
+      "apiValue": 0.0,
+      "unit": "kWh",
+      "modbusStatus": "tbd"
+    }
+  },
+  "candidates": {
+    "essKW": {
+      "candidateProperties": [
+        "282_44904",
+        "271_44760"
+      ],
+      "candidateNames": [
+        "PCS Total Active Power",
+        "Total Output Active Power"
+      ],
+      "unit": "kW",
+      "status": "tbd"
+    },
+    "gridKW": {
+      "candidateProperties": [
+        "282_44907",
+        "276_44889"
+      ],
+      "candidateNames": [
+        "Grid Meter Total Active Power",
+        "power"
+      ],
+      "unit": "kW",
+      "status": "tbd"
+    },
+    "pvKW": {
+      "candidateProperties": [
+        "282_44898"
+      ],
+      "candidateNames": [
+        "PV Total active power"
+      ],
+      "unit": "kW",
+      "status": "tbd"
+    },
+    "loadKW": {
+      "candidateFormula": "gridKW + pvKW - essKW",
+      "unit": "kW",
+      "status": "tbd"
+    },
+    "bmsVoltageV": {
+      "candidateProperties": [
+        "272_44566"
+      ],
+      "candidateNames": [
+        "Battery Cluster Voltage"
+      ],
+      "unit": "V",
+      "status": "plausible-field-value"
+    },
+    "bmsCurrentA": {
+      "candidateProperties": [
+        "272_44567"
+      ],
+      "candidateNames": [
+        "Battery Cluster Current Value"
+      ],
+      "unit": "A",
+      "status": "tbd"
+    },
+    "maxCellTempC": {
+      "candidateProperties": [
+        "272_44573"
+      ],
+      "candidateNames": [
+        "Maximum Battery Temperature"
+      ],
+      "unit": "degC",
+      "status": "tbd"
+    },
+    "avgCellTempC": {
+      "candidateProperties": [
+        "272_44579"
+      ],
+      "candidateNames": [
+        "Average Battery Temperature"
+      ],
+      "unit": "degC",
+      "status": "tbd"
+    },
+    "alarmOpen": {
+      "candidateSources": [
+        "HiEMS alarm APIs",
+        "FC02 alarm range"
+      ],
+      "status": "tbd"
+    }
+  }
+}

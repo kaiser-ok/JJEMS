@@ -60,12 +60,14 @@ CREATE TABLE sites (
 CREATE INDEX idx_sites_org ON sites(org_id);
 
 CREATE TABLE user_roles (
+  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role      user_role_kind NOT NULL,
   site_id   UUID REFERENCES sites(id) ON DELETE CASCADE,    -- NULL = all sites
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (user_id, role, COALESCE(site_id, '00000000-0000-0000-0000-000000000000'::UUID))
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE UNIQUE INDEX idx_user_roles_scope_unique
+  ON user_roles(user_id, role, COALESCE(site_id, '00000000-0000-0000-0000-000000000000'::UUID));
 
 CREATE TABLE api_tokens (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
