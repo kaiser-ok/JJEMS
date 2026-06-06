@@ -77,6 +77,14 @@ For the verified SOC point, the field mapping matched:
 This offset rule is inferred from field testing and must not be assumed for all
 properties until individually verified.
 
+Updated vendor sheet `docs/ref/vendor-modbus-update.xlsx` confirms this file is
+an IEC104/ModbusTCP point table for the Taiwan 261 kWh cabinet. For Modbus, the
+`Modbus地址（04）` column is used directly as the FC04 PDU address on this gateway;
+do not subtract 1 and do not use old `400xx` absolute addresses. `Modbus系数（/）`
+means engineering value = raw / coefficient. Multi-register energy values use
+the listed address range with high word first. Use these verified PCS/BMS reads
+instead of the older `essKW addr 424` / `gridKW addr 427` candidates.
+
 ## Verified Points
 
 These points have been compared against the HiEMS web/API value.
@@ -84,6 +92,15 @@ These points have been compared against the HiEMS web/API value.
 | JJEMS field | Modbus | Raw | Scale | Value | Verification |
 |---|---:|---:|---:|---:|---|
 | `socPct` | FC04 unit `1`, addr `88`, count `1` | `390` | `0.1` | `39.0 %` | Matches `StationInfo.soc = 39.0` |
+| `frequencyHz` | FC04 unit `2`, addr `24`, count `1` | `5999` | `/100` | `59.99 Hz` | Matches vendor sheet row 電網頻率 |
+| `pcsKW` | FC04 unit `2`, addr `28`, count `1` | `0` | signed `/10` | `0.0 kW` | Matches vendor sheet row 總輸出有功功率 |
+| `pcsKVar` | FC04 unit `2`, addr `32`, count `1` | `0` | signed `/10` | `0.0 kVar` | Matches vendor sheet row 總輸出無功功率 |
+| `pcsChargeKWh` | FC04 unit `2`, addr `45-46`, count `2` | `667192` | `U32 high-word-first /1000` | `667.192 kWh` | Matches `StationInfo.accuChargeQuantity` |
+| `pcsDischargeKWh` | FC04 unit `2`, addr `47-48`, count `2` | `705390` | `U32 high-word-first /1000` | `705.39 kWh` | Matches `StationInfo.accDischargeQuantity` |
+| `maxCellTempC` | FC04 unit `1`, addr `97`, count `1` | `280` | signed `/10` | `28.0 °C` | Matches BMS/MQTT max temperature |
+| `avgCellTempC` | FC04 unit `1`, addr `103`, count `1` | `270` | signed `/10` | `27.0 °C` | Matches BMS/MQTT average temperature |
+| `bmsChargeKWh` | FC04 unit `1`, addr `126-127`, count `2` | `4107` | `U32 high-word-first /10` | `410.7 kWh` | Matches BMS/MQTT charge energy |
+| `bmsDischargeKWh` | FC04 unit `1`, addr `128-129`, count `2` | `3531` | `U32 high-word-first /10` | `353.1 kWh` | Matches BMS/MQTT discharge energy |
 
 ## Candidate Points
 
@@ -95,10 +112,9 @@ or API. Keep them out of production control logic until verified.
 | `sohPct` | `StationInfo.soh`; candidate property `282_44953` or `272_44569` | Battery health KPI | API verified, Modbus TBD |
 | `accuChargeKWh` | `StationInfo.accuChargeQuantity`; candidate `272_44589` | Finance / energy balance | API verified, Modbus TBD |
 | `accuDischargeKWh` | `StationInfo.accDischargeQuantity`; candidate `272_44590` | Finance / energy balance | API verified, Modbus TBD |
-| `essKW` | `282_44904 PCS Total Active Power` or PCS `271_44760` | Dashboard ESS power flow | TBD |
-| `gridKW` | `282_44907 Grid Meter Total Active Power` or OutMeter `276_44889` | Dashboard grid power flow | TBD |
+| `gridKW` | `282_44907 Grid Meter Total Active Power` or OutMeter `276_44889` | Dashboard grid power flow | Vendor needed; current SignalR/MQTT value empty |
 | `pvKW` | `282_44898 PV Total active power` | Dashboard PV power flow | TBD |
-| `loadKW` | Derived from `gridKW + pvKW - essKW`, or load meter if present | Dashboard load power flow | TBD |
+| `loadKW` | Derived from `gridKW + pvKW + pcsKW`, or load meter if present | Dashboard load power flow | TBD |
 | `maxCellTempC` | `272_44573 Maximum Battery Temperature` | Device/BMS health | TBD |
 | `avgCellTempC` | `272_44579 Average Battery Temperature` | Device/BMS health | TBD |
 | `bmsVoltageV` | `272_44566 Battery Cluster Voltage` | Device/BMS status | Field value plausible |

@@ -72,17 +72,29 @@
     }
   },
   "candidates": {
-    "essKW": {
-      "candidateProperties": [
-        "282_44904",
-        "271_44760"
-      ],
-      "candidateNames": [
-        "PCS Total Active Power",
-        "Total Output Active Power"
-      ],
+    "pcsKW": {
+      "modbus": {"unitId": 2, "fc": 4, "pduAddr": 28, "count": 1, "type": "i16", "scale": 0.1},
+      "candidateProperties": ["271_44760", "282_44904"],
       "unit": "kW",
-      "status": "tbd"
+      "status": "pcs-table verified"
+    },
+    "frequencyHz": {
+      "modbus": {"unitId": 2, "fc": 4, "pduAddr": 24, "count": 1, "type": "u16", "scale": 0.01},
+      "candidateProperties": ["271_44759"],
+      "unit": "Hz",
+      "status": "pcs-table verified"
+    },
+    "pcsChargeKWh": {
+      "modbus": {"unitId": 2, "fc": 4, "pduAddr": 45, "count": 2, "type": "u32_be_words", "scale": 0.001},
+      "candidateProperties": ["271_44767"],
+      "unit": "kWh",
+      "status": "pcs-table verified"
+    },
+    "pcsDischargeKWh": {
+      "modbus": {"unitId": 2, "fc": 4, "pduAddr": 47, "count": 2, "type": "u32_be_words", "scale": 0.001},
+      "candidateProperties": ["271_44768"],
+      "unit": "kWh",
+      "status": "pcs-table verified"
     },
     "gridKW": {
       "candidateProperties": [
@@ -94,7 +106,7 @@
         "power"
       ],
       "unit": "kW",
-      "status": "tbd"
+      "status": "vendor-needed; current SignalR/MQTT value empty"
     },
     "pvKW": {
       "candidateProperties": [
@@ -107,7 +119,7 @@
       "status": "tbd"
     },
     "loadKW": {
-      "candidateFormula": "gridKW + pvKW - essKW",
+      "candidateFormula": "gridKW + pvKW + pcsKW",
       "unit": "kW",
       "status": "tbd"
     },

@@ -430,3 +430,58 @@ Minimum write/control points needed:
 ### Verification
 - `node --check app.js` passed.
 
+
+## 2026-06-06 - Modbus TCP PCS Point Table Correction
+
+- Vendor clarified Modbus TCP should follow the PCS point table.
+- Re-tested PCS FC04 with unit `2`; runtime PDU addressing is still zero-based and 32-bit counters are low-word-first.
+- Removed stale `essKW addr 424` / `gridKW addr 427` candidates from the SOC logger output because they produced misleading values.
+- Verified PCS values:
+  - `frequencyHz`: unit 2, FC04, PDU addr `24`, u16 x0.01 -> about `59.96 Hz`
+  - `pcsKW`: unit 2, FC04, PDU addr `32`, i32 low-word-first x0.1 -> `0.0 kW`
+  - `pcsKVar`: unit 2, FC04, PDU addr `34`, i32 low-word-first x0.1 -> `0.0 kVar`
+  - `pcsChargeKWh`: unit 2, FC04, PDU addr `46`, u32 low-word-first x0.001 -> `667.192 kWh`
+  - `pcsDischargeKWh`: unit 2, FC04, PDU addr `48`, u32 low-word-first x0.001 -> `705.39 kWh`
+- Grid/load remain not verified; `282_44907`, `282_44906`, and `276_44889` are empty/not published in current SignalR/MQTT tests.
+
+## 2026-06-06 - Vendor Modbus Sheet Analysis
+
+- Downloaded updated sheet to `docs/ref/vendor-modbus-update.xlsx` from the vendor Google Sheets link.
+- Sheets include `说明`, `1.1遥信`, `1.2遥测`, `1.3遥控`, `1.4遥调`.
+- Modbus support is explicit:
+  - FC02: 遥信 / discrete input
+  - FC04: 遥测 / input register
+  - FC05: 遥控 / single coil
+  - FC06: 遥调 / single register
+- FC04 `Modbus地址（04）` is used directly as the runtime PDU address on this gateway. No `-1` offset was observed.
+- FC04 `Modbus系数（/）` means engineering value = raw / coefficient; FC06 `Modbus系数（*）` means write raw = engineering value * coefficient.
+- Corrected PCS/BMS Modbus mappings in `scripts/hiems_soc_logger.py`:
+  - PCS frequency addr 24 /100
+  - PCS active power addr 28 /10
+  - PCS reactive power addr 32 /10
+  - PCS charge energy addr 45-46 high-word-first /1000
+  - PCS discharge energy addr 47-48 high-word-first /1000
+  - BMS max/avg temp addr 97/103 /10
+  - BMS charge/discharge energy addr 126-127 /10 and 128-129 /10
+## 2026-06-06 · HiEMS 遙測遙控驗證 API gate
+- 新增 `scripts/hiems_command_api.py`：本機 HTTP API，預設 dry-run only，實際 FC05/FC06 寫入需 `--enable-writes` + Bearer token + safety acknowledgements。
+- API endpoints：`GET /api/hiems/commands/allowlist`、`GET /api/hiems/commands/health`、`POST /api/hiems/commands`。
+- Allowlist 目前限 PCS：遠程/就地、待機、啟動、停機、故障復位、運行模式、有功/無功功率期望。
+- 有功功率期望採 vendor sheet `FC06 addr 4`，`raw = kW * 10`，低功率測試預設限制 `abs(kW) <= 3`；文件方向為負=放電、正=充電，仍需現場低功率確認。
+- 前端 `#/rtu-verify` 新增 Command API Gate 區塊，可送 dry-run 或在安全條件勾選後送 execute。
+- 本次只 dry-run 測試：`pcs.active_power_kw=1` 產生 `unitId=2, fc=6, addr=4, rawValue=10`，未對櫃控寫入。
+
+啟動方式：
+```bash
+# dry-run only
+python3 scripts/hiems_command_api.py --listen 127.0.0.1 --api-port 9093
+
+# 現場測試寫入，需先設定 token
+export JJEMS_COMMAND_TOKEN='change-this-token'
+python3 scripts/hiems_command_api.py --listen 127.0.0.1 --api-port 9093 --enable-writes
+```
+## 2026-06-06 · Commit note
+- Prepared commit for HiEMS vendor Modbus mapping correction, `#/rtu-verify` verification workbench, and local `scripts/hiems_command_api.py` API gate.
+- Verification before commit: `node --check app.js`; `python3 -m py_compile scripts/hiems_command_api.py scripts/hiems_soc_logger.py`; dry-run command API test only, no real FC05/FC06 write.
+- Left unrelated malformed untracked filename untouched.
+

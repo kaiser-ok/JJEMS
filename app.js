@@ -389,6 +389,7 @@ const routes = {
   alarms: viewAlarms,
   settings: viewSettings,
   "gateway-map": viewGatewayMap,
+  "rtu-verify": viewRtuVerify,
 };
 function router() {
   const hash = (location.hash || "#/dashboard").replace("#/", "");
@@ -4472,6 +4473,8 @@ function viewGatewayMap() {
   const snap = liveSnapshot(600) || state.liveSnapshot || {};
   const raw = snap.meta?.modbusRaw || {};
   const status = snap.meta?.modbusStatus || {};
+  const pcsRaw = snap.meta?.pcsRaw || {};
+  const pcsStatus = snap.meta?.pcsStatus || {};
   const rows = [
     { field:"socPct", name:"Total SOC of Battery Cluster", source:"API StationInfo + FC04", unit:"%", addr:"88", fc:"04", type:"u16 x0.1", raw:raw.socPct, value:snap.socPct, state:"verified" },
     { field:"sohPct", name:"Total SOH of Battery Cluster", source:"API StationInfo", unit:"%", addr:"89", fc:"04", type:"u16 x0.1", raw:raw.sohPct, value:snap.sohPct, state:"api verified" },
@@ -4481,10 +4484,12 @@ function viewGatewayMap() {
     { field:"dayDischargeKWh", name:"Today Discharging Energy", source:"API StationInfo", unit:"kWh", addr:"-", fc:"-", type:"double", raw:"-", value:snap.dayDischargeKWh, state:"api verified" },
     { field:"bmsVoltageV", name:"Battery Cluster Voltage", source:"Modbus candidate", unit:"V", addr:"86", fc:"04", type:"u16 x0.1", raw:raw.bmsVoltageV, value:snap.bmsVoltageV, state:status.bmsVoltageV || "candidate" },
     { field:"bmsCurrentA", name:"Battery Cluster Current", source:"Modbus candidate", unit:"A", addr:"87", fc:"04", type:"i16 x0.1", raw:raw.bmsCurrentA, value:snap.bmsCurrentA, state:status.bmsCurrentA || "candidate" },
-    { field:"maxCellTempC", name:"Maximum Battery Temperature", source:"Modbus candidate", unit:"°C", addr:"93", fc:"04", type:"i16 x0.1", raw:raw.maxCellTempC, value:snap.maxCellTempC, state:status.maxCellTempC || "candidate" },
-    { field:"avgCellTempC", name:"Average Battery Temperature", source:"Modbus candidate", unit:"°C", addr:"99", fc:"04", type:"i16 x0.1", raw:raw.avgCellTempC, value:snap.avgCellTempC, state:status.avgCellTempC || "candidate" },
-    { field:"essKW", name:"PCS / ESS Active Power", source:"Modbus candidate", unit:"kW", addr:"424", fc:"04", type:"i16 x0.1", raw:raw.essKW, value:snap.essKW, state:status.essKW || "candidate" },
-    { field:"gridKW", name:"Grid Meter Active Power", source:"Modbus candidate", unit:"kW", addr:"427", fc:"04", type:"i16 x0.1", raw:raw.gridKW, value:snap.gridKW, state:status.gridKW || "candidate" },
+    { field:"frequencyHz", name:"PCS Grid Frequency", source:"PCS point table", unit:"Hz", addr:"24", fc:"04", type:"u16 x0.01", raw:pcsRaw.frequencyHz, value:snap.frequencyHz, state:pcsStatus.frequencyHz || "pcs-table verified" },
+    { field:"pcsKW", name:"PCS Active Power", source:"Vendor Modbus sheet", unit:"kW", addr:"28", fc:"04", type:"i16 /10", raw:pcsRaw.pcsKW, value:snap.pcsKW, state:pcsStatus.pcsKW || "vendor-sheet verified" },
+    { field:"pcsKVar", name:"PCS Reactive Power", source:"Vendor Modbus sheet", unit:"kVar", addr:"32", fc:"04", type:"i16 /10", raw:pcsRaw.pcsKVar, value:snap.pcsKVar, state:pcsStatus.pcsKVar || "vendor-sheet verified" },
+    { field:"pcsChargeKWh", name:"PCS Cumulative Charging Energy", source:"Vendor Modbus sheet", unit:"kWh", addr:"45-46", fc:"04", type:"u32 high-word-first /1000", raw:pcsRaw.pcsChargeKWh, value:snap.pcsChargeKWh, state:pcsStatus.pcsChargeKWh || "vendor-sheet verified" },
+    { field:"pcsDischargeKWh", name:"PCS Cumulative Discharging Energy", source:"Vendor Modbus sheet", unit:"kWh", addr:"47-48", fc:"04", type:"u32 high-word-first /1000", raw:pcsRaw.pcsDischargeKWh, value:snap.pcsDischargeKWh, state:pcsStatus.pcsDischargeKWh || "vendor-sheet verified" },
+    { field:"gridKW", name:"Grid Meter Active Power", source:"SignalR/MQTT pending", unit:"kW", addr:"-", fc:"-", type:"282_44907 / 276_44889 currently empty", raw:"-", value:snap.gridKW, state:"vendor-needed" },
     { field:"pvKW", name:"PV Active Power", source:"Device list", unit:"kW", addr:"-", fc:"-", type:"not installed", raw:"-", value:0, state:"absent" },
     { field:"ev", name:"EV Charger", source:"Device list", unit:"-", addr:"-", fc:"-", type:"not installed", raw:"-", value:"-", state:"hidden" },
   ];
@@ -4532,6 +4537,251 @@ function viewGatewayMap() {
     </div>
   `;
   $("#refreshGatewayMap")?.addEventListener("click", async () => { await loadLiveSnapshot(); viewGatewayMap(); });
+}
+
+// ────────── Telemetry / remote-control verification ──────────
+function viewRtuVerify() {
+  const snap = liveSnapshot(600) || state.liveSnapshot || {};
+  const raw = snap.meta?.modbusRaw || {};
+  const status = snap.meta?.modbusStatus || {};
+  const pcsRaw = snap.meta?.pcsRaw || {};
+  const pcsStatus = snap.meta?.pcsStatus || {};
+  const updated = snap.ts ? new Date(snap.ts).toLocaleString("zh-TW", { hour12:false }) : "尚未取得";
+  const valueText = (v, unit, d = 1) => typeof v === "number" && Number.isFinite(v) ? `${fmt(v, d)} ${unit}` : "-";
+  const statusTag = (x) => {
+    const s = String(x || "pending");
+    const cls = s.includes("verified") ? "ok" : s.includes("candidate") ? "warn" : s.includes("blocked") ? "err" : "mute";
+    return `<span class="tag ${cls}">${s}</span>`;
+  };
+  const telemetryRows = [
+    { group:"BMS", field:"socPct", name:"SOC", fc:"04", addr:"88", scale:"raw / 10", raw:raw.socPct, value:valueText(snap.socPct, "%"), status:status.socPct || "verified", note:"需對照櫃控 SOC 畫面" },
+    { group:"BMS", field:"sohPct", name:"SOH", fc:"04", addr:"89", scale:"raw / 1", raw:raw.sohPct, value:valueText(snap.sohPct, "%"), status:status.sohPct || "candidate", note:"目前 API / Modbus 值一致時可升 verified" },
+    { group:"BMS", field:"bmsVoltageV", name:"電池簇電壓", fc:"04", addr:"86", scale:"raw / 10", raw:raw.bmsVoltageV, value:valueText(snap.bmsVoltageV, "V"), status:status.bmsVoltageV || "candidate", note:"對照 BMS 畫面" },
+    { group:"BMS", field:"bmsCurrentA", name:"電池簇電流", fc:"04", addr:"87", scale:"signed raw / 10", raw:raw.bmsCurrentA, value:valueText(snap.bmsCurrentA, "A"), status:status.bmsCurrentA || "candidate", note:"充放電時確認正負號" },
+    { group:"BMS", field:"maxCellTempC", name:"最高單體溫度", fc:"04", addr:"97", scale:"raw / 10", raw:raw.maxCellTempC, value:valueText(snap.maxCellTempC, "°C"), status:status.maxCellTempC || "vendor-sheet verified", note:"目前不是完整 cell temp array" },
+    { group:"BMS", field:"avgCellTempC", name:"平均單體溫度", fc:"04", addr:"103", scale:"raw / 10", raw:raw.avgCellTempC, value:valueText(snap.avgCellTempC, "°C"), status:status.avgCellTempC || "vendor-sheet verified", note:"可做趨勢監控" },
+    { group:"PCS", field:"frequencyHz", name:"PCS 電網頻率", fc:"04", addr:"24", scale:"raw / 100", raw:pcsRaw.frequencyHz, value:valueText(snap.frequencyHz, "Hz", 2), status:pcsStatus.frequencyHz || "vendor-sheet verified", note:"PCS AC 側頻率" },
+    { group:"PCS", field:"pcsKW", name:"PCS 總輸出有功功率", fc:"04", addr:"28", scale:"signed raw / 10", raw:pcsRaw.pcsKW, value:valueText(snap.pcsKW, "kW"), status:pcsStatus.pcsKW || "vendor-sheet verified", note:"正負號需用低功率測試確認" },
+    { group:"PCS", field:"pcsKVar", name:"PCS 總輸出無功功率", fc:"04", addr:"32", scale:"signed raw / 10", raw:pcsRaw.pcsKVar, value:valueText(snap.pcsKVar, "kVar"), status:pcsStatus.pcsKVar || "vendor-sheet verified", note:"非第一階段必要" },
+    { group:"PCS", field:"pcsChargeKWh", name:"PCS 累計充電量", fc:"04", addr:"45-46", scale:"u32 high-word-first / 1000", raw:pcsRaw.pcsChargeKWh, value:valueText(snap.pcsChargeKWh, "kWh", 3), status:pcsStatus.pcsChargeKWh || "vendor-sheet verified", note:"已可對照櫃控累計充電量" },
+    { group:"PCS", field:"pcsDischargeKWh", name:"PCS 累計放電量", fc:"04", addr:"47-48", scale:"u32 high-word-first / 1000", raw:pcsRaw.pcsDischargeKWh, value:valueText(snap.pcsDischargeKWh, "kWh", 3), status:pcsStatus.pcsDischargeKWh || "vendor-sheet verified", note:"已可對照櫃控累計放電量" },
+    { group:"Site", field:"gridKW", name:"市電 / Grid", fc:"-", addr:"-", scale:"由 JJEMS 另接電表", raw:"-", value:"-", status:"blocked: not cabinet datapoint", note:"vendor 已說一般由主 EMS 接表，避免轉傳延遲" },
+    { group:"Site", field:"loadKW", name:"負載 / Load", fc:"-", addr:"-", scale:"由 JJEMS 另接電表或推算", raw:"-", value:"-", status:"blocked: not cabinet datapoint", note:"不可用櫃控 PCS 點位冒充案場負載" },
+  ];
+  const controlRows = [
+    { stage:"0", type:"FC05", addr:"7", name:"遠程/就地設定", value:"1 = 遠程", guard:"現場確認可切遠程，且櫃控 UI 顯示遠程狀態" },
+    { stage:"1", type:"FC05", addr:"8", name:"設備待機", value:"1 = 待機", guard:"確認 PCS 無故障，SOC 在安全範圍" },
+    { stage:"2", type:"FC06", addr:"1", name:"運行模式選擇", value:"3 = 恒功率充電", guard:"先寫模式，不立即給大功率" },
+    { stage:"3", type:"FC06", addr:"4", name:"恒功率有功功率期望", value:"raw = kW * 10", guard:"從 1-3 kW 開始，確認正負號；文件寫負=放電，正=充電" },
+    { stage:"4", type:"FC05", addr:"2 / 3", name:"設備啟動 / 停機", value:"1 pulse", guard:"只在現場許可下測試；停機命令需可即時復歸" },
+    { stage:"R", type:"FC05", addr:"1", name:"PCS 故障復位", value:"1 = 復位", guard:"只在已知告警處置流程中使用" },
+  ];
+  const v = $("#view");
+  v.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">遙測遙控驗證工作台</h1>
+        <p class="page-sub">Cabinet Controller · 192.168.1.100 · Modbus TCP :502 · 先讀值比對，再低功率寫入</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn" id="refreshRtuVerify">刷新讀值</button>
+        <a class="btn" href="#/gateway-map">查看點表</a>
+        <a class="btn btn-primary" href="docs/ref/hiems-gateway-map.md" target="_blank" rel="noopener">驗證紀錄文件</a>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-16">
+      <div class="kpi"><div class="kpi-label">櫃控連線</div><div class="kpi-value">${snap.host || "192.168.1.100"}</div><div class="kpi-foot">${updated}</div></div>
+      <div class="kpi green"><div class="kpi-label">SOC</div><div class="kpi-value">${valueText(snap.socPct, "%")}</div><div class="kpi-foot">FC04 addr 88</div></div>
+      <div class="kpi blue"><div class="kpi-label">PCS 功率</div><div class="kpi-value">${valueText(snap.pcsKW, "kW")}</div><div class="kpi-foot">FC04 addr 28，非市電功率</div></div>
+      <div class="kpi amber"><div class="kpi-label">Site Meter</div><div class="kpi-value">外接</div><div class="kpi-foot">Grid / Load 不由櫃控提供</div></div>
+    </div>
+
+    <div class="verify-flow mb-16">
+      <div class="verify-step ok"><span>1</span><strong>讀值對表</strong><em>SOC / SOH / PCS kW</em></div>
+      <div class="verify-step warn"><span>2</span><strong>正負號確認</strong><em>1-3 kW 低功率</em></div>
+      <div class="verify-step mute"><span>3</span><strong>遙控 pulse</strong><em>遠程 / 待機 / 啟停</em></div>
+      <div class="verify-step mute"><span>4</span><strong>EMS API gate</strong><em>權限 / 審計 / 回復</em></div>
+    </div>
+
+    <div class="grid g-2 mb-16">
+      <div class="card">
+        <div class="card-head"><h3>寫入前安全條件</h3><span class="tag warn" id="rtuReadyTag">未就緒</span></div>
+        <div class="verify-checks" id="rtuChecks">
+          ${[
+            "現場人員可看到櫃控與 PCS 狀態",
+            "SOC 在允許充放電區間，且無保護/告警",
+            "確認 FC06 addr 4 正負號後才放大功率",
+            "測試功率從 1-3 kW 開始，測完立即歸零",
+            "已準備停機/復歸流程，不做無人值守寫入"
+          ].map((txt, i) => `
+            <label class="verify-check">
+              <input type="checkbox" data-rtu-check="${i}">
+              <span>${txt}</span>
+            </label>
+          `).join("")}
+        </div>
+        <div class="verify-armed mt-16" id="rtuArmedBox">
+          <strong>寫入功能目前未啟用。</strong>
+          <span class="muted">這個畫面先作為測試單與審核 UI；真正 FC05/FC06 需要後端 API、角色權限、現場解鎖與操作紀錄。</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Command API Gate</h3><span class="tag mute" id="commandApiStatus">未連線</span></div>
+        <div class="grid g-2e" style="gap:10px">
+          <div class="form-row">
+            <label>API URL</label>
+            <input class="inp" id="commandApiUrl" value="http://127.0.0.1:9093/api/hiems/commands">
+          </div>
+          <div class="form-row">
+            <label>操作員</label>
+            <input class="inp" id="commandOperator" value="現場工程師">
+          </div>
+          <div class="form-row">
+            <label>命令</label>
+            <select class="inp" id="commandName">
+              <option value="pcs.remote_mode">PCS 遠程/就地設定 · FC05 addr 7</option>
+              <option value="pcs.standby">PCS 設備待機 · FC05 addr 8</option>
+              <option value="pcs.run_mode">PCS 運行模式選擇 · FC06 addr 1</option>
+              <option value="pcs.active_power_kw">PCS 有功功率期望 · FC06 addr 4</option>
+              <option value="pcs.stop">PCS 停機 · FC05 addr 3</option>
+              <option value="pcs.start">PCS 啟動 · FC05 addr 2</option>
+              <option value="pcs.fault_reset">PCS 故障復位 · FC05 addr 1</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>值</label>
+            <input class="inp" id="commandValue" value="1" inputmode="decimal">
+          </div>
+          <div class="form-row">
+            <label>Bearer token</label>
+            <input class="inp" id="commandToken" type="password" placeholder="execute 模式才需要">
+          </div>
+          <div class="form-row">
+            <label>原因 / 備註</label>
+            <input class="inp" id="commandReason" value="低功率現場驗證">
+          </div>
+        </div>
+        <div class="row mt-16" style="flex-wrap:wrap">
+          <button class="btn" id="commandDryRun">產生 dry-run</button>
+          <button class="btn btn-primary" id="commandExecute" disabled>送出現場寫入</button>
+          <span class="muted" style="font-size:12px">execute 需要 API 以 --enable-writes 啟動，且所有安全條件已勾選。</span>
+        </div>
+        <pre class="command-output" id="commandOutput">尚未送出命令。</pre>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-head"><h3>遙測驗證清單</h3><span class="tag ${snap.ts ? 'ok' : 'warn'}">${snap.ts ? 'live snapshot' : 'no snapshot'}</span></div>
+      <table class="data verify-table">
+        <thead><tr><th>群組</th><th>JJEMS 欄位</th><th>名稱</th><th>FC</th><th>PDU Addr</th><th>倍率</th><th class="right">Raw</th><th class="right">目前值</th><th>狀態</th><th>驗證重點</th></tr></thead>
+        <tbody>
+          ${telemetryRows.map(r => `<tr>
+            <td>${r.group}</td>
+            <td><code>${r.field}</code></td>
+            <td>${r.name}</td>
+            <td>${r.fc}</td>
+            <td class="num">${r.addr}</td>
+            <td>${r.scale}</td>
+            <td class="num right">${r.raw ?? "-"}</td>
+            <td class="num right">${r.value}</td>
+            <td>${statusTag(r.status)}</td>
+            <td>${r.note}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>遙控 / 遙調測試單</h3><span class="tag err">manual approval required</span></div>
+      <table class="data verify-table">
+        <thead><tr><th>階段</th><th>功能</th><th>PDU Addr</th><th>命令</th><th>值 / 換算</th><th>安全條件</th><th>結果</th></tr></thead>
+        <tbody>
+          ${controlRows.map(r => `<tr>
+            <td class="num">${r.stage}</td>
+            <td>${r.type}</td>
+            <td class="num">${r.addr}</td>
+            <td>${r.name}</td>
+            <td>${r.value}</td>
+            <td>${r.guard}</td>
+            <td><select class="inp verify-result" aria-label="${r.name} 結果"><option>未測</option><option>通過</option><option>失敗</option><option>跳過</option></select></td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+  $("#refreshRtuVerify")?.addEventListener("click", async () => { await loadLiveSnapshot(); viewRtuVerify(); });
+  const checks = $$('[data-rtu-check]');
+  const updateReady = () => {
+    const ready = checks.length > 0 && checks.every(x => x.checked);
+    const tag = $("#rtuReadyTag");
+    if (tag) {
+      tag.className = `tag ${ready ? "ok" : "warn"}`;
+      tag.textContent = ready ? "可進入現場寫入測試" : "未就緒";
+    }
+    $("#rtuArmedBox")?.classList.toggle("ready", ready);
+    const execBtn = $("#commandExecute");
+    if (execBtn) execBtn.disabled = !ready;
+  };
+  const safetyAckNames = [
+    "onsite_operator_present",
+    "soc_in_safe_range",
+    "no_active_protection_alarm",
+    "low_power_test_only",
+    "rollback_ready",
+  ];
+  const commandValue = () => {
+    const rawValue = $("#commandValue")?.value?.trim();
+    if (rawValue === "true") return true;
+    if (rawValue === "false") return false;
+    const n = Number(rawValue);
+    return Number.isFinite(n) ? n : rawValue;
+  };
+  const commandPayload = (execute = false) => ({
+    command: $("#commandName")?.value,
+    value: commandValue(),
+    operator: $("#commandOperator")?.value?.trim() || "unknown",
+    reason: $("#commandReason")?.value?.trim() || "",
+    dryRun: !execute,
+    execute,
+    safetyAcks: checks.map((x, i) => x.checked ? safetyAckNames[i] : null).filter(Boolean),
+    clientTs: new Date().toISOString(),
+  });
+  const commandUrl = () => $("#commandApiUrl")?.value?.trim() || "http://127.0.0.1:9093/api/hiems/commands";
+  const renderCommandResult = (payload, ok = true) => {
+    const out = $("#commandOutput");
+    if (out) out.textContent = JSON.stringify(payload, null, 2);
+    const tag = $("#commandApiStatus");
+    if (tag) {
+      tag.className = `tag ${ok ? "ok" : "err"}`;
+      tag.textContent = ok ? (payload.mode || "ok") : "失敗";
+    }
+  };
+  const sendCommand = async (execute = false) => {
+    const headers = { "Content-Type": "application/json" };
+    const token = $("#commandToken")?.value?.trim();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    try {
+      const res = await fetch(commandUrl(), { method: "POST", headers, body: JSON.stringify(commandPayload(execute)) });
+      const payload = await res.json();
+      renderCommandResult(payload, res.ok && payload.ok !== false);
+    } catch (err) {
+      renderCommandResult({ ok:false, error:String(err), hint:"請確認 scripts/hiems_command_api.py 是否已在 127.0.0.1:9093 啟動。" }, false);
+    }
+  };
+  $("#commandDryRun")?.addEventListener("click", () => sendCommand(false));
+  $("#commandExecute")?.addEventListener("click", () => sendCommand(true));
+  $("#commandName")?.addEventListener("change", () => {
+    const name = $("#commandName")?.value;
+    const input = $("#commandValue");
+    if (!input) return;
+    if (name === "pcs.run_mode") input.value = "3";
+    else if (name === "pcs.active_power_kw") input.value = "1";
+    else input.value = "1";
+  });
+  checks.forEach(x => x.addEventListener("change", updateReady));
+  updateReady();
 }
 
 // ────────── Boot ──────────

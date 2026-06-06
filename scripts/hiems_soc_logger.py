@@ -36,16 +36,29 @@ DEFAULT_DB_USER = "ems"
 DEFAULT_DB_NAME = "ems"
 DEFAULT_LIVE_JSON = "live/hiems_latest.json"
 
-# Runtime gateway map, zero-based PDU addresses. Only SOC is fully verified.
+# Runtime gateway map, zero-based PDU addresses. Station/BMS points are only
+# kept when they have been cross-checked against HiEMS HTTP/MQTT values.
 MODBUS_POINTS = {
     "socPct": {"fc": 4, "addr": 88, "qty": 1, "type": "u16", "scale": 0.1, "unit": "%", "status": "verified"},
     "sohPct": {"fc": 4, "addr": 89, "qty": 1, "type": "u16", "scale": 0.1, "unit": "%", "status": "candidate"},
     "bmsVoltageV": {"fc": 4, "addr": 86, "qty": 1, "type": "u16", "scale": 0.1, "unit": "V", "status": "candidate"},
-    "bmsCurrentA": {"fc": 4, "addr": 87, "qty": 1, "type": "i16", "scale": 0.1, "unit": "A", "status": "candidate"},
-    "maxCellTempC": {"fc": 4, "addr": 93, "qty": 1, "type": "i16", "scale": 0.1, "unit": "degC", "status": "candidate"},
-    "avgCellTempC": {"fc": 4, "addr": 99, "qty": 1, "type": "i16", "scale": 0.1, "unit": "degC", "status": "candidate"},
-    "essKW": {"fc": 4, "addr": 424, "qty": 1, "type": "i16", "scale": 0.1, "unit": "kW", "status": "candidate"},
-    "gridKW": {"fc": 4, "addr": 427, "qty": 1, "type": "i16", "scale": 0.1, "unit": "kW", "status": "candidate"},
+    "bmsCurrentA": {"fc": 4, "addr": 87, "qty": 1, "type": "i16", "scale": 0.1, "unit": "A", "status": "vendor-sheet verified"},
+    "maxCellTempC": {"fc": 4, "addr": 97, "qty": 1, "type": "i16", "scale": 0.1, "unit": "degC", "status": "vendor-sheet verified"},
+    "avgCellTempC": {"fc": 4, "addr": 103, "qty": 1, "type": "i16", "scale": 0.1, "unit": "degC", "status": "vendor-sheet verified"},
+    "bmsChargeKWh": {"fc": 4, "addr": 126, "qty": 2, "type": "u32_be_words", "scale": 0.1, "unit": "kWh", "status": "vendor-sheet verified"},
+    "bmsDischargeKWh": {"fc": 4, "addr": 128, "qty": 2, "type": "u32_be_words", "scale": 0.1, "unit": "kWh", "status": "vendor-sheet verified"},
+}
+
+# Updated vendor sheet: docs/ref/vendor-modbus-update.xlsx, sheet 1.2遥测.
+# Modbus地址（04） is used directly as the PDU address on this gateway.
+# Modbus系数（/） means engineering value = raw / coefficient.
+PCS_UNIT_ID = 2
+PCS_POINTS = {
+    "frequencyHz": {"fc": 4, "addr": 24, "qty": 1, "type": "u16", "scale": 0.01, "unit": "Hz", "status": "vendor-sheet verified"},
+    "pcsKW": {"fc": 4, "addr": 28, "qty": 1, "type": "i16", "scale": 0.1, "unit": "kW", "status": "vendor-sheet verified"},
+    "pcsKVar": {"fc": 4, "addr": 32, "qty": 1, "type": "i16", "scale": 0.1, "unit": "kVar", "status": "vendor-sheet verified"},
+    "pcsChargeKWh": {"fc": 4, "addr": 45, "qty": 2, "type": "u32_be_words", "scale": 0.001, "unit": "kWh", "status": "vendor-sheet verified"},
+    "pcsDischargeKWh": {"fc": 4, "addr": 47, "qty": 2, "type": "u32_be_words", "scale": 0.001, "unit": "kWh", "status": "vendor-sheet verified"},
 }
 
 
@@ -98,6 +111,16 @@ def decode_registers(registers, dtype):
         return registers[0]
     if dtype == "i16":
         return struct.unpack(">h", registers[0].to_bytes(2, "big"))[0]
+    if dtype == "u32_be_words":
+        return (registers[0] << 16) | registers[1]
+    if dtype == "i32_be_words":
+        value = (registers[0] << 16) | registers[1]
+        return value - 2**32 if value >= 2**31 else value
+    if dtype == "u32_le_words":
+        return (registers[1] << 16) | registers[0]
+    if dtype == "i32_le_words":
+        value = (registers[1] << 16) | registers[0]
+        return value - 2**32 if value >= 2**31 else value
     raise ValueError(f"unsupported data type: {dtype}")
 
 
@@ -118,13 +141,14 @@ def read_station_info(http_base, timeout):
     return {}
 
 
-def read_modbus_points(args):
+def read_modbus_points(args, points, unit_id=None):
     values = {}
     raw = {}
     errors = {}
-    for name, spec in MODBUS_POINTS.items():
+    target_unit_id = args.unit_id if unit_id is None else unit_id
+    for name, spec in points.items():
         try:
-            regs = read_modbus_registers(args.host, args.port, args.unit_id, spec["fc"], spec["addr"], spec["qty"], args.timeout)
+            regs = read_modbus_registers(args.host, args.port, target_unit_id, spec["fc"], spec["addr"], spec["qty"], args.timeout)
             decoded = decode_registers(regs, spec["type"])
             raw[name] = decoded
             values[name] = round(decoded * spec["scale"], 3)
@@ -195,7 +219,8 @@ def write_live_json(path, snapshot):
 
 
 def build_snapshot(args):
-    modbus_values, modbus_raw, modbus_errors = read_modbus_points(args)
+    modbus_values, modbus_raw, modbus_errors = read_modbus_points(args, MODBUS_POINTS)
+    pcs_values, pcs_raw, pcs_errors = read_modbus_points(args, PCS_POINTS, PCS_UNIT_ID)
     station = read_station_info(args.http_base, args.timeout)
 
     snapshot = {
@@ -208,13 +233,17 @@ def build_snapshot(args):
         "pvKW": 0.0,
         "meta": {
             "modbusStatus": {k: v["status"] for k, v in MODBUS_POINTS.items()},
+            "pcsStatus": {k: v["status"] for k, v in PCS_POINTS.items()},
             "modbusRaw": modbus_raw,
             "modbusErrors": modbus_errors,
+            "pcsRaw": pcs_raw,
+            "pcsErrors": pcs_errors,
             "stationInfoName": station.get("name"),
         },
     }
 
     snapshot.update(modbus_values)
+    snapshot.update(pcs_values)
 
     # Prefer API-verified values where available.
     api_map = {
@@ -228,13 +257,6 @@ def build_snapshot(args):
     for api_key, target_key in api_map.items():
         if isinstance(station.get(api_key), (int, float)):
             snapshot[target_key] = station[api_key]
-
-    ess = snapshot.get("essKW")
-    grid = snapshot.get("gridKW")
-    pv = snapshot.get("pvKW")
-    if isinstance(ess, (int, float)) and isinstance(grid, (int, float)) and isinstance(pv, (int, float)):
-        # Convention: ESS positive = discharge, negative = charge. Candidate only until field-verified.
-        snapshot["candidateLoadKW"] = round(grid + pv + ess, 3)
 
     return snapshot
 
