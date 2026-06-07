@@ -180,6 +180,7 @@ func main() {
 	mux.HandleFunc("/api/devices", a.handleDevices)
 	mux.HandleFunc("/api/cabinets", a.handleCabinets)
 	mux.HandleFunc("/api/modbus-points", a.handleModbusPoints)
+	mux.HandleFunc("/api/collector/status", a.handleCollectorStatus)
 	mux.HandleFunc("/api/telemetry/status", a.handleTelemetryStatus)
 	mux.HandleFunc("/api/telemetry/latest", a.handleTelemetryLatest)
 	mux.HandleFunc("/api/telemetry/history", a.handleTelemetryHistory)
@@ -369,6 +370,116 @@ func (a *app) queryJSON(w http.ResponseWriter, r *http.Request, key string, sql 
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, key: data})
+}
+
+func (a *app) handleCollectorStatus(w http.ResponseWriter, r *http.Request) {
+	if !allowMethod(w, r, http.MethodGet) {
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	status := map[string]any{
+		"ok":        true,
+		"managedBy": "cron",
+		"cron": map[string]any{
+			"expected": []string{
+				"* * * * * /home/gentrice/jjems/scripts/hiems_mqtt_log_ingest_cron.sh",
+				"* * * * * /home/gentrice/jjems/scripts/hiems_signalr_bms_temperature_cron.sh",
+				"* * * * * /home/gentrice/jjems/scripts/hiems_soc_logger_cron.sh",
+			},
+		},
+		"files": map[string]any{
+			"latest":            a.fileFreshness("live/hiems_latest.json", 180*time.Second),
+			"history":           a.fileFreshness("live/hiems_history_24h.json", 180*time.Second),
+			"bmsTemperature":    a.fileFreshness("live/hiems_bms_temperature.json", 180*time.Second),
+			"gatewayOnboarding": a.fileFreshness("live/hiems_gateway_onboarding.json", 24*time.Hour),
+			"mqttState":         a.fileFreshness("state/hiems_mqtt_ingest.json", 180*time.Second),
+		},
+		"collectors": map[string]any{
+			"socLogger": map[string]any{
+				"script": "scripts/hiems_soc_logger_cron.sh",
+				"log":    a.fileFreshness("logs/hiems_soc_logger.log", 180*time.Second),
+				"writes": []string{"telemetry_cabinet_1s", "live/hiems_latest.json"},
+			},
+			"mqttLogIngest": map[string]any{
+				"script": "scripts/hiems_mqtt_log_ingest_cron.sh",
+				"log":    a.fileFreshness("logs/hiems_mqtt_log_ingest.log", 180*time.Second),
+				"writes": []string{"telemetry_cabinet_1s", "live/hiems_latest.json", "live/hiems_history_24h.json", "state/hiems_mqtt_ingest.json"},
+			},
+			"signalrBMSTemperature": map[string]any{
+				"script": "scripts/hiems_signalr_bms_temperature_cron.sh",
+				"log":    a.fileFreshness("logs/hiems_signalr_bms_temperature.log", 180*time.Second),
+				"writes": []string{"live/hiems_bms_temperature.json"},
+			},
+		},
+	}
+
+	var raw *string
+	const sql = `
+		SELECT jsonb_build_object(
+			'latestAnyTs', MAX(ts),
+			'latestAnyAgeSec', CASE WHEN MAX(ts) IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM (NOW() - MAX(ts)))::int END,
+			'latestFullTs', MAX(ts) FILTER (WHERE pcs_p_kw IS NOT NULL OR frequency IS NOT NULL OR temp_avg IS NOT NULL),
+			'latestFullAgeSec', CASE WHEN MAX(ts) FILTER (WHERE pcs_p_kw IS NOT NULL OR frequency IS NOT NULL OR temp_avg IS NOT NULL) IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM (NOW() - MAX(ts) FILTER (WHERE pcs_p_kw IS NOT NULL OR frequency IS NOT NULL OR temp_avg IS NOT NULL)))::int END,
+			'samples24h', COUNT(*) FILTER (WHERE ts >= NOW() - INTERVAL '24 hours')
+		)::text
+		FROM telemetry_cabinet_1s`
+	if err := a.db.QueryRow(ctx, sql).Scan(&raw); err != nil {
+		status["ok"] = false
+		status["database"] = map[string]any{"ok": false, "error": err.Error()}
+	} else if raw != nil && json.Valid([]byte(*raw)) {
+		var dbStatus map[string]any
+		if err := json.Unmarshal([]byte(*raw), &dbStatus); err == nil {
+			status["database"] = dbStatus
+			if age, ok := dbStatus["latestAnyAgeSec"].(float64); ok && age > 180 {
+				status["ok"] = false
+			}
+		}
+	}
+
+	for _, groupKey := range []string{"files", "collectors"} {
+		if hasStaleCollectorStatus(status[groupKey]) {
+			status["ok"] = false
+		}
+	}
+	writeJSON(w, http.StatusOK, status)
+}
+
+func (a *app) fileFreshness(relPath string, staleAfter time.Duration) map[string]any {
+	path := filepath.Join(a.cfg.StaticRoot, relPath)
+	info, err := os.Stat(path)
+	if err != nil {
+		return map[string]any{"ok": false, "path": relPath, "error": err.Error()}
+	}
+	age := time.Since(info.ModTime())
+	return map[string]any{
+		"ok":            age <= staleAfter,
+		"path":          relPath,
+		"modifiedAt":    info.ModTime().UTC().Format(time.RFC3339Nano),
+		"ageSec":        int(age.Seconds()),
+		"staleAfterSec": int(staleAfter.Seconds()),
+		"sizeBytes":     info.Size(),
+	}
+}
+
+func hasStaleCollectorStatus(value any) bool {
+	m, ok := value.(map[string]any)
+	if !ok {
+		return false
+	}
+	for _, item := range m {
+		switch v := item.(type) {
+		case map[string]any:
+			if okVal, exists := v["ok"].(bool); exists && !okVal {
+				return true
+			}
+			if hasStaleCollectorStatus(v) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (a *app) handleTelemetryStatus(w http.ResponseWriter, r *http.Request) {

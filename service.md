@@ -33,6 +33,7 @@ Important APIs:
 
 ```text
 GET  /api/health
+GET  /api/collector/status
 GET  /api/system/status
 GET  /api/db/health
 GET  /api/sites
@@ -82,6 +83,7 @@ API smoke tests:
 
 ```bash
 curl -sS http://127.0.0.1:8088/api/health
+curl -sS http://127.0.0.1:8088/api/collector/status
 curl -sS http://127.0.0.1:8088/api/db/health
 curl -sS http://127.0.0.1:8088/api/telemetry/status
 curl -sS http://127.0.0.1:8088/api/telemetry/latest
@@ -127,6 +129,7 @@ Verify:
 ```bash
 systemctl status jjems-server --no-pager
 curl -sS http://127.0.0.1:8088/api/health
+curl -sS http://127.0.0.1:8088/api/collector/status
 curl -sS http://127.0.0.1:8088/api/telemetry/status
 ```
 

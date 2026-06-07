@@ -66,6 +66,7 @@ JJEMS_TCP_TIMEOUT_MS        default 1500
 
 ```text
 GET  /api/health
+GET  /api/collector/status
 GET  /api/system/status
 GET  /api/db/health
 GET  /api/sites
@@ -97,6 +98,7 @@ POST /api/hiems/commands
 
 ```bash
 curl -sS http://127.0.0.1:8088/api/health
+curl -sS http://127.0.0.1:8088/api/collector/status
 curl -sS http://127.0.0.1:8088/api/system/status
 curl -sS http://127.0.0.1:8088/api/db/health
 curl -sS http://127.0.0.1:8088/api/sites

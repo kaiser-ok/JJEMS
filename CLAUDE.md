@@ -82,6 +82,7 @@ Important checks:
 systemctl status jjems-server --no-pager
 journalctl -u jjems-server -n 80 --no-pager
 curl -sS http://127.0.0.1:8088/api/health
+curl -sS http://127.0.0.1:8088/api/collector/status
 curl -sS http://127.0.0.1:8088/api/telemetry/status
 ```
 
@@ -99,6 +100,7 @@ Scoped sudoers have been configured for service management and exact binary inst
 
 Telemetry behavior:
 
+- `/api/collector/status` reports the current cron-managed collector path: `hiems_mqtt_log_ingest_cron.sh`, `hiems_signalr_bms_temperature_cron.sh`, and `hiems_soc_logger_cron.sh`, including log/file freshness and latest DB insert age.
 - `/api/telemetry/status`, `/api/telemetry/latest`, and `/api/telemetry/history` use TimescaleDB (`telemetry_cabinet_1s`) where possible.
 - `/api/telemetry/latest` and `/api/telemetry/history` fall back to `live/*.json` if DB data is unavailable.
 - `/api/telemetry/bms-temperature` and `/api/telemetry/gateway-onboarding` still serve existing JSON files.
@@ -145,4 +147,4 @@ Currency is language-linked: `fmt()`/`money()` in `app.js` use the `FX` table (`
 - This is a CDN-dependent static app (Chart.js, qrcode, Google Fonts) — it needs network access to render fully; it is not offline-first.
 - Deploys to Vercel (Framework Preset: Other; empty build command/output dir). Pushing to `main` auto-deploys.
 - Go backend migration is active. Prefer same-origin browser access through `jjems-server` on `8088`; keep internal ports such as legacy command API `9093`, Modbus `502`, PostgreSQL `5432`, and MQTT `1883` behind the backend or local service boundary.
-- Before ending backend work, run `gofmt`, `go test ./...`, build `/tmp/jjems-server`, install it, restart `jjems-server`, and smoke-test `/api/health` plus `/api/telemetry/status` when the user has allowed service deployment.
+- Before ending backend work, run `gofmt`, `go test ./...`, build `/tmp/jjems-server`, install it, restart `jjems-server`, and smoke-test `/api/health`, `/api/collector/status`, and `/api/telemetry/status` when the user has allowed service deployment.
