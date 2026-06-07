@@ -96,11 +96,11 @@ sudo /usr/bin/install -m 0755 /tmp/jjems-server /usr/local/bin/jjems-server
 sudo systemctl restart jjems-server
 ```
 
-Scoped sudoers have been configured for service management and exact binary install commands; keep them narrow. See `service.md`.
+Scoped sudoers have been configured for service management and exact binary install commands; keep them narrow. See `service.md`. Collector timer migration docs live at `deploy/collectors/INSTALL.md`; do not remove crontab entries until timers are installed and `/api/collector/status` is healthy.
 
 Telemetry behavior:
 
-- `/api/collector/status` reports the current cron-managed collector path: `hiems_mqtt_log_ingest_cron.sh`, `hiems_signalr_bms_temperature_cron.sh`, and `hiems_soc_logger_cron.sh`, including log/file freshness and latest DB insert age.
+- `/api/collector/status` reports the current collector path: cron-managed scripts today, with systemd timer replacements staged under `deploy/collectors/`. It includes log/file freshness and latest DB insert age.
 - `/api/telemetry/status`, `/api/telemetry/latest`, and `/api/telemetry/history` use TimescaleDB (`telemetry_cabinet_1s`) where possible.
 - `/api/telemetry/latest` and `/api/telemetry/history` fall back to `live/*.json` if DB data is unavailable.
 - `/api/telemetry/bms-temperature` and `/api/telemetry/gateway-onboarding` still serve existing JSON files.

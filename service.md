@@ -202,6 +202,34 @@ sudo /usr/bin/install -m 0755 /tmp/jjems-server /usr/local/bin/jjems-server
 Note: sudo is still required because `/usr/local/bin` is system-owned. The
 sudoers rule removes the password prompt only for the exact command above.
 
+## Collector Timers
+
+Current telemetry collectors are still active via user crontab. Systemd timer
+replacements have been added under:
+
+```text
+deploy/collectors/
+```
+
+Timer/service pairs:
+
+```text
+jjems-soc-logger.service / jjems-soc-logger.timer
+jjems-mqtt-log-ingest.service / jjems-mqtt-log-ingest.timer
+jjems-bms-temperature.service / jjems-bms-temperature.timer
+```
+
+Use `deploy/collectors/INSTALL.md` to install, test, enable timers, and only
+then remove the old crontab entries. Do not run cron and systemd timers in
+parallel long term, or telemetry rows will be duplicated.
+
+Verify collector health:
+
+```bash
+curl -sS http://127.0.0.1:8088/api/collector/status
+systemctl list-timers 'jjems-*' --no-pager
+```
+
 ## Configuration
 
 Current environment file:

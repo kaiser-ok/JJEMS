@@ -1,0 +1,14 @@
+[Unit]
+Description=JJEMS SignalR BMS Temperature Collector
+Documentation=file:/home/gentrice/jjems/service.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=gentrice
+Group=gentrice
+WorkingDirectory=/home/gentrice/jjems
+ExecStart=/home/gentrice/jjems/scripts/hiems_signalr_bms_temperature_cron.sh
+NoNewPrivileges=true
+PrivateTmp=true

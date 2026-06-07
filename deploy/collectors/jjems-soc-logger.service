@@ -1,0 +1,15 @@
+[Unit]
+Description=JJEMS SoC Logger Collector
+Documentation=file:/home/gentrice/jjems/service.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=gentrice
+Group=gentrice
+WorkingDirectory=/home/gentrice/jjems
+Environment=DATABASE_URL=postgres://ems:ems_dev_only_change_me@localhost:5432/ems
+ExecStart=/home/gentrice/jjems/scripts/hiems_soc_logger_cron.sh
+NoNewPrivileges=true
+PrivateTmp=true
