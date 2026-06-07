@@ -1,8 +1,8 @@
 # JJEMS Collector Timers
 
-This migrates the current per-minute crontab collectors to systemd timers.
+This documents the active per-minute systemd timer collectors.
 
-Current crontab entries:
+Historical crontab entries, now removed:
 
 ```text
 * * * * * /home/gentrice/jjems/scripts/hiems_mqtt_log_ingest_cron.sh
@@ -10,7 +10,7 @@ Current crontab entries:
 * * * * * /home/gentrice/jjems/scripts/hiems_soc_logger_cron.sh
 ```
 
-Systemd replacements:
+Active systemd units:
 
 ```text
 jjems-soc-logger.service
@@ -73,29 +73,17 @@ curl -sS http://127.0.0.1:8088/api/collector/status
 curl -sS http://127.0.0.1:8088/api/telemetry/status
 ```
 
-## Disable Crontab After Timers Are Healthy
+## Crontab Status
 
-Only remove crontab entries after the timers have run successfully and
-`/api/collector/status` remains healthy.
-
-Edit the crontab:
-
-```bash
-crontab -e
-```
-
-Remove these lines:
-
-```text
-* * * * * /home/gentrice/jjems/scripts/hiems_mqtt_log_ingest_cron.sh
-* * * * * /home/gentrice/jjems/scripts/hiems_signalr_bms_temperature_cron.sh
-* * * * * /home/gentrice/jjems/scripts/hiems_soc_logger_cron.sh
-```
-
-Then verify:
+The old user crontab should stay absent while timers are active:
 
 ```bash
 crontab -l
+```
+
+Expected output is `no crontab for gentrice`. Verify the active path instead:
+
+```bash
 systemctl list-timers 'jjems-*' --no-pager
 curl -sS http://127.0.0.1:8088/api/collector/status
 ```

@@ -204,8 +204,8 @@ sudoers rule removes the password prompt only for the exact command above.
 
 ## Collector Timers
 
-Current telemetry collectors are still active via user crontab. Systemd timer
-replacements have been added under:
+Telemetry collectors are managed by systemd timers. The old user crontab was
+removed after the timers were installed and verified healthy.
 
 ```text
 deploy/collectors/
@@ -219,15 +219,16 @@ jjems-mqtt-log-ingest.service / jjems-mqtt-log-ingest.timer
 jjems-bms-temperature.service / jjems-bms-temperature.timer
 ```
 
-Use `deploy/collectors/INSTALL.md` to install, test, enable timers, and only
-then remove the old crontab entries. Do not run cron and systemd timers in
-parallel long term, or telemetry rows will be duplicated.
+Use `deploy/collectors/INSTALL.md` for reinstall, verification, or rollback
+steps. Do not re-enable cron while systemd timers are active, or telemetry rows
+will be duplicated.
 
 Verify collector health:
 
 ```bash
 curl -sS http://127.0.0.1:8088/api/collector/status
 systemctl list-timers 'jjems-*' --no-pager
+crontab -l
 ```
 
 ## Configuration

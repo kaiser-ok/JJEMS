@@ -381,12 +381,13 @@ func (a *app) handleCollectorStatus(w http.ResponseWriter, r *http.Request) {
 
 	status := map[string]any{
 		"ok":        true,
-		"managedBy": "cron",
-		"cron": map[string]any{
+		"managedBy": "systemd-timers",
+		"scheduler": map[string]any{
+			"type": "systemd-timers",
 			"expected": []string{
-				"* * * * * /home/gentrice/jjems/scripts/hiems_mqtt_log_ingest_cron.sh",
-				"* * * * * /home/gentrice/jjems/scripts/hiems_signalr_bms_temperature_cron.sh",
-				"* * * * * /home/gentrice/jjems/scripts/hiems_soc_logger_cron.sh",
+				"jjems-soc-logger.timer",
+				"jjems-mqtt-log-ingest.timer",
+				"jjems-bms-temperature.timer",
 			},
 		},
 		"files": map[string]any{
