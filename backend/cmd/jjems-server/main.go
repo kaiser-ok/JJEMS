@@ -394,7 +394,7 @@ func (a *app) handleCollectorStatus(w http.ResponseWriter, r *http.Request) {
 			"latest":            a.fileFreshness("live/hiems_latest.json", 180*time.Second),
 			"history":           a.fileFreshness("live/hiems_history_24h.json", 180*time.Second),
 			"bmsTemperature":    a.fileFreshness("live/hiems_bms_temperature.json", 180*time.Second),
-			"gatewayOnboarding": a.fileFreshness("live/hiems_gateway_onboarding.json", 24*time.Hour),
+			"gatewayOnboarding": a.fileFreshness("live/hiems_gateway_onboarding.json", 7*24*time.Hour),
 			"mqttState":         a.fileFreshness("state/hiems_mqtt_ingest.json", 180*time.Second),
 		},
 		"collectors": map[string]any{

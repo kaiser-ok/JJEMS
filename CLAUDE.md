@@ -58,11 +58,11 @@ The current frontend defaults to `/api/hiems/commands` on the Go backend. Keep r
 - **`styles.css`** (~1300 lines) — dark navy theme.
 - **`db/`** — PostgreSQL 16 + TimescaleDB schema (`schema.sql`, `seed.sql`, `docker-compose.yml`, `DEPLOYMENT.md`). Local PostgreSQL is currently reachable at `postgres://ems:ems_dev_only_change_me@localhost:5432/ems` and has the EMS schema loaded. The static frontend does not yet query it directly; it should be used by the planned formal backend. `DEPLOYMENT.md` describes three deployment topologies (edge single-site / pure-IP multi-site / full three-tier).
 - **`db.md`** — current local DB status, connection string, table/extension confirmation, and backend integration direction.
-- **`backend/`** — Go backend (`cmd/jjems-server`) that serves the current SPA and same-origin `/api/*` routes. It uses PostgreSQL/TimescaleDB via `pgx`, exposes DB-backed sites/devices/cabinets/modbus-points APIs, command gate APIs, telemetry status/latest/history, and JSON-backed fallback telemetry endpoints.
+- **`backend/`** — Go backend commands. `cmd/jjems-server` serves the current SPA and same-origin `/api/*` routes. `cmd/jjems-collector` is the first Go collector prototype for the SoC/telemetry path and is not yet the active timer target. The server uses PostgreSQL/TimescaleDB via `pgx`, exposes DB-backed sites/devices/cabinets/modbus-points APIs, command gate APIs, telemetry status/latest/history, and JSON-backed fallback telemetry endpoints.
 - **`deploy/`** — systemd unit, env template, and install notes for `jjems-server`.
 - **`service.md`** — operational runbook for the installed service, scoped sudoers, build/deploy flow, API smoke tests, and known notes.
 - **`scripts/hiems_command_api.py`** — legacy/reference local HiEMS command API gate for `#/rtu-verify`; default port `9093`, dry-run only by default. The Go backend now provides the same primary `/api/hiems/commands` path on port `8088`.
-- **`scripts/hiems_*.py`** — local data collection/probing utilities for HiEMS SignalR, BMS temperature, MQTT ingest/subscription, SoC logging, and command gating. These are still useful references while collector functionality moves into Go.
+- **`scripts/hiems_*.py`** — local data collection/probing utilities for HiEMS SignalR, BMS temperature, MQTT ingest/subscription, SoC logging, and command gating. The active collector timers still call these wrappers while Go collector output is validated.
 
 ### Go backend and service
 
@@ -84,6 +84,14 @@ journalctl -u jjems-server -n 80 --no-pager
 curl -sS http://127.0.0.1:8088/api/health
 curl -sS http://127.0.0.1:8088/api/collector/status
 curl -sS http://127.0.0.1:8088/api/telemetry/status
+```
+
+Go collector prototype validation:
+
+```bash
+/usr/local/go/bin/go build -o /tmp/jjems-collector ./backend/cmd/jjems-collector
+DATABASE_URL=postgres://ems:ems_dev_only_change_me@localhost:5432/ems \
+  /tmp/jjems-collector --once --print-json --live-json /tmp/jjems_go_collector_latest.json
 ```
 
 Build/deploy workflow:

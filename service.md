@@ -231,6 +231,23 @@ systemctl list-timers 'jjems-*' --no-pager
 crontab -l
 ```
 
+
+## Go Collector Prototype
+
+A Go SoC collector prototype is available at `backend/cmd/jjems-collector`. It
+can be built and run manually, but it has not replaced the active Python-based
+collector timer yet. Keep the current systemd timers unchanged until the Go
+collector has been compared against `/api/collector/status` and recent
+TimescaleDB rows.
+
+Manual validation command:
+
+```bash
+/usr/local/go/bin/go build -o /tmp/jjems-collector ./backend/cmd/jjems-collector
+DATABASE_URL=postgres://ems:ems_dev_only_change_me@localhost:5432/ems \
+  /tmp/jjems-collector --once --print-json --live-json /tmp/jjems_go_collector_latest.json
+```
+
 ## Configuration
 
 Current environment file:
@@ -269,5 +286,3 @@ Keep `JJEMS_ENABLE_WRITES=false` unless doing controlled field testing.
 - `MQTT` may show down if no local broker is listening on `127.0.0.1:1883`.
   Either start Mosquitto locally or update `JJEMS_MQTT_ADDR` to the correct host.
 - Runtime command audit files are ignored by git via `logs/*.jsonl`.
-- There is an unrelated existing untracked file with a malformed name beginning
-  `h, registers...`; do not remove it unless explicitly asked.

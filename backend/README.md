@@ -94,6 +94,23 @@ POST /api/hiems/commands
   `JJEMS_COMMAND_MAX_POWER_KW`.
 - All requests are appended to the command audit log.
 
+
+## Go Collector Prototype
+
+A Go SoC collector prototype lives at `backend/cmd/jjems-collector`. It mirrors
+the current `scripts/hiems_soc_logger.py` path for manual validation: Modbus +
+HiEMS StationInfo read, TimescaleDB insert into `telemetry_cabinet_1s`, and
+`live/hiems_latest.json` output. The active systemd timers still call the
+existing Python wrappers until the Go collector has been compared in the field.
+
+Build and test without touching the active live JSON:
+
+```bash
+/usr/local/go/bin/go build -o /tmp/jjems-collector ./backend/cmd/jjems-collector
+DATABASE_URL=postgres://ems:ems_dev_only_change_me@localhost:5432/ems \
+  /tmp/jjems-collector --once --print-json --live-json /tmp/jjems_go_collector_latest.json
+```
+
 ## Smoke Tests
 
 ```bash
