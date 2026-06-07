@@ -34,6 +34,7 @@ const state = {
   telemetryHistory: null,
   bmsTemperature: null,
   gatewayOnboarding: null,
+  telemetryStatus: null,
   selectedCabinetControllerId: null,
   lang: (() => { try { return localStorage.getItem("ems-lang") || "zh-TW"; } catch { return "zh-TW"; } })(),
 };
@@ -60,20 +61,24 @@ function currentSiteHasEV() {
 }
 async function loadLiveSnapshot() {
   try {
-    const res = await fetch(`live/hiems_latest.json?ts=${Date.now()}`, { cache: "no-store" });
+    const res = await fetch(`/api/telemetry/latest?ts=${Date.now()}`, { cache: "no-store" });
     if (res.ok) state.liveSnapshot = await res.json();
   } catch {}
   try {
-    const res = await fetch(`live/hiems_history_24h.json?ts=${Date.now()}`, { cache: "no-store" });
+    const res = await fetch(`/api/telemetry/history?ts=${Date.now()}`, { cache: "no-store" });
     if (res.ok) state.telemetryHistory = await res.json();
   } catch {}
   try {
-    const res = await fetch(`live/hiems_bms_temperature.json?ts=${Date.now()}`, { cache: "no-store" });
+    const res = await fetch(`/api/telemetry/bms-temperature?ts=${Date.now()}`, { cache: "no-store" });
     if (res.ok) state.bmsTemperature = await res.json();
   } catch {}
   try {
-    const res = await fetch(`live/hiems_gateway_onboarding.json?ts=${Date.now()}`, { cache: "no-store" });
+    const res = await fetch(`/api/telemetry/gateway-onboarding?ts=${Date.now()}`, { cache: "no-store" });
     if (res.ok) state.gatewayOnboarding = await res.json();
+  } catch {}
+  try {
+    const res = await fetch(`/api/telemetry/status?ts=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) state.telemetryStatus = await res.json();
   } catch {}
   renderTopbar();
   if (document.getElementById("flowmini")) drawFlowMini();
@@ -363,6 +368,14 @@ function renderTopbar() {
 
   const essLabel = ess > 0 ? t("tstat.essDis") : ess < 0 ? t("tstat.essChg") : t("tstat.essIdle");
   const liveTag = snap ? `<div class="tstat"><span class="tlabel">櫃控</span><span class="tvalue" style="font-size:13px;color:var(--green)">192.168.1.100</span></div>` : "";
+  const telemetryStatus = state.telemetryStatus;
+  const ageSec = telemetryStatus && typeof telemetryStatus.latestAgeSec === "number" ? telemetryStatus.latestAgeSec : null;
+  const ageLabel = ageSec == null ? "--" : ageSec < 90 ? `${ageSec}s` : `${Math.round(ageSec / 60)}m`;
+  const statusOk = telemetryStatus && telemetryStatus.ok === true;
+  const statusColor = statusOk ? "var(--green)" : "var(--amber)";
+  const statusDot = statusOk ? "dot-ok" : "dot-warn";
+  const statusSource = telemetryStatus?.source || "--";
+  const telemetryTag = `<div class="tstat telemetry-tstat" title="source: ${statusSource}; latest age: ${ageLabel}"><span class="dot ${statusDot}"></span><span class="tlabel">DB</span><span class="tvalue" style="color:${statusColor}">${ageLabel}</span></div>`;
   $("#topbar-stats").innerHTML = `
     <div class="tstat"><span class="tlabel">${t("tstat.grid")}</span><span class="tvalue">${fmt(grid)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">PV</span><span class="tvalue" style="color:var(--pv-yellow)">${fmt(pv)}</span><span class="tunit">kW</span></div>
@@ -370,6 +383,7 @@ function renderTopbar() {
     <div class="tstat"><span class="tlabel">${t("tstat.load")}</span><span class="tvalue" style="color:var(--load-purple)">${fmt(load)}</span><span class="tunit">kW</span></div>
     <div class="tstat"><span class="tlabel">SoC</span><span class="tvalue" style="color:var(--green)">${(+soc).toFixed(0)}</span><span class="tunit">%</span></div>
     ${liveTag}
+    ${telemetryTag}
     <div class="tstat"><span class="tlabel">${t("tstat.savings")}</span><span class="tvalue" style="color:${benefit.net>=0?'var(--green)':'var(--red)'}">${money(benefit.net)}</span></div>
   `;
 }
@@ -4632,7 +4646,7 @@ function viewRtuVerify() {
         <div class="grid g-2e" style="gap:10px">
           <div class="form-row">
             <label>API URL</label>
-            <input class="inp" id="commandApiUrl" value="http://127.0.0.1:9093/api/hiems/commands">
+            <input class="inp" id="commandApiUrl" value="/api/hiems/commands">
           </div>
           <div class="form-row">
             <label>操作員</label>
@@ -4748,7 +4762,7 @@ function viewRtuVerify() {
     safetyAcks: checks.map((x, i) => x.checked ? safetyAckNames[i] : null).filter(Boolean),
     clientTs: new Date().toISOString(),
   });
-  const commandUrl = () => $("#commandApiUrl")?.value?.trim() || "http://127.0.0.1:9093/api/hiems/commands";
+  const commandUrl = () => $("#commandApiUrl")?.value?.trim() || "/api/hiems/commands";
   const renderCommandResult = (payload, ok = true) => {
     const out = $("#commandOutput");
     if (out) out.textContent = JSON.stringify(payload, null, 2);
@@ -4767,7 +4781,7 @@ function viewRtuVerify() {
       const payload = await res.json();
       renderCommandResult(payload, res.ok && payload.ok !== false);
     } catch (err) {
-      renderCommandResult({ ok:false, error:String(err), hint:"請確認 scripts/hiems_command_api.py 是否已在 127.0.0.1:9093 啟動。" }, false);
+      renderCommandResult({ ok:false, error:String(err), hint:"請確認 Go backend 是否已在 8088 啟動，或手動改用 http://127.0.0.1:9093/api/hiems/commands。" }, false);
     }
   };
   $("#commandDryRun")?.addEventListener("click", () => sendCommand(false));

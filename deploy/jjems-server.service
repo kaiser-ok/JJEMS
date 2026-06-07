@@ -1,0 +1,23 @@
+[Unit]
+Description=JJEMS Go Backend
+Documentation=file:/home/gentrice/jjems/backend/README.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gentrice
+Group=gentrice
+WorkingDirectory=/home/gentrice/jjems
+EnvironmentFile=/etc/jjems/jjems-server.env
+ExecStart=/usr/local/bin/jjems-server
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/gentrice/jjems/logs /tmp
+
+[Install]
+WantedBy=multi-user.target
