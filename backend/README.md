@@ -97,11 +97,16 @@ POST /api/hiems/commands
 
 ## Go Collector Prototype
 
-A Go SoC collector prototype lives at `backend/cmd/jjems-collector`. It mirrors
-the current `scripts/hiems_soc_logger.py` path for manual validation: Modbus +
-HiEMS StationInfo read, TimescaleDB insert into `telemetry_cabinet_1s`, and
-`live/hiems_latest.json` output. The active systemd timers still call the
-existing Python wrappers until the Go collector has been compared in the field.
+A Go collector prototype lives at `backend/cmd/jjems-collector`. It now runs
+separate poll groups: `power` defaults to 1s for PCS power/frequency telemetry,
+and `critical_alarm` defaults to 5s for SOC/SOH/BMS voltage/current/temperature
+telemetry plus latest-state metadata. Each group writes sparse rows into
+`telemetry_cabinet_1s`, upserts `telemetry_cabinet_latest`, and refreshes the
+merged `live/hiems_latest.json`. `dc_voltage` / `dc_current` remain the BMS
+battery-cluster values; PCS-side DC input values are stored separately as
+`pcs_dc_power_kw`, `pcs_dc_voltage`, and `pcs_dc_current`. The active systemd
+timers still call the existing Python wrappers until the Go collector has been
+compared in the field.
 
 Build and test without touching the active live JSON:
 
@@ -109,6 +114,8 @@ Build and test without touching the active live JSON:
 /usr/local/go/bin/go build -o /tmp/jjems-collector ./backend/cmd/jjems-collector
 DATABASE_URL=postgres://ems:ems_dev_only_change_me@localhost:5432/ems \
   /tmp/jjems-collector --once --print-json --live-json /tmp/jjems_go_collector_latest.json
+
+# Runtime defaults: --power-interval=1s, --critical-interval=5s.
 ```
 
 ## Smoke Tests

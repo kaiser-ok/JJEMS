@@ -293,6 +293,9 @@ CREATE TABLE telemetry_cabinet_1s (
   cabinet_id      UUID NOT NULL,
   pcs_p_kw        REAL,
   pcs_q_kvar      REAL,
+  pcs_dc_power_kw REAL,
+  pcs_dc_voltage  REAL,
+  pcs_dc_current  REAL,
   dc_voltage      REAL,
   dc_current      REAL,
   ac_voltage      REAL,
@@ -311,6 +314,31 @@ CREATE INDEX idx_telemetry_cabinet_1s_cabinet ON telemetry_cabinet_1s(cabinet_id
 ALTER TABLE telemetry_cabinet_1s SET (timescaledb.compress, timescaledb.compress_segmentby = 'cabinet_id');
 SELECT add_compression_policy('telemetry_cabinet_1s', INTERVAL '7 days');
 SELECT add_retention_policy('telemetry_cabinet_1s', INTERVAL '90 days');
+
+CREATE TABLE telemetry_cabinet_latest (
+  cabinet_id      UUID PRIMARY KEY,
+  ts              TIMESTAMPTZ NOT NULL,
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  pcs_p_kw        REAL,
+  pcs_q_kvar      REAL,
+  pcs_dc_power_kw REAL,
+  pcs_dc_voltage  REAL,
+  pcs_dc_current  REAL,
+  dc_voltage      REAL,
+  dc_current      REAL,
+  ac_voltage      REAL,
+  frequency       REAL,
+  soc             REAL,
+  soh             REAL,
+  temp_avg        REAL,
+  temp_max        REAL,
+  temp_min        REAL,
+  insulation_kohm REAL,
+  efficiency_pct  REAL,
+  status_bitmap   INTEGER,
+  metadata        JSONB DEFAULT '{}'
+);
+CREATE INDEX idx_telemetry_cabinet_latest_updated ON telemetry_cabinet_latest(updated_at DESC);
 
 CREATE TABLE telemetry_cell_30s (
   ts                  TIMESTAMPTZ NOT NULL,
